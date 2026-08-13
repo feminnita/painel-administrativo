@@ -13,3 +13,4 @@ export async function requireAdminAuth(req: Request, res: Response, next: NextFu
     req.admin = await AuthRepository.findAdminById(session.adminId);
     next();
 }
+
