@@ -55,9 +55,9 @@ export function useProductsAdmin() {
     setLoading(true);
     try {
       const [prods, catRows, cols] = await Promise.all([
-        api.get<Record<string, any>[]>("/api/products"),
-        api.get<Record<string, any>[]>("/api/categories"),
-        api.get<Record<string, any>[]>("/api/colors"),
+        api.get<Record<string, any>[]>("/api/admin/products"),
+        api.get<Record<string, any>[]>("/api/admin/categories"),
+        api.get<Record<string, any>[]>("/api/admin/colors"),
       ]);
       setProducts(prods.map(mapApiProduct));
       setCategoryRows(catRows.map(mapApiCategory));
