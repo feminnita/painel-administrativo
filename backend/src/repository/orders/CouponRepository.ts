@@ -33,3 +33,8 @@ export async function deleteCoupon(id: string) {
     const [coupon] = await db.delete(coupons).where(eq(coupons.id, id)).returning();
     return coupon;
 }
+
+export async function remove(id: string) {
+    const [coupon] = await db.delete(coupons).where(eq(coupons.id, id)).returning();
+    return coupon;
+}

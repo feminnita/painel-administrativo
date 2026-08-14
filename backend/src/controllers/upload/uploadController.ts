@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import * as CloudinaryClient from '../../integrations/cloudinary/CloudinaryClient';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'video/mp4', 'video/webm'];
 
 export async function uploadImages(req: Request, res: Response) {
     const files = req.files as Express.Multer.File[] | undefined;

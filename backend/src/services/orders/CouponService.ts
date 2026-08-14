@@ -41,8 +41,6 @@ export async function deactivateCoupon(id: string) {
 }
 
 export async function deleteCoupon(id: string) {
-    const coupon = await CouponRepository.deleteCoupon(id);
-
-    if (!coupon) throw new Error("COUPON_NOT_FOUND");
-    return coupon;
+    const coupon = await CouponRepository.remove(id);
+    if (!coupon) throw new Error('COUPON_NOT_FOUND');
 }

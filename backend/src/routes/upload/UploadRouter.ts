@@ -5,7 +5,7 @@ import { requireAdminAuth } from '../../middleware/AuthMiddleware';
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 8 * 1024 * 1024, files: 10 },
+    limits: { fileSize: 50 * 1024 * 1024, files: 10 },
 });
 
 export const adminUploadRoutes = Router();
