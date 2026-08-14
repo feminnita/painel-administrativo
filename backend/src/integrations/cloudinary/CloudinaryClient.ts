@@ -16,7 +16,7 @@ export function uploadImage(buffer: Buffer, folder: string): Promise<string> {
     ensureConfigured();
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder, resource_type: 'image' },
+            { folder, resource_type: 'auto' },
             (error, result) => {
                 if (error || !result) return reject(error ?? new Error('CLOUDINARY_UPLOAD_FAILED'));
                 resolve(result.secure_url);
