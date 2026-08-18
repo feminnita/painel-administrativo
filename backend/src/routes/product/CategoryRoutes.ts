@@ -6,10 +6,9 @@ export const adminCategoryRoutes = Router();
 adminCategoryRoutes.use(requireAdminAuth);
 
 adminCategoryRoutes.get('/', categoryController.list);
-adminCategoryRoutes.get('/:id', categoryController.getOne);
 adminCategoryRoutes.get('/product-counts', categoryController.productCounts);
+adminCategoryRoutes.get('/:id', categoryController.getOne);
 adminCategoryRoutes.post('/', categoryController.create);
-adminCategoryRoutes.put('/', categoryController.update);
 adminCategoryRoutes.put('/reorder', categoryController.reorder);
-adminCategoryRoutes.delete('/:id', categoryController.deactive); // desativa
+adminCategoryRoutes.put('/:id', categoryController.update); // desativa
 adminCategoryRoutes.delete('/:id', categoryController.deleteCategory); // deleta
