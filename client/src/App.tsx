@@ -9,6 +9,8 @@ import { UnderConstructionPage } from "@/pages/UnderConstructionPage";
 import { CharacteristicsPage } from "./pages/characteristics/ui/CharacteristicsPage";
 import { CategoryBoard } from "./pages/categories/ui/CategoryBoard";
 import { StockPage } from "./pages/stock/ui/StockPage";
+import { CouponsPage } from "./pages/coupons/ui/CouponsPage";
+import { BannersPage } from '@/pages/banners/ui/BannersPage';
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
           <Route path="/caracteristicas" element={<CharacteristicsPage />} />
           <Route path="/categorias" element={<CategoryBoard />} />
           <Route path="/estoque" element={<StockPage />} />
+          <Route path="/cupons" element={<CouponsPage />} />
+          <Route path="/slides" element={<BannersPage />} />
           <Route path="*" element={<UnderConstructionPage />} />
         </Route>
       </Route>

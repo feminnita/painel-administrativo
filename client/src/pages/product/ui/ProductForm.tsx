@@ -333,8 +333,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 type="button"
                                 onClick={() => toggleSize(size)}
                                 className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${sizes.includes(size)
-                                        ? "border-[#8C2F39] bg-[#8C2F39] text-white"
-                                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                                    ? "border-[#8C2F39] bg-[#8C2F39] text-white"
+                                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                                     }`}
                             >
                                 {size}
@@ -420,8 +420,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     type="button"
                                     onClick={() => toggleColor(c.name)}
                                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${colors.includes(c.name)
-                                            ? "border-[#8C2F39] bg-[#8C2F39]/5 text-[#8C2F39]"
-                                            : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        ? "border-[#8C2F39] bg-[#8C2F39]/5 text-[#8C2F39]"
+                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
                                     <span className="h-6 w-6 shrink-0 overflow-hidden rounded-full border">
@@ -480,8 +480,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
                                         <label
                                             className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 transition-colors ${uploading
-                                                    ? "border-gray-200 bg-gray-50"
-                                                    : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
+                                                ? "border-gray-200 bg-gray-50"
+                                                : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
                                                 }`}
                                         >
                                             <input
@@ -648,6 +648,24 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 ))}
                         </div>
                     )}
+                    <div className="mt-4">
+                        <label className="label">Vídeo do produto (YouTube)</label>
+                        <input
+                            type="text"
+                            value={editing.video_url || ""}
+                            onChange={(e) =>
+                                setEditing({
+                                    ...editing,
+                                    video_url: e.target.value || null,
+                                })
+                            }
+                            className="input"
+                            placeholder="https://www.youtube.com/watch?v=... (aceita youtu.be e shorts)"
+                        />
+                        <p className="mt-1 text-xs text-gray-400">
+                            Aparece como miniatura com play na galeria do produto no site
+                        </p>
+                    </div>
                 </section>
 
                 {/* ── SEO ── */}
@@ -763,8 +781,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     type="button"
                                     onClick={() => setEditing({ ...editing, [key]: !val })}
                                     className={`flex items-center gap-2 rounded-lg border px-4 py-2 transition-colors ${val
-                                            ? "border-[#8C2F39] bg-[#8C2F39] text-white"
-                                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                                        ? "border-[#8C2F39] bg-[#8C2F39] text-white"
+                                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
                                     <Icon size={15} />

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import * as CouponRepository from '../../repository/orders/CouponRepository';
+import * as CouponService from '../../repository/orders/CouponRepository';
 
 function normalizePrice(value: unknown): string | undefined {
     if (value === undefined || value === null || value === "") return undefined;
@@ -8,14 +8,14 @@ function normalizePrice(value: unknown): string | undefined {
 }
 
 export async function list(req: Request, res: Response) {
-    res.json(await CouponRepository.findAll());
+    res.json(await CouponService.findAll());
 }
 
 export async function getOne(req: Request, res: Response) {
     const id = req.params.id as string;
 
     try {
-        res.json(await CouponRepository.findById(id));
+        res.json(await CouponService.findById(id));
     } catch (error) {
         console.error(error);
         res.status(404).json({ error: 'Cupom não encontrado' });
@@ -32,7 +32,7 @@ export async function create(req: Request, res: Response) {
             return res.json({ error: 'Preencha os campos Obrigatórios' });
         }
 
-        const coupon = await CouponRepository.insert({
+        const coupon = await CouponService.insert({
             code: code.toUpperCase().trim(),
             type,
             value: normalizePrice(value)!,
@@ -65,7 +65,7 @@ export async function update(req: Request, res: Response) {
         if ('active' in values) {
             values.active = values.active === true || values.active === 'true';
         }
-        res.json(await CouponRepository.update(id, values));
+        res.json(await CouponService.update(id, values));
 
     } catch (error) {
         console.error('Erro ao atualizar cupom:', error);
@@ -77,10 +77,12 @@ export async function deleteCoupon(req: Request, res: Response) {
     const id = req.params.id as string;
 
     try {
-        await CouponRepository.deleteCoupon(id);
-        res.sendStatus(204);
+        await CouponService.deleteCoupon(id);
+        res.status(204).send();
     } catch (error) {
-        console.error('Erro ao deletar cupom:', error);
-        res.status(404).json({ error: 'Cupom não encontrado' });
+        if ((error as { code?: string }).code === '23503') {
+            return res.status(409).json({ error: 'Cupom já usado em pedidos, desative em vez de excluir' })
+        }
+        res.status(404).json({ error: 'Cupon não encontrado' });
     }
 }

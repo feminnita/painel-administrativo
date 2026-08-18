@@ -14,6 +14,7 @@ export type AdminProduct = {
   is_new: boolean;
   is_bestseller: boolean;
   images: string[];
+  video_url: string | null;
   weight_kg: number | null;
   pkg_height_cm: number | null;
   pkg_width_cm: number | null;
