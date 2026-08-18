@@ -7,6 +7,6 @@ adminHeroSlideRoutes.use(requireAdminAuth);
 
 adminHeroSlideRoutes.get('/', HeroSlideController.list);
 adminHeroSlideRoutes.post('/', HeroSlideController.create);
-adminHeroSlideRoutes.patch('/reorder', HeroSlideController.reorder);
+adminHeroSlideRoutes.put('/reorder', HeroSlideController.reorder);
 adminHeroSlideRoutes.put('/:id', HeroSlideController.update);
 adminHeroSlideRoutes.delete('/:id', HeroSlideController.remove);

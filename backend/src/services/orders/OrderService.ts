@@ -126,7 +126,7 @@ export async function updateOrderStatus(
         const updated = await OrdeRepository.saveShippedAt(order.id);
         await sendOrderShippedEmail(order);
         return updated;
-    } else if (order.status === 'shipped' && !wasCancelled && wasPaid) {
+    } else if (order.status === 'cancelled' && !wasCancelled && wasPaid) {
         await releaseReservationForOrder(order.id);
     }
 
