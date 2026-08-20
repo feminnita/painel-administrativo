@@ -1,3 +1,5 @@
+import { env } from '../../../config/env';
+
 export async function sendEmail(
     input: {
         to: string;
@@ -9,10 +11,10 @@ export async function sendEmail(
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            Authorization: `Bearer ${env.resend.apiKey}`,
         },
         body: JSON.stringify({
-            from: process.env.MAIL_FROM,
+            from: env.resend.mailFrom,
             to: input.to,
             subject: input.subject,
             html: input.html,
@@ -25,4 +27,3 @@ export async function sendEmail(
     }
     return response.json();
 }
-

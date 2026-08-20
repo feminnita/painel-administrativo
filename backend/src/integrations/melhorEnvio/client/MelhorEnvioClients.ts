@@ -1,17 +1,16 @@
-import { PackageDimensions, RawQuoteOption } from "../types";
-
+import { env } from '../../../config/env';
 
 async function request<T>(path: string, options: {
     method?: string;
     body?: unknown
 } = {}): Promise<T> {
-    const response = await fetch(`${process.env.ME_BASE_URL}${path}`, {
+    const response = await fetch(`${env.melhorEnvio.baseUrl}${path}`, {
         method: options.method ?? 'GET',
         headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            Authorization: `Bearer ${process.env.ME_TOKEN}`,
-            'User-Agent': 'Feminnita (feminita@gmail.com)',
+            Authorization: `Bearer ${env.melhorEnvio.token}`,
+            'User-Agent': `Feminnita (${env.store.email})`,
         },
         body: options.body ? JSON.stringify(options.body) : undefined,
     });
@@ -22,17 +21,6 @@ async function request<T>(path: string, options: {
     }
 
     return response.json() as Promise<T>;
-}
-
-export function calculate(toCep: string, pkg: PackageDimensions): Promise<RawQuoteOption[]> {
-    return request<RawQuoteOption[]>('/me/shipment/calculate', {
-        method: 'POST',
-        body: {
-            from: { postal_code: process.env.STORE_CEP },
-            to: { postal_code: toCep },
-            package: pkg,
-        },
-    });
 }
 
 export function addToCart(shipment: Record<string, unknown>) {
@@ -71,21 +59,13 @@ export function printLabel(meOrderIds: string[]) {
 }
 
 export function tracking(meOrderIds: string[]) {
-    return request<Record<string, { tracking?: string; status?: string }>>('/me/shipment/tracking', {
-        method: 'POST',
-        body: { orders: meOrderIds },
-    });
-}
-
-export function cancelShipment(meOrderIds: string[]) {
-    return request('/me/shipment/cancel', {
+    return request<Record<string, {
+        tracking?: string;
+        status?: string
+    }>>('/me/shipment/tracking', {
         method: 'POST',
         body: {
-            order: {
-                id: meOrderIds,
-                reason_id: '2',
-                descripiton: 'Cacelado pela loja'
-            }
+            orders: meOrderIds
         },
     });
 }

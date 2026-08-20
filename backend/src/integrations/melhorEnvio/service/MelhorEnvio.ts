@@ -1,24 +1,6 @@
-import { products } from '../../../config/db/schema';
 import * as MelhorEnvio from '../client/MelhorEnvioClients';
-import { combinePackage } from '../domain/MelhorEnvioDomain';
-import type { ShippingQuoteOption, LabelOrderData } from '../types';
-
-export type QuotableItem = Parameters<typeof combinePackage>[0][number];
-
-export async function quoteShipping(toCep: string, items: QuotableItem[]): Promise<ShippingQuoteOption[]> {
-    const pkg = combinePackage(items);
-    const rawOptions = await MelhorEnvio.calculate(toCep, pkg);
-
-    return rawOptions
-        .filter((option) => !option.error && option.price)
-        .map((option) => ({
-            id: option.id,
-            name: option.name,
-            company: option.company?.name ?? '',
-            price: option.price!,
-            deliveryDays: option.delivery_time ?? 0,
-        }));
-}
+import { env } from '../../../config/env';
+import type { LabelOrderData } from '../types';
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,16 +10,16 @@ export async function buyLabelForOrder(data: LabelOrderData) {
     const cartItem = await MelhorEnvio.addToCart({
         service: data.serviceId,
         from: {
-            name: process.env.FEMINNITA_NAME,
-            email: process.env.FEMINNITA_EMAIL,
-            phone: process.env.FEMINNITA_PHONE,
-            company_document: process.env.FEMINNITA_DOCUMENT,
-            address: process.env.FEMINNITA_ADDRESS,
-            number: process.env.FEMINNITA_NUMBER,
-            district: process.env.FEMINNITA_DISTRICT,
-            city: process.env.FEMINNITA_CITY,
-            state_abbr: process.env.FEMINNITA_STATE,
-            postal_code: process.env.STORE_CEP,
+            name: env.store.name,
+            email: env.store.email,
+            phone: env.store.phone,
+            company_document: env.store.document,
+            address: env.store.address,
+            number: env.store.number,
+            district: env.store.district,
+            city: env.store.city,
+            state_abbr: env.store.state,
+            postal_code: env.store.cep,
         },
         to: {
             name: data.customer.name,
@@ -99,4 +81,3 @@ export async function getTrackingCode(meOrderId: string): Promise<string | null>
     const trackingInfo = await MelhorEnvio.tracking([meOrderId]);
     return trackingInfo[meOrderId]?.tracking ?? null;
 }
-
