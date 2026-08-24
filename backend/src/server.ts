@@ -14,6 +14,7 @@ import { adminShippingRoutes } from './routes/tracking/ShippingRoutes';
 import { adminHeroSlideRoutes } from './routes/hero/HeroSlideRoutes';
 import { adminSiteSettingsRoutes } from './routes/settings/SiteSettings';
 import { adminUploadRoutes } from './routes/upload/UploadRouter';
+import { adminBlingRoutes } from './routes/integrations/BlingRoutes';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/admin/orders/:orderId/shipping', adminShippingRoutes);
 app.use('/api/admin/settings', adminSiteSettingsRoutes);
 app.use('/api/admin/hero-slides', adminHeroSlideRoutes);
 app.use('/api/admin/upload', adminUploadRoutes);
+app.use('/api/admin/bling', adminBlingRoutes);
 
 
 app.get('/health', (_req, res) => {

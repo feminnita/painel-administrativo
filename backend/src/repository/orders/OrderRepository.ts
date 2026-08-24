@@ -192,3 +192,31 @@ export async function findAllWithRelations() {
         items: itemsByOrder.get(r.order.id) ?? [],
     }));
 }
+
+export function findItemsForBling(orderId: string) {
+    return db
+        .select({
+            productName: orderItems.productName,
+            unitPrice: orderItems.unitPrice,
+            quantity: orderItems.quantity,
+            size: orderItems.size,
+            color: orderItems.color,
+            productCode: products.code,
+            productBlingId: products.blingId,
+            skuBlingId: productsSkus.blingId,
+        })
+        .from(orderItems)
+        .leftJoin(products, eq(orderItems.productId, products.id))
+        .leftJoin(productsSkus, eq(orderItems.skuId, productsSkus.id))
+        .where(eq(orderItems.orderId, orderId));
+}
+
+export async function saveBlingOrderId(orderId: string, blingOrderId: number) {
+    const [order] = await db
+        .update(orders)
+        .set({ blingOrderId, updatedAt: new Date() })
+        .where(eq(orders.id, orderId))
+        .returning();
+
+    return order;
+}
