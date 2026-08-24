@@ -14,7 +14,7 @@ import { adminShippingRoutes } from './routes/tracking/ShippingRoutes';
 import { adminHeroSlideRoutes } from './routes/hero/HeroSlideRoutes';
 import { adminSiteSettingsRoutes } from './routes/settings/SiteSettings';
 import { adminUploadRoutes } from './routes/upload/UploadRouter';
-import { adminBlingRoutes } from './repository/integrations/BlingRoutes';
+import { adminBlingRoutes } from './routes/integrations/BlingRoutes';
 
 const app = express();
 

@@ -2,6 +2,9 @@ import { randomBytes } from "node:crypto";
 import { Request, Response } from "express";
 import { env } from '../../config/env';
 import * as TokenService from '../../integrations/bling/TokenService';
+import * as BlingSyncService from '../../integrations/bling/BlingSyncService';
+import * as BlingOrderService from '../../integrations/bling/BlingOrderService';
+
 
 const STATE_COOKIE = 'bling_oauth_state';
 const isProduction = env.nodeEnv === 'production';
@@ -60,4 +63,51 @@ export async function status(_req: Request, res: Response) {
         configured: TokenService.isBlingConfigured(),
         ...(await TokenService.getConnectionStatus()),
     });
+}
+
+export async function syncStep(req: Request, res: Response) {
+    try {
+        const result = await BlingSyncService.syncStep({
+            page: req.body?.page ? Number(req.body.page) : undefined,
+            logId: req.body?.logId,
+        });
+
+        res.json(result);
+    } catch (error) {
+        if (error instanceof Error && error.message === 'BLING_NOT_CONNECTED') {
+            return res.status(409).json({ error: 'Conecte o Bling antes de fazer o sync' });
+        }
+        console.error('Bling sync falhou:', error);
+        res.status(500).json({
+            error: 'Erro ao fazer o sync com o bling'
+        });
+    }
+}
+
+export async function syncLogs(_req: Request, res: Response) {
+    res.json(await BlingSyncService.getSyncLogs());
+}
+export async function pushOrder(req: Request, res: Response) {
+    const orderId = req.params.orderId as string;
+
+    try {
+        res.json(await BlingOrderService.pushOrder(orderId));
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.message === 'ORDER_NOT_FOUND') {
+                return res.status(404).json({ error: 'Pedido não encontrado' });
+            }
+            if (error.message.startsWith('ALREADY_PUSHED')) {
+                return res.status(409).json({
+                    error: 'Pedido já enviado ao Bling',
+                    blingOrderId: Number(error.message.split(':')[1]),
+                });
+            }
+            if (error.message === 'BLING_NOT_CONNECTED') {
+                return res.status(409).json({ error: 'Conecte o Bling primeiro' });
+            }
+        }
+        console.error(`Bling push-order falhou (${orderId}):`, error);
+        res.status(500).json({ error: 'Erro ao enviar pedido ao Bling' });
+    }
 }
