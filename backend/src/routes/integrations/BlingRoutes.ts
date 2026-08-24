@@ -9,4 +9,4 @@ adminBlingRoutes.get('/oauth/callback', BlingController.oauthCallback);
 adminBlingRoutes.get('/status', requireAdminAuth, BlingController.status);
 adminBlingRoutes.post('/sync/step', requireAdminAuth, BlingController.syncStep);
 adminBlingRoutes.get('/sync/logs', requireAdminAuth, BlingController.syncLogs);
-adminBlingRoutes.post('/push-order/:prderId', requireAdminAuth, BlingController.pushOrder)
+adminBlingRoutes.post('/push-order/:orderId', requireAdminAuth, BlingController.pushOrder)

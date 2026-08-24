@@ -202,6 +202,7 @@ export function findItemsForBling(orderId: string) {
             size: orderItems.size,
             color: orderItems.color,
             productCode: products.code,
+            productBlingId: products.blingId,
         })
         .from(orderItems)
         .leftJoin(products, eq(orderItems.productId, products.id))

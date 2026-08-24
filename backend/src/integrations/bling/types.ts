@@ -118,6 +118,7 @@ export type SalesOrderData = {
         size: string | null;
         color: string | null;
         productCode: string | null;
+        productBlingId: number | null;
     }[];
     customer: {
         name?: string;

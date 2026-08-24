@@ -137,7 +137,17 @@ async function blingFetch<T>(
 
                 try {
                     const errorObj = JSON.parse(text);
-                    errorMessage = errorObj?.error?.message || errorMessage;
+                    const err = errorObj?.error;
+
+                    const fields = Array.isArray(err?.fields)
+                        ? err.fields
+                            .map((f: any) => f?.msg ?? f?.message ?? JSON.stringify(f))
+                            .join(' | ')
+                        : '';
+
+                    errorMessage = [err?.message || errorMessage, err?.description, fields]
+                        .filter(Boolean)
+                        .join(' — ');
                 } catch {
                     errorMessage = `${errorMessage} - ${text.substring(0, 100)}`;
                 }

@@ -175,17 +175,16 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date) {
             },
         },
         itens: items.map((item) => ({
-            produto: {
-                codigo: item.productCode || '',
-                descricao: [item.productName, item.size, item.color]
-                    .filter(Boolean)
-                    .join(' - '),
-                valor: Number(item.unitPrice),
-            },
+            codigo: item.productCode || undefined,
+            descricao: [item.productName, item.size, item.color]
+                .filter(Boolean)
+                .join(' - '),
             quantidade: item.quantity,
             valor: Number(item.unitPrice),
             desconto: 0,
+            ...(item.productBlingId ? { produto: { id: item.productBlingId } } : {}),
         })),
+
         parcelas: [
             {
                 dataVencimento: today,
