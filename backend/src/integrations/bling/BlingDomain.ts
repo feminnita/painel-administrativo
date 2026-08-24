@@ -7,7 +7,7 @@ export function slugify(text: string): string {
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a\z0-9]+/g, '-')
+        .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .slice(0, 200);
 }
@@ -65,6 +65,7 @@ export function parseVariations(
             color,
             skuCode: v.codigo ?? '',
             stockQty: Number.parseFloat(String(v.estoque?.saldoVirtualTotal ?? '0')) || 0,
+            blingId: v.id ?? null,
         });
     }
 
@@ -140,7 +141,7 @@ export function buildInsertValues(input: BuildPayloadInput) {
     }
 }
 
-export function buildSalesOrderPayload(data: SalesOrderData, now: Date) {
+export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactId: number) {
 
     const { order, items, customer } = data;
     const addr = (order.shippingAddress ?? {}) as Record<string, string>;
@@ -153,52 +154,48 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date) {
             : 'Cartão de Crédito';
 
     return {
-        numero: order.orderNumber,
         data: new Date(order.createdAt ?? now).toISOString().slice(0, 10),
         dataSaida: today,
-        dataPrevista: null,
-        totalProdutos: Number(order.subtotal),
-        totalDesconto: Number(order.discount ?? 0),
-        contato: {
-            nome: customer?.name,
-            email: customer?.email,
-            cpfCnpj: (customer?.cpf || '').replace(/\D/g, ''),
-            telefone: (customer?.phone || '').replace(/\D/g, ''),
-            endereco: {
-                endereco: addr.street || '',
-                numero: addr.number || 'S/N',
-                complemento: addr.complement || '',
-                bairro: addr.neighborhood || '',
-                cep: (addr.cep || '').replace(/\D/g, ''),
-                municipio: addr.city || '',
-                uf: addr.state || '',
-            },
+        contato: { id: contactId },
+        desconto: {
+            valor: Number(order.discount ?? 0),
+            unidade: 'REAL',
         },
-        itens: items.map((item) => ({
-            codigo: item.productCode || undefined,
-            descricao: [item.productName, item.size, item.color]
-                .filter(Boolean)
-                .join(' - '),
-            quantidade: item.quantity,
-            valor: Number(item.unitPrice),
-            desconto: 0,
-            ...(item.productBlingId ? { produto: { id: item.productBlingId } } : {}),
-        })),
-
+        itens: items.map((item) => {
+            const blingProductId = item.skuBlingId ?? item.productBlingId;
+            return {
+                codigo: item.productCode || undefined,
+                descricao: [item.productName, item.size, item.color]
+                    .filter(Boolean)
+                    .join(' - '),
+                quantidade: item.quantity,
+                valor: Number(item.unitPrice),
+                desconto: 0,
+                ...(blingProductId ? { produto: { id: blingProductId } } : {}),
+            };
+        }),
         parcelas: [
             {
                 dataVencimento: today,
                 valor: Number(order.total),
-                formaPagamento: {
-                    descricao: paymentLabel,
-                },
+                observacoes: paymentLabel,
             },
         ],
         transporte: {
             fretePorConta: 'D',
             frete: Number(order.shippingCost ?? 0),
             codigoRastreamento: order.trackingCode || '',
+            etiqueta: {
+                nome: customer?.name || '',
+                endereco: addr.street || '',
+                numero: addr.number || 'S/N',
+                complemento: addr.complement || '',
+                municipio: addr.city || '',
+                uf: addr.state || '',
+                cep: (addr.cep || '').replace(/\D/g, ''),
+                bairro: addr.neighborhood || '',
+            },
         },
-        observacoes: `Pedido via site Feminnita | ${order.paymentMethod?.toUpperCase()} | ID: ${order.id}`,
+        observacoes: `Pedido ${order.orderNumber} via site Feminnita | ${order.paymentMethod?.toUpperCase()} | ID: ${order.id}`,
     };
 }

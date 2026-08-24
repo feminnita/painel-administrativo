@@ -237,6 +237,29 @@ export async function getContactDetail(
     }
 }
 
+export async function searchContacts(
+    token: string,
+    query: string,
+): Promise<BlingContact[]> {
+    const data = await blingFetch<{ data: BlingContact[] }>(
+        token,
+        '/contatos',
+        { method: 'GET' },
+        { pesquisa: query, limit: '10' },
+    );
+    return data?.data ?? [];
+};
+
+export async function postContact(
+    token: string,
+    payload: object,
+): Promise<{ data?: { id: number } }> {
+    return blingFetch(token, '/contatos', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}
+
 export async function postSalesOrder(
     token: string,
     payload: object,
@@ -246,3 +269,4 @@ export async function postSalesOrder(
         body: JSON.stringify(payload),
     });
 }
+

@@ -85,6 +85,7 @@ async function syncSkuGrid(
                 .update(productsSkus)
                 .set({
                     stockQty: sku.stockQty,
+                    blingId: sku.blingId,
                     updatedAt: new Date()
                 })
                 .where(eq(productsSkus.id, existing.id));
@@ -97,6 +98,7 @@ async function syncSkuGrid(
                     size: sku.size,
                     colorId,
                     stockQty: sku.stockQty,
+                    blingId: sku.blingId,
                 })
                 .returning({ id: productsSkus.id })
             keptIds.push(created.id);
@@ -117,7 +119,8 @@ async function syncSkuGrid(
                     .set({
                         stockQty: 0,
                         updatedAt: new Date()
-                    });
+                    })
+                    .where(eq(productsSkus.id, row.id));
             } else {
                 await db.delete(productsSkus).where(eq(productsSkus.id, row.id));
             }
@@ -130,9 +133,8 @@ async function upsertProductFromBling(
     item: BlingProductListItem,
     handledParents: Set<number>,
 ): Promise<'created' | 'updated' | 'skipped'> {
-    const detail = (await BlingApi.getProductDetail(token, String(item.id))) ?? {
-        id: item.id,
-    };
+    const detail = await BlingApi.getProductDetail(token, String(item.id));
+    if (!detail) return 'skipped';
 
     const parentId =
         item.idProdutoPai ??
@@ -159,6 +161,7 @@ async function upsertProductFromBling(
                 stockQty: BlingDomain.sumStock(
                     await BlingApi.getProductStock(token, item.id),
                 ),
+                blingId: item.id,
             },
         ];
 
@@ -195,7 +198,7 @@ async function upsertProductFromBling(
             columns: { id: true, blingId: true },
         });
 
-        if (byCode && !byCode.blingId) {
+        if (byCode) {
             await db
                 .update(products)
                 .set({ ...BlingDomain.buildUpdateValues(buildInput), updatedAt: new Date() })

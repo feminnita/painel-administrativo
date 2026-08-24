@@ -203,9 +203,11 @@ export function findItemsForBling(orderId: string) {
             color: orderItems.color,
             productCode: products.code,
             productBlingId: products.blingId,
+            skuBlingId: productsSkus.blingId,
         })
         .from(orderItems)
         .leftJoin(products, eq(orderItems.productId, products.id))
+        .leftJoin(productsSkus, eq(orderItems.skuId, productsSkus.id))
         .where(eq(orderItems.orderId, orderId));
 }
 

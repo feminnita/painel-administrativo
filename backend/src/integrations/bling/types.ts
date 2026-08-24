@@ -14,6 +14,7 @@ export type BlingProductListItem = {
 };
 
 export type BlingProductVariation = {
+    id?: number;
     codigo?: string;
     estoque?: {
         saldoVirtualTotal?: string | number
@@ -59,6 +60,7 @@ export type BlingContact = {
     email?: string;
     telefone?: string;
     tipo?: string;
+    numeroDocumento?: string;
     endereco?: {
         geral?: {
             endereco?: string;
@@ -76,6 +78,7 @@ export type ParsedSku = {
     color: string;
     skuCode: string;
     stockQty: number;
+    blingId: number | null;
 };
 
 export type SyncStepResult = {
@@ -119,6 +122,7 @@ export type SalesOrderData = {
         color: string | null;
         productCode: string | null;
         productBlingId: number | null;
+        skuBlingId: number | null;
     }[];
     customer: {
         name?: string;
@@ -127,3 +131,4 @@ export type SalesOrderData = {
         phone?: string | null;
     } | null;
 };
+
