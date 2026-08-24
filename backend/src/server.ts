@@ -46,7 +46,6 @@ app.use('/api/admin/hero-slides', adminHeroSlideRoutes);
 app.use('/api/admin/upload', adminUploadRoutes);
 app.use('/api/admin/bling', adminBlingRoutes);
 
-
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
