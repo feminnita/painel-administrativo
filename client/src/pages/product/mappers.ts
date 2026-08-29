@@ -1,4 +1,4 @@
-import type { AdminProduct, Color, ProductInput } from "./types";
+import type { AdminProduct, Color, ProductInput, Sku } from "./types";
 import type { CategoryRow } from "@/lib/categories";
 
 type ApiProduct = Record<string, any>;
@@ -79,4 +79,38 @@ export function mapApiCategory(c: Record<string, any>): CategoryRow {
 
 export function mapApiColor(c: Record<string, any>): Color {
   return { id: c.id, name: c.name, image_url: c.imageUrl };
+}
+
+export function mapApiSku(s: ApiProduct, color: string): Sku {
+  return {
+    size: s.size,
+    color,
+    stock_qty: s.stockQty ?? 0,
+    price: s.price == null ? null : Number(s.price),
+    sale_price: s.salePrice == null ? null : Number(s.salePrice),
+    cost_price: s.costPrice == null ? null : Number(s.costPrice),
+    reference: s.reference ?? null,
+    ean: s.ean ?? null,
+    min_stock: s.minStock == null ? null : Number(s.minStock),
+    sale_start: s.saleStart ?? null,
+    sale_end: s.saleEnd ?? null,
+    active: s.active ?? true,
+  };
+}
+
+export function toApiSku(s: Sku): Record<string, unknown> {
+  return {
+    size: s.size,
+    color: s.color || null,
+    stockQty: s.stock_qty,
+    price: s.price,
+    salePrice: s.sale_price,
+    costPrice: s.cost_price,
+    reference: s.reference,
+    ean: s.ean,
+    minStock: s.min_stock,
+    saleStart: s.sale_start,
+    saleEnd: s.sale_end,
+    active: s.active,
+  };
 }

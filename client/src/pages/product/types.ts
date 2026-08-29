@@ -47,6 +47,15 @@ export type Sku = {
   size: string;
   color: string;
   stock_qty: number;
+  price: number | null;
+  sale_price: number | null;
+  cost_price: number | null;
+  reference: string | null;
+  ean: string | null;
+  min_stock: number | null;
+  sale_start: string | null;
+  sale_end: string | null;
+  active: boolean;
 };
 
 export type ColorImages = {

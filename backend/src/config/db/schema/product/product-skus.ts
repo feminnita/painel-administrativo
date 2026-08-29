@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, numeric, timestamp, unique, bigint } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, numeric, timestamp, unique, bigint, boolean } from 'drizzle-orm/pg-core';
 import { products } from './products';
 import { productsColors } from './product-colors';
 
@@ -13,6 +13,13 @@ export const productsSkus = pgTable('products_skus', {
     reservedQty: integer('reserved_qty').notNull().default(0),
     price: numeric('price', { precision: 10, scale: 2 }),
     salePrice: numeric('sale_price', { precision: 10, scale: 2 }),
+    reference: text('reference'),
+    ean: text('ean'),
+    costPrice: numeric('cost_price', { precision: 10, scale: 2 }),
+    minStock: integer('min_stock').default(0),
+    saleStart: text('sale_start'),
+    saleEnd: text('sale_end'),
+    active: boolean('active').default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({

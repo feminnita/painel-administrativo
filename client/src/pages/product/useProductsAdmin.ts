@@ -11,7 +11,14 @@ import {
   emptyProduct,
   filterAndSortProducts,
 } from "./domain";
-import { mapApiCategory, mapApiColor, mapApiProduct, toApiProduct } from "./mappers";
+import {
+  mapApiCategory,
+  mapApiColor,
+  mapApiProduct,
+  mapApiSku,
+  toApiProduct,
+  toApiSku,
+} from "./mappers";
 import type {
   AdminProduct,
   Color,
@@ -208,31 +215,67 @@ export function useProductsAdmin() {
 
     const colorNameById = new Map(productColors.map((c) => [c.id, c.name]));
     setSkus(
-      skuRows.map((s) => ({
-        size: s.size,
-        color: s.colorId ? (colorNameById.get(s.colorId) ?? "") : "",
-        stock_qty: s.stockQty ?? 0,
-      })),
+      skuRows.map((s) =>
+        mapApiSku(s, s.colorId ? (colorNameById.get(s.colorId) ?? "") : ""),
+      ),
     );
     setColorImages(colorImageData);
   };
 
   const getSizes = () => editing?.sizes || [];
 
-  const getSkuStock = (size: string, color: string) => {
-    const found = skus.find((s) => s.size === size && s.color === color);
-    return found?.stock_qty ?? 0;
+  const setSku = (index: number, patch: Partial<Sku>) => {
+    setSkus((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
   };
 
-  const setSkuStock = (size: string, color: string, qty: number) => {
+  const deleteSku = (index: number) => {
+    setSkus((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleSkuActive = (index: number) => {
     setSkus((prev) => {
-      const idx = prev.findIndex((s) => s.size === size && s.color === color);
-      if (idx > -1) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], stock_qty: qty };
-        return next;
+      if (index < 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      next[index] = { ...next[index], active: !next[index].active };
+      return next;
+    });
+  };
+
+  const generateVariations = () => {
+    if (!editing) return;
+    const sizes = editing.sizes || [];
+    const colors = editing.colors || [];
+    setSkus((prev) => {
+      const next = [...prev];
+      for (const color of colors) {
+        for (const size of sizes) {
+          const exists = next.some(
+            (s) => s.size === size && s.color === color,
+          );
+          if (!exists) {
+            next.push({
+              size,
+              color,
+              stock_qty: 0,
+              price: null,
+              sale_price: null,
+              cost_price: null,
+              reference: null,
+              ean: null,
+              min_stock: 0,
+              sale_start: null,
+              sale_end: null,
+              active: true,
+            });
+          }
+        }
       }
-      return [...prev, { size, color, stock_qty: qty }];
+      return next;
     });
   };
 
@@ -304,11 +347,7 @@ export function useProductsAdmin() {
         product: toApiProduct(payload),
         skus: skus
           .filter((s) => activeSizes.has(s.size) && activeColors.has(s.color))
-          .map((s) => ({
-            size: s.size,
-            color: s.color || null,
-            stockQty: s.stock_qty,
-          })),
+          .map(toApiSku),
         colorImages: colorImages.filter((c) => activeColors.has(c.color)),
       };
 
@@ -382,8 +421,10 @@ export function useProductsAdmin() {
     openNew,
     openEdit,
     getSizes,
-    getSkuStock,
-    setSkuStock,
+    setSku,
+    deleteSku,
+    toggleSkuActive,
+    generateVariations,
     toggleSize,
     toggleColor,
     handleSave,

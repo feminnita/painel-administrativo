@@ -24,6 +24,9 @@ export function saveFullProduct(
     const product = input.product ?? {};
     if (!product.name || typeof product.name !== 'string') throw new Error('NAME_REQUIRED');
 
+    const toMoney = (v: unknown) =>
+        v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v).toFixed(2);
+
     const skus = Array.isArray(input.skus)
         ? input.skus
             .filter((s) => s && typeof s.size === 'string' && Number.isFinite(Number(s.stockQty)))
@@ -31,6 +34,15 @@ export function saveFullProduct(
                 size: s.size as string,
                 color: typeof s.color === 'string' && s.color ? (s.color as string) : null,
                 stockQty: Math.max(0, Math.round(Number(s.stockQty))),
+                price: toMoney(s.price),
+                salePrice: toMoney(s.salePrice),
+                costPrice: toMoney(s.costPrice),
+                reference: typeof s.reference === 'string' && s.reference ? (s.reference as string) : null,
+                ean: typeof s.ean === 'string' && s.ean ? (s.ean as string) : null,
+                minStock: Number.isFinite(Number(s.minStock)) ? Math.max(0, Math.round(Number(s.minStock))) : 0,
+                saleStart: typeof s.saleStart === 'string' && s.saleStart ? (s.saleStart as string) : null,
+                saleEnd: typeof s.saleEnd === 'string' && s.saleEnd ? (s.saleEnd as string) : null,
+                active: s.active == null ? true : Boolean(s.active),
             }))
         : [];
 

@@ -12,6 +12,10 @@ import {
     Sparkles,
     TrendingUp,
     Images,
+    Layers,
+    Trash2,
+    EyeOff,
+    ChevronDown,
 } from "lucide-react";
 import { slugify } from "../domain";
 import type { useProductsAdmin } from "../useProductsAdmin";
@@ -39,8 +43,11 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         uploading,
         uploadImages,
         getSizes,
-        getSkuStock,
-        setSkuStock,
+        skus,
+        setSku,
+        deleteSku,
+        toggleSkuActive,
+        generateVariations,
         toggleSize,
         toggleColor,
         getColorImages,
@@ -509,57 +516,275 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                     </section>
                 )}
 
-                {/* ── GRADE DE ESTOQUE ── */}
+                {/* ── VARIAÇÕES (estilo Tray) ── */}
                 {sizes.length > 0 && colors.length > 0 && (
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 font-semibold text-gray-700">
-                            Grade de estoque (Tamanho × Cor)
-                        </h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-xs">
-                                <thead>
-                                    <tr className="bg-gray-50">
-                                        <th className="border border-gray-200 px-3 py-2 text-left text-gray-500">
-                                            Cor \ Tam
-                                        </th>
-                                        {sizes.map((s) => (
-                                            <th
-                                                key={s}
-                                                className="border border-gray-200 px-3 py-2 text-center font-semibold"
-                                            >
-                                                {s}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {colors.map((color) => (
-                                        <tr key={color}>
-                                            <td className="whitespace-nowrap border border-gray-200 px-3 py-2 font-medium text-gray-600">
-                                                {color}
-                                            </td>
-                                            {sizes.map((size) => (
-                                                <td key={size} className="border border-gray-200 p-1">
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={getSkuStock(size, color)}
-                                                        onChange={(e) =>
-                                                            setSkuStock(
-                                                                size,
-                                                                color,
-                                                                Number.parseInt(e.target.value) || 0,
-                                                            )
-                                                        }
-                                                        className="w-14 rounded border px-1 py-1.5 text-center text-xs focus:border-[#8C2F39] focus:ring-1 focus:ring-[#8C2F39]"
-                                                    />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 className="flex items-center gap-2 font-semibold text-gray-700">
+                                <Layers size={16} /> Variações
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={generateVariations}
+                                className="rounded-lg border border-[#8C2F39] px-4 py-2 text-sm font-medium text-[#8C2F39] transition-colors hover:bg-[#8C2F39]/5"
+                            >
+                                Gerar variações (cor × tamanho)
+                            </button>
                         </div>
+
+                        {skus.length === 0 ? (
+                            <p className="text-sm text-gray-400">
+                                Nenhuma variação criada ainda. Clique em "Gerar variações"
+                                para criar uma para cada combinação de cor e tamanho.
+                            </p>
+                        ) : (
+                            <div className="space-y-6">
+                                {colors.map((color) => {
+                                    const colorSkus = sizes
+                                        .map((size) => ({
+                                            size,
+                                            index: skus.findIndex(
+                                                (s) => s.color === color && s.size === size,
+                                            ),
+                                        }))
+                                        .filter((c) => c.index > -1);
+                                    if (colorSkus.length === 0) return null;
+                                    return (
+                                        <div key={color}>
+                                            <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                                <Palette size={14} /> {color}
+                                            </p>
+                                            <div className="space-y-3">
+                                                {colorSkus.map(({ size, index }) => {
+                                                    const sku = skus[index];
+                                                    const basePrice = editing.base_price;
+                                                    const promoBase = sku.price ?? basePrice;
+                                                    const discount =
+                                                        sku.sale_price && promoBase
+                                                            ? Math.round(
+                                                                (1 - sku.sale_price / promoBase) * 100,
+                                                            )
+                                                            : null;
+                                                    return (
+                                                        <details
+                                                            key={`${color}-${size}`}
+                                                            className="group rounded-lg border border-gray-200"
+                                                        >
+                                                            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
+                                                                <ChevronDown
+                                                                    size={16}
+                                                                    className="text-gray-400 transition-transform group-open:rotate-180"
+                                                                />
+                                                                <span className="font-medium text-gray-700">
+                                                                    {color} · {size}
+                                                                </span>
+                                                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                                                                    Estoque: {sku.stock_qty}
+                                                                </span>
+                                                                {!sku.active && (
+                                                                    <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">
+                                                                        Inativa
+                                                                    </span>
+                                                                )}
+                                                                <span className="ml-auto flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            toggleSkuActive(index);
+                                                                        }}
+                                                                        className="rounded-md border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
+                                                                        title={sku.active ? "Inativar" : "Ativar"}
+                                                                    >
+                                                                        {sku.active ? (
+                                                                            <EyeOff size={14} />
+                                                                        ) : (
+                                                                            <Eye size={14} />
+                                                                        )}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            deleteSku(index);
+                                                                        }}
+                                                                        className="rounded-md border border-gray-200 p-1.5 text-red-500 hover:bg-red-50"
+                                                                        title="Excluir variação"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </span>
+                                                            </summary>
+                                                            <div className="border-t border-gray-100 p-4">
+                                                                <div className="grid gap-4 md:grid-cols-3">
+                                                                    <div>
+                                                                        <label className="label">Estoque</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={sku.stock_qty}
+                                                                            onChange={(e) =>
+                                                                                setSku(index, {
+                                                                                    stock_qty:
+                                                                                        Number.parseInt(e.target.value) ||
+                                                                                        0,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">
+                                                                            Preço de venda (R$)
+                                                                        </label>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            min="0"
+                                                                            value={sku.price ?? ""}
+                                                                            onChange={(e) =>
+                                                                                setSku(index, {
+                                                                                    price:
+                                                                                        Number.parseFloat(e.target.value) ||
+                                                                                        null,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                            placeholder={`${basePrice.toFixed(2)} (herda)`}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">
+                                                                            Preço de custo (R$)
+                                                                        </label>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            min="0"
+                                                                            value={sku.cost_price ?? ""}
+                                                                            onChange={(e) =>
+                                                                                setSku(index, {
+                                                                                    cost_price:
+                                                                                        Number.parseFloat(e.target.value) ||
+                                                                                        null,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">Referência</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={sku.reference ?? ""}
+                                                                            onChange={(e) =>
+                                                                                setSku(index, {
+                                                                                    reference: e.target.value || null,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">EAN / GTIN</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={sku.ean ?? ""}
+                                                                            onChange={(e) =>
+                                                                                setSku(index, {
+                                                                                    ean: e.target.value || null,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">Estoque mínimo</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={sku.min_stock ?? ""}
+                                                                            onChange={(e) =>
+                                                                                setSku(index, {
+                                                                                    min_stock:
+                                                                                        Number.parseInt(e.target.value) ||
+                                                                                        0,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                                                                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                                        Promoção
+                                                                    </p>
+                                                                    <div className="grid gap-4 md:grid-cols-3">
+                                                                        <div>
+                                                                            <label className="label">
+                                                                                Preço promocional (R$)
+                                                                            </label>
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                min="0"
+                                                                                value={sku.sale_price ?? ""}
+                                                                                onChange={(e) =>
+                                                                                    setSku(index, {
+                                                                                        sale_price:
+                                                                                            Number.parseFloat(
+                                                                                                e.target.value,
+                                                                                            ) || null,
+                                                                                    })
+                                                                                }
+                                                                                className="input"
+                                                                            />
+                                                                            {discount != null && (
+                                                                                <p className="mt-1 text-xs text-[#8C2F39]">
+                                                                                    {discount}% de desconto
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                        <div>
+                                                                            <label className="label">Início</label>
+                                                                            <input
+                                                                                type="date"
+                                                                                value={sku.sale_start ?? ""}
+                                                                                onChange={(e) =>
+                                                                                    setSku(index, {
+                                                                                        sale_start:
+                                                                                            e.target.value || null,
+                                                                                    })
+                                                                                }
+                                                                                className="input"
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <label className="label">Fim</label>
+                                                                            <input
+                                                                                type="date"
+                                                                                value={sku.sale_end ?? ""}
+                                                                                onChange={(e) =>
+                                                                                    setSku(index, {
+                                                                                        sale_end: e.target.value || null,
+                                                                                    })
+                                                                                }
+                                                                                className="input"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </details>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </section>
                 )}
 

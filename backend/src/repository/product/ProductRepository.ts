@@ -3,7 +3,20 @@ import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages } from '../../config/db/schema';
 
 type ProductInsert = typeof products.$inferInsert;
-type SkuGridItem = { size: string; color: string | null; stockQty: number };
+type SkuGridItem = {
+    size: string;
+    color: string | null;
+    stockQty: number;
+    price?: string | null;
+    salePrice?: string | null;
+    costPrice?: string | null;
+    reference?: string | null;
+    ean?: string | null;
+    minStock?: number;
+    saleStart?: string | null;
+    saleEnd?: string | null;
+    active?: boolean;
+};
 type ColorImagesItem = { color: string; images: string[] };
 
 export function findAll() {
@@ -72,10 +85,31 @@ export async function saveProductWithRelations(
                     size: item.size,
                     colorId: item.color ? colorIdByName.get(item.color)! : null,
                     stockQty: item.stockQty,
+                    price: item.price ?? null,
+                    salePrice: item.salePrice ?? null,
+                    costPrice: item.costPrice ?? null,
+                    reference: item.reference ?? null,
+                    ean: item.ean ?? null,
+                    minStock: item.minStock ?? 0,
+                    saleStart: item.saleStart ?? null,
+                    saleEnd: item.saleEnd ?? null,
+                    active: item.active ?? true,
                 })
                 .onConflictDoUpdate({
                     target: [productsSkus.productId, productsSkus.size, productsSkus.colorId],
-                    set: { stockQty: item.stockQty, updatedAt: new Date() },
+                    set: {
+                        stockQty: item.stockQty,
+                        price: item.price ?? null,
+                        salePrice: item.salePrice ?? null,
+                        costPrice: item.costPrice ?? null,
+                        reference: item.reference ?? null,
+                        ean: item.ean ?? null,
+                        minStock: item.minStock ?? 0,
+                        saleStart: item.saleStart ?? null,
+                        saleEnd: item.saleEnd ?? null,
+                        active: item.active ?? true,
+                        updatedAt: new Date(),
+                    },
                 })
                 .returning({ id: productsSkus.id });
             keptSkuIds.push(row.id);
