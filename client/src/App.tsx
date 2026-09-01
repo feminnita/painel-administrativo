@@ -17,6 +17,7 @@ import { VendasPage } from "./pages/vendas/ui/VendasPage";
 import { CustomersPage } from "./pages/customers/ui/CustomersPage";
 import { VisitasPage } from "./pages/visitas/ui/VisitasPage";
 import { FretePage } from "./pages/frete/ui/FretePage";
+import { PedidoMinimoPage } from "./pages/pedido-minimo/ui/PedidoMinimoPage";
 import { ConfirmProvider } from "./components/confirm/ConfirmProvider";
 
 
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/clientes" element={<CustomersPage />} />
             <Route path="/visitas" element={<VisitasPage />} />
             <Route path="/frete" element={<FretePage />} />
+            <Route path="/pedido-minimo" element={<PedidoMinimoPage />} />
             <Route path="*" element={<UnderConstructionPage />} />
           </Route>
         </Route>

@@ -58,6 +58,7 @@ const navItems: NavEntry[] = [
         label: "Configurações", icon: Settings,
         children: [
             { href: "/frete", label: "Frete", icon: Truck },
+            { href: "/pedido-minimo", label: "Pedido Mínimo", icon: ShoppingBag },
             { href: "/integracoes", label: "Integrações", icon: Zap },
         ],
     },
