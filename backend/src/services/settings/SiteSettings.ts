@@ -5,6 +5,7 @@ export const ALLOWED_KEYS = [
     'home_video_section',
     'home_image_grid',
     'shipping_config',
+    'store_min_order',
 ] as const;
 
 export function listSettings() {
