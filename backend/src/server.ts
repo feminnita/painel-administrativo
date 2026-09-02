@@ -16,6 +16,8 @@ import { adminSiteSettingsRoutes } from './routes/settings/SiteSettings';
 import { adminUploadRoutes } from './routes/upload/UploadRouter';
 import { adminBlingRoutes } from './routes/integrations/BlingRoutes';
 import { startBlingAutoPush } from './integrations/bling/BlingAutoPush';
+import { melhorEnvioRoutes } from './routes/integrations/MelhorEnvioRoutes';
+import { startMeTokenRefreshJob } from './integrations/melhorEnvio/RefreshJob';
 import { adminCartRoutes } from './routes/carts/CartRouter';
 import { adminReportRoutes } from './routes/reports/ReportRoutes';
 import { adminCustomerRoutes } from './routes/customers/CustomersRoutes';
@@ -49,6 +51,7 @@ app.use('/api/admin/settings', adminSiteSettingsRoutes);
 app.use('/api/admin/hero-slides', adminHeroSlideRoutes);
 app.use('/api/admin/upload', adminUploadRoutes);
 app.use('/api/admin/bling', adminBlingRoutes);
+app.use('/api/melhor-envio', melhorEnvioRoutes);
 app.use('/api/admin/carts', adminCartRoutes);
 app.use('/api/admin/reports', adminReportRoutes);
 app.use('/api/admin/customers', adminCustomerRoutes);
@@ -63,6 +66,7 @@ const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on http://${HOST}:${PORT}`);
   startBlingAutoPush();
+  startMeTokenRefreshJob();
 });
 
 export default app;

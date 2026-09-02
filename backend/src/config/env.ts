@@ -24,7 +24,9 @@ export const env = {
 
     melhorEnvio: {
         baseUrl: required('ME_BASE_URL'),
-        token: required('ME_TOKEN'),
+        clientId: process.env.ME_CLIENT_ID ?? '',
+        clientSecret: process.env.ME_CLIENT_SECRET ?? '',
+        redirectUri: process.env.ME_REDIRECT_URI ?? '',
     },
 
     resend: {
