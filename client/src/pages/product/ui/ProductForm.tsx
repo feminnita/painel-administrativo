@@ -12,6 +12,7 @@ import {
     Sparkles,
     TrendingUp,
     Images,
+    Video,
 } from "lucide-react";
 import { slugify } from "../domain";
 import type { useProductsAdmin } from "../useProductsAdmin";
@@ -38,6 +39,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         setImagesInput,
         uploading,
         uploadImages,
+        uploadVideo,
         getSizes,
         getSkuStock,
         setSkuStock,
@@ -648,8 +650,43 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 ))}
                         </div>
                     )}
-                    <div className="mt-4">
-                        <label className="label">Vídeo do produto (YouTube)</label>
+                    <div className="mt-6 border-t border-gray-100 pt-4">
+                        <label className="label flex items-center gap-2">
+                            <Video size={14} /> URL do vídeo (Cloudinary)
+                        </label>
+                        <p className="mb-3 text-xs text-gray-400">
+                            Vídeo por família (SKU pai) — vale para todas as cores/variações, não é por cor.
+                        </p>
+
+                        {/* Upload de vídeo */}
+                        <label
+                            className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-4 transition-colors ${uploading ? "border-gray-200 bg-gray-50" : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"}`}
+                        >
+                            <input
+                                type="file"
+                                accept="video/*"
+                                className="hidden"
+                                disabled={uploading}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) uploadVideo(file);
+                                }}
+                            />
+                            <Upload
+                                size={18}
+                                className={uploading ? "animate-pulse text-gray-400" : "text-gray-500"}
+                            />
+                            <span className="text-sm text-gray-500">
+                                {uploading ? "Enviando..." : "Enviar vídeo para o Cloudinary"}
+                            </span>
+                        </label>
+
+                        <div className="my-3 flex items-center gap-3">
+                            <div className="h-px flex-1 bg-gray-200" />
+                            <span className="text-xs text-gray-400">ou cole a URL</span>
+                            <div className="h-px flex-1 bg-gray-200" />
+                        </div>
+
                         <input
                             type="text"
                             value={editing.video_url || ""}
@@ -660,11 +697,18 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 })
                             }
                             className="input"
-                            placeholder="https://www.youtube.com/watch?v=... (aceita youtu.be e shorts)"
+                            placeholder="https://res.cloudinary.com/.../video.mp4"
                         />
-                        <p className="mt-1 text-xs text-gray-400">
-                            Aparece como miniatura com play na galeria do produto no site
-                        </p>
+
+                        {editing.video_url && (
+                            <div className="mt-3">
+                                <video
+                                    controls
+                                    src={editing.video_url}
+                                    className="max-h-48 w-full max-w-xs rounded-lg bg-black"
+                                />
+                            </div>
+                        )}
                     </div>
                 </section>
 

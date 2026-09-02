@@ -101,6 +101,21 @@ export function useProductsAdmin() {
     }
   };
 
+  const uploadVideo = async (file: File) => {
+    setUploading(true);
+    try {
+      const { urls } = await api.upload("/api/admin/upload", [file]);
+      const url = urls[0];
+      if (url) {
+        setEditing((prev) => (prev ? { ...prev, video_url: url } : prev));
+      }
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Falha no upload");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const toggleSort = (col: ProductSortKey) => {
     if (sortBy === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -373,6 +388,7 @@ export function useProductsAdmin() {
     setSelected,
     filtered,
     uploadImages,
+    uploadVideo,
     toggleSort,
     toggleSelect,
     selectAll,
