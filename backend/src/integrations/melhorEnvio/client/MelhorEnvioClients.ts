@@ -1,15 +1,21 @@
 import { env } from '../../../config/env';
+import * as MeTokenService from '../TokenService';
 
 async function request<T>(path: string, options: {
     method?: string;
     body?: unknown
 } = {}): Promise<T> {
+    const accessToken = await MeTokenService.getAccessToken();
+    if (!accessToken) {
+        throw new Error('MELHOR_ENVIO_NOT_CONNECTED');
+    }
+
     const response = await fetch(`${env.melhorEnvio.baseUrl}${path}`, {
         method: options.method ?? 'GET',
         headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            Authorization: `Bearer ${env.melhorEnvio.token}`,
+            Authorization: `Bearer ${accessToken}`,
             'User-Agent': `Feminnita (${env.store.email})`,
         },
         body: options.body ? JSON.stringify(options.body) : undefined,

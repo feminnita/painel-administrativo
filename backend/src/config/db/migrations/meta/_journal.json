@@ -15,6 +15,13 @@
       "when": 1788369001389,
       "tag": "0001_bling_push_and_nfe_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788380366671,
+      "tag": "0002_add_me_tokens",
+      "breakpoints": true
     }
   ]
 }
