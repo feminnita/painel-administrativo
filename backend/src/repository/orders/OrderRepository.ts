@@ -262,3 +262,59 @@ export async function saveBlingOrderId(orderId: string, blingOrderId: number) {
 
     return order;
 }
+
+export function findPaidOrdersToPush() {
+    return db
+        .select({ id: orders.id, orderNumber: orders.orderNumber })
+        .from(orders)
+        .where(and(
+            eq(orders.paymentStatus, 'paid'),
+            isNull(orders.blingOrderId),
+            or(isNull(orders.blingPushStatus), eq(orders.blingPushStatus, 'pending')),
+        ))
+        .orderBy(desc(orders.createdAt))
+        .limit(20);
+}
+
+export async function markPushed(orderId: string) {
+    const [order] = await db
+        .update(orders)
+        .set({
+            blingPushStatus: 'pushed',
+            blingPushError: null,
+            blingPushedAt: new Date(),
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId))
+        .returning();
+
+    return order;
+}
+
+export async function saveBlingPushError(orderId: string, message: string) {
+    const [order] = await db
+        .update(orders)
+        .set({
+            blingPushStatus: 'error',
+            blingPushError: message,
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId))
+        .returning();
+
+    return order;
+}
+
+export async function resetPushToPending(orderId: string) {
+    const [order] = await db
+        .update(orders)
+        .set({
+            blingPushStatus: 'pending',
+            blingPushError: null,
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId))
+        .returning();
+
+    return order;
+}
