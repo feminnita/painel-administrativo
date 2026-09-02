@@ -1,10 +1,11 @@
 import * as OrdeRepository from '../../repository/orders/OrderRepository';
+import type { OrderListFilters } from '../../repository/orders/OrderRepository';
 import { orderStatusEnum, paymentStatusEnum } from '../../config/db/schema';
 import * as EmailService from '../../integrations/resend/service/EmailServices';
 
 
-export function listOrders() {
-    return OrdeRepository.findAllWithRelations();
+export function listOrders(filters: OrderListFilters = {}) {
+    return OrdeRepository.findAllWithRelations(filters);
 }
 
 export async function getOrder(id: string) {

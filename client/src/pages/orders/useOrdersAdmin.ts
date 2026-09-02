@@ -8,6 +8,8 @@ export function useOrdersAdmin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [trackingInput, setTrackingInput] = useState("");
@@ -15,20 +17,33 @@ export function useOrdersAdmin() {
   const [buyingLabel, setBuyingLabel] = useState(false);
   const [refreshingTracking, setRefreshingTracking] = useState(false);
 
-  const load = useCallback(async (keepSelectedId?: string) => {
-    try {
-      const data = await api.get<Record<string, any>[]>("/api/admin/orders");
-      const mapped = data.map(mapApiOrder);
-      setOrders(mapped);
-      if (keepSelectedId) {
-        setSelected(mapped.find((o) => o.id === keepSelectedId) ?? null);
+  const load = useCallback(
+    async (keepSelectedId?: string) => {
+      try {
+        const params = new URLSearchParams();
+        // "all" = fila de trabalho (servidor esconde cancelados/falhados).
+        // Um status especifico (inclusive "cancelled") sobrepoe esse padrao.
+        if (statusFilter !== "all") params.set("status", statusFilter);
+        if (dateFrom) params.set("from", dateFrom);
+        if (dateTo) params.set("to", dateTo);
+        const qs = params.toString();
+
+        const data = await api.get<Record<string, any>[]>(
+          `/api/admin/orders${qs ? `?${qs}` : ""}`,
+        );
+        const mapped = data.map(mapApiOrder);
+        setOrders(mapped);
+        if (keepSelectedId) {
+          setSelected(mapped.find((o) => o.id === keepSelectedId) ?? null);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar pedidos:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Erro ao carregar pedidos:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [statusFilter, dateFrom, dateTo],
+  );
 
   useEffect(() => {
     load();
@@ -101,6 +116,10 @@ export function useOrdersAdmin() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
     selected,
     select,
     trackingInput,

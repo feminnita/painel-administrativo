@@ -1,8 +1,23 @@
 import { Request, Response } from 'express';
 import * as OrderService from '../../services/orders/OrderService';
+import { orderStatusEnum } from '../../config/db/schema';
 
 export async function list(req: Request, res: Response) {
-    res.json(await OrderService.listOrders());
+    const { status, search, from, to, includeCancelled } = req.query;
+
+    const isValidStatus =
+        typeof status === 'string' &&
+        orderStatusEnum.enumValues.includes(status as never);
+
+    res.json(
+        await OrderService.listOrders({
+            status: isValidStatus ? (status as never) : undefined,
+            search: typeof search === 'string' && search.trim() ? search.trim() : undefined,
+            from: typeof from === 'string' && from ? from : undefined,
+            to: typeof to === 'string' && to ? to : undefined,
+            includeCancelled: includeCancelled === 'true' || includeCancelled === '1',
+        }),
+    );
 }
 
 export async function getOne(req: Request, res: Response) {
