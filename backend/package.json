@@ -10,7 +10,8 @@
     "db:migrate": "tsx src/config/db/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed-admin": "tsx src/config/db/scripts/seed-admin.ts"
+    "db:seed-admin": "tsx src/config/db/scripts/seed-admin.ts",
+    "db:reset-admin": "node dist/config/db/scripts/reset-admin-password.js"
   },
   "keywords": [],
   "author": "",
