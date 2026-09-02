@@ -33,6 +33,7 @@ export function mapApiOrder(o: ApiOrder): Order {
     tracking_code: o.trackingCode ?? null,
     tracking_url: o.trackingUrl ?? null,
     label_url: o.labelUrl ?? null,
+    bling_order_id: o.blingOrderId ?? null,
     notes: o.notes ?? null,
     created_at: o.createdAt ?? "",
     customer_name: o.customerName ?? "",

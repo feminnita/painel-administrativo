@@ -16,6 +16,7 @@ export function useOrdersAdmin() {
   const [savingTracking, setSavingTracking] = useState(false);
   const [buyingLabel, setBuyingLabel] = useState(false);
   const [refreshingTracking, setRefreshingTracking] = useState(false);
+  const [pushingBlingId, setPushingBlingId] = useState<string | null>(null);
 
   const load = useCallback(
     async (keepSelectedId?: string) => {
@@ -107,6 +108,19 @@ export function useOrdersAdmin() {
     }
   };
 
+  const pushToBling = async (orderId: string) => {
+    setPushingBlingId(orderId);
+    try {
+      await api.post(`/api/admin/bling/push-order/${orderId}`);
+      await load(selected?.id);
+      alert("Pedido enviado ao Bling — a nota vai sair.");
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Erro ao enviar ao Bling");
+    } finally {
+      setPushingBlingId(null);
+    }
+  };
+
   return {
     orders,
     loading,
@@ -131,5 +145,7 @@ export function useOrdersAdmin() {
     buyLabel,
     refreshingTracking,
     refreshTracking,
+    pushingBlingId,
+    pushToBling,
   };
 }

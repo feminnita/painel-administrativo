@@ -36,6 +36,7 @@ export type Order = {
     tracking_code: string | null;
     tracking_url: string | null;
     label_url: string | null;
+    bling_order_id: number | null;
     notes: string | null;
     created_at: string;
     customer_name: string;
