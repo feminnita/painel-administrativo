@@ -11,6 +11,10 @@ export const orders = pgTable('orders', {
     orderNumber: text('order_number').notNull().unique(),
     customerId: uuid('customer_id').references(() => customers.id),
     status: orderStatusEnum('status').notNull().default('pending'),
+    // Sobrescrita manual do status exibido (excecao operacional): 'em_separacao',
+    // 'aguardando_estoque' ou 'cancelado'. Quando nulo, o status exibido e' DERIVADO
+    // dos campos do pedido (ver deriveStatus no client). Nao substitui o enum 'status'.
+    statusOverride: text('status_override'),
     paymentMethod: text('payment_method'),
     paymentStatus: paymentStatusEnum('payment_status').notNull().default('pending'),
     subtotal: numeric('subtotal', { precision: 10, scale: 2 }).notNull(),

@@ -1,6 +1,6 @@
 import { desc, eq, sql, and, inArray, isNull, ne, gte, lte, ilike, or, type SQL } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { orders, orderItems, productsSkus, coupons, customers, products } from '../../config/db/schema';
+import { orders, orderItems, productsSkus, coupons, customers, products, orderStatusHistory } from '../../config/db/schema';
 
 export type OrderListFilters = {
     status?: typeof orders.$inferSelect['status'];
@@ -21,6 +21,37 @@ export function findById(id: string) {
 
 export function findItemsByOrderId(orderId: string) {
     return db.query.orderItems.findMany({ where: eq(orderItems.orderId, orderId) })
+}
+
+// --- Sobrescrita de status (override) + auditoria ---
+
+export async function setStatusOverride(id: string, override: string | null) {
+    const [order] = await db
+        .update(orders)
+        .set({ statusOverride: override, updatedAt: new Date() })
+        .where(eq(orders.id, id))
+        .returning();
+    return order ?? null;
+}
+
+export async function insertStatusHistory(entry: {
+    orderId: string;
+    fromStatus: string | null;
+    toStatus: string;
+    source: string;
+}) {
+    const [row] = await db
+        .insert(orderStatusHistory)
+        .values(entry)
+        .returning();
+    return row;
+}
+
+export function findStatusHistory(orderId: string) {
+    return db.query.orderStatusHistory.findMany({
+        where: eq(orderStatusHistory.orderId, orderId),
+        orderBy: [desc(orderStatusHistory.createdAt)],
+    });
 }
 
 

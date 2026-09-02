@@ -11,6 +11,7 @@ export * from './users/addresses';
 export * from './order/orders';
 export * from './order/items';
 export * from './order/coupons';
+export * from './order/order-status-history';
 export * from './users/carts';
 
 //
