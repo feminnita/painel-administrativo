@@ -185,7 +185,10 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
             },
         ],
         transporte: {
-            fretePorConta: 'D',
+            // Bling v3: fretePorConta e INTEIRO (0=remetente/CIF, 1=destinatario/FOB,
+            // 2=terceiros, 3/4=proprio, 9=sem transporte). O 'D' antigo (v2) quebrava.
+            // 0 = a loja (remetente) contrata a etiqueta. Confirmar modalidade c/ contador.
+            fretePorConta: 0,
             frete: Number(order.shippingCost ?? 0),
             codigoRastreamento: order.trackingCode || '',
             etiqueta: {

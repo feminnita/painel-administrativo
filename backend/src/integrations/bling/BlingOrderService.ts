@@ -20,6 +20,8 @@ async function ensureBlingContact(
     const created = await BlingApi.postContact(token, {
         nome: customer.name,
         tipo: 'F',
+        // Bling v3 exige situacao no contato: enum de 1 letra "A"|"I"|"E"|"S".
+        situacao: 'A',
         indicadorIe: 9,
         numeroDocumento: cpf,
         email: customer.email,
