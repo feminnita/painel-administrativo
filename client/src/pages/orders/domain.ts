@@ -55,6 +55,11 @@ export function fmtBRL(value: number): string {
   return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 }
 
+// Etiqueta de sandbox (Melhor Envio) e' de teste e nao serve pra postar.
+export function isSandboxLabel(url: string | null | undefined): boolean {
+  return !!url && url.includes("sandbox.melhorenvio.com.br");
+}
+
 // Busca livre no cliente (instantanea). Status/periodo sao filtrados no servidor.
 export function filterOrders(orders: Order[], filters: OrderFilters): Order[] {
   const q = filters.search.trim().toLowerCase();

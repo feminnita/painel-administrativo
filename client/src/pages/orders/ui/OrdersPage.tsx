@@ -1,11 +1,14 @@
 import {
+    Check,
     ChevronDown,
     Eye,
     Filter,
+    Loader2,
     MessageCircle,
     Package,
     Printer,
     Search,
+    Send,
     Truck,
 } from "lucide-react";
 import { useOrdersAdmin } from "../useOrdersAdmin";
@@ -14,6 +17,7 @@ import {
     deriveFulfillmentStatus,
     fmtBRL,
     FULFILLMENT_STATUS_META,
+    isSandboxLabel,
     orderPieceCount,
     orderThumbnails,
     PAYMENT_LABELS,
@@ -40,6 +44,8 @@ export function OrdersPage() {
         selected,
         select,
         changeStatus,
+        pushingBlingId,
+        pushToBling,
     } = vm;
 
     return (
@@ -282,16 +288,19 @@ export function OrdersPage() {
                                                             </button>
                                                         )}
                                                         {order.label_url ? (
-                                                            <a
-                                                                href={order.label_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                title="Imprimir etiqueta"
-                                                                className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
-                                                            >
-                                                                <Printer size={13} />
-                                                            </a>
+                                                            /* Etiqueta sandbox e' de teste: nao mostra o botao. */
+                                                            !isSandboxLabel(order.label_url) && (
+                                                                <a
+                                                                    href={order.label_url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    title="Imprimir etiqueta"
+                                                                    className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
+                                                                >
+                                                                    <Printer size={13} />
+                                                                </a>
+                                                            )
                                                         ) : (
                                                             <button
                                                                 disabled
@@ -299,6 +308,31 @@ export function OrdersPage() {
                                                                 className="cursor-not-allowed rounded-lg border p-1.5 text-gray-300"
                                                             >
                                                                 <Printer size={13} />
+                                                            </button>
+                                                        )}
+                                                        {order.bling_order_id ? (
+                                                            <span
+                                                                title={`Pedido no Bling (#${order.bling_order_id})`}
+                                                                className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
+                                                            >
+                                                                <Check size={12} /> no Bling #{order.bling_order_id}
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    pushToBling(order.id);
+                                                                }}
+                                                                disabled={pushingBlingId === order.id}
+                                                                title="Enviar pedido ao Bling"
+                                                                className="inline-flex items-center gap-1 rounded-lg border border-[#8C2F39] px-2 py-1 text-xs font-medium text-[#8C2F39] hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            >
+                                                                {pushingBlingId === order.id ? (
+                                                                    <Loader2 size={12} className="animate-spin" />
+                                                                ) : (
+                                                                    <Send size={12} />
+                                                                )}
+                                                                Enviar ao Bling
                                                             </button>
                                                         )}
                                                         <button
