@@ -113,6 +113,7 @@ export type SalesOrderData = {
         shippingCost: string | null;
         shippingAddress: Record<string, unknown> | null;
         trackingCode: string | null;
+        shippingMethod: string | null;
     };
     items: {
         productName: string;
