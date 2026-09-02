@@ -156,6 +156,29 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
             ? 'Boleto'
             : 'Cartão de Crédito';
 
+    // modFrete da NF-e = quem CONTRATA o transporte (não quem paga).
+    // Retirada no local = sem transporte: fretePorConta 9, sem frete, sem etiqueta/endereço
+    // (senão o Bling monta transporte que não existe). Qualquer envio = 0 (remetente/CIF:
+    // a loja contrata a etiqueta no ME). Deriva do método de entrega, nunca hardcode.
+    const isPickup = /retir/i.test(String(order.shippingMethod ?? ''));
+    const transporte = isPickup
+        ? { fretePorConta: 9 }
+        : {
+            fretePorConta: 0,
+            frete: Number(order.shippingCost ?? 0),
+            codigoRastreamento: order.trackingCode || '',
+            etiqueta: {
+                nome: customer?.name || '',
+                endereco: addr.street || '',
+                numero: addr.number || 'S/N',
+                complemento: addr.complement || '',
+                municipio: addr.city || '',
+                uf: addr.state || '',
+                cep: (addr.cep || '').replace(/\D/g, ''),
+                bairro: addr.neighborhood || '',
+            },
+        };
+
     return {
         data: new Date(order.createdAt ?? now).toISOString().slice(0, 10),
         dataSaida: today,
@@ -184,24 +207,7 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
                 observacoes: paymentLabel,
             },
         ],
-        transporte: {
-            // Bling v3: fretePorConta e INTEIRO (0=remetente/CIF, 1=destinatario/FOB,
-            // 2=terceiros, 3/4=proprio, 9=sem transporte). O 'D' antigo (v2) quebrava.
-            // 0 = a loja (remetente) contrata a etiqueta. Confirmar modalidade c/ contador.
-            fretePorConta: 0,
-            frete: Number(order.shippingCost ?? 0),
-            codigoRastreamento: order.trackingCode || '',
-            etiqueta: {
-                nome: customer?.name || '',
-                endereco: addr.street || '',
-                numero: addr.number || 'S/N',
-                complemento: addr.complement || '',
-                municipio: addr.city || '',
-                uf: addr.state || '',
-                cep: (addr.cep || '').replace(/\D/g, ''),
-                bairro: addr.neighborhood || '',
-            },
-        },
+        transporte,
         observacoes: `Pedido ${order.orderNumber} via site Feminnita | ${order.paymentMethod?.toUpperCase()} | ID: ${order.id}`,
     };
 }
