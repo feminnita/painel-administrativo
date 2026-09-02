@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages } from '../../config/db/schema';
+import { normalizeSize } from '../../domain/product/size';
 
 type ProductInsert = typeof products.$inferInsert;
 type SkuGridItem = { size: string; color: string | null; stockQty: number };
@@ -69,7 +70,7 @@ export async function saveProductWithRelations(
                 .insert(productsSkus)
                 .values({
                     productId: savedId,
-                    size: item.size,
+                    size: normalizeSize(item.size),
                     colorId: item.color ? colorIdByName.get(item.color)! : null,
                     stockQty: item.stockQty,
                 })

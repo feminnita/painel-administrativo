@@ -5,6 +5,7 @@ import * as BlingApi from './BlingApi';
 import * as BlingDomain from './BlingDomain';
 import * as TokenService from './TokenService';
 import type { BlingProductListItem, ParsedSku, SyncStepResult } from './types';
+import { normalizeSize } from '../../domain/product/size';
 
 async function requireToken(): Promise<string> {
     const token = await TokenService.getAccessToken();
@@ -68,14 +69,15 @@ async function syncSkuGrid(
     const keptIds: string[] = [];
 
     for (const sku of skus) {
-        if (!sku.size) continue;
+        const size = normalizeSize(sku.size);
+        if (!size) continue;
 
         const colorId = sku.color ? await resolveColorId(sku.color) : null;
 
         const existing = await db.query.productsSkus.findFirst({
             where: and(
                 eq(productsSkus.productId, productId),
-                eq(productsSkus.size, sku.size),
+                eq(productsSkus.size, size),
                 colorId ? eq(productsSkus.colorId, colorId) : isNull(productsSkus.colorId),
             ),
         });
@@ -95,7 +97,7 @@ async function syncSkuGrid(
                 .insert(productsSkus)
                 .values({
                     productId,
-                    size: sku.size,
+                    size,
                     colorId,
                     stockQty: sku.stockQty,
                     blingId: sku.blingId,
