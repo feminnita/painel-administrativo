@@ -55,21 +55,30 @@ export function fmtBRL(value: number): string {
   return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 }
 
+// Busca livre no cliente (instantanea). Status/periodo sao filtrados no servidor.
 export function filterOrders(orders: Order[], filters: OrderFilters): Order[] {
-  const q = filters.search.toLowerCase();
+  const q = filters.search.trim().toLowerCase();
+  if (!q) return orders;
 
-  return orders.filter((order) => {
-    const matchesSearch =
+  return orders.filter(
+    (order) =>
       order.order_number.toLowerCase().includes(q) ||
       order.customer_name.toLowerCase().includes(q) ||
       order.customer_email.toLowerCase().includes(q) ||
-      (order.tracking_code || "").toLowerCase().includes(q);
+      (order.tracking_code || "").toLowerCase().includes(q),
+  );
+}
 
-    const matchesStatus =
-      filters.status === "all" || order.status === filters.status;
+// Soma das quantidades (pecas) do pedido
+export function orderPieceCount(order: Order): number {
+  return (order.items || []).reduce((sum, i) => sum + (i.quantity || 0), 0);
+}
 
-    return matchesSearch && matchesStatus;
-  });
+// Miniaturas dos itens (imagens nao vazias)
+export function orderThumbnails(order: Order): string[] {
+  return (order.items || [])
+    .map((i) => i.product_image)
+    .filter((src): src is string => Boolean(src));
 }
 
 export function calcTotalRevenue(orders: Order[]): number {

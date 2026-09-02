@@ -2,8 +2,11 @@ import {
     ChevronDown,
     Eye,
     Filter,
+    MessageCircle,
     Package,
+    Printer,
     Search,
+    Truck,
 } from "lucide-react";
 import { useOrdersAdmin } from "../useOrdersAdmin";
 import {
@@ -11,6 +14,9 @@ import {
     deriveFulfillmentStatus,
     fmtBRL,
     FULFILLMENT_STATUS_META,
+    orderPieceCount,
+    orderThumbnails,
+    PAYMENT_LABELS,
     PAYMENT_STATUS_META,
     STATUS_OPTIONS,
 } from "../domain";
@@ -27,8 +33,13 @@ export function OrdersPage() {
         setSearch,
         statusFilter,
         setStatusFilter,
+        dateFrom,
+        setDateFrom,
+        dateTo,
+        setDateTo,
         selected,
         select,
+        changeStatus,
     } = vm;
 
     return (
@@ -68,8 +79,8 @@ export function OrdersPage() {
             <div className="flex flex-col gap-6 lg:flex-row">
                 {/* List */}
                 <div className="min-w-0 flex-1">
-                    <div className="mb-4 flex gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                        <div className="relative flex-1">
+                    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                        <div className="relative min-w-[200px] flex-1">
                             <Search
                                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                                 size={17}
@@ -92,7 +103,7 @@ export function OrdersPage() {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                                 className="appearance-none rounded-lg border bg-white py-2 pl-9 pr-8 text-sm focus:ring-2 focus:ring-[#8C2F39]"
                             >
-                                <option value="all">Todos os status</option>
+                                <option value="all">Ativos (fila)</option>
                                 {Object.entries(STATUS_OPTIONS).map(([k, v]) => (
                                     <option key={k} value={k}>
                                         {v.label}
@@ -103,6 +114,34 @@ export function OrdersPage() {
                                 className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
                                 size={14}
                             />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                title="Data inicial"
+                                className="rounded-lg border py-2 px-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+                            />
+                            <span className="text-xs text-gray-400">até</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                title="Data final"
+                                className="rounded-lg border py-2 px-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+                            />
+                            {(dateFrom || dateTo) && (
+                                <button
+                                    onClick={() => {
+                                        setDateFrom("");
+                                        setDateTo("");
+                                    }}
+                                    className="text-xs text-gray-400 hover:text-[#8C2F39]"
+                                >
+                                    limpar
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -121,6 +160,13 @@ export function OrdersPage() {
                                 {filtered.map((order) => {
                                     const pay = derivePaymentStatus(order);
                                     const ful = deriveFulfillmentStatus(order);
+                                    const thumbs = orderThumbnails(order);
+                                    const pieces = orderPieceCount(order);
+                                    const phone = (order.customer_phone || "").replace(/\D/g, "");
+                                    const payLabel =
+                                        PAYMENT_LABELS[order.payment_method || ""] ||
+                                        order.payment_method ||
+                                        "—";
                                     return (
                                         <div
                                             key={order.id}
@@ -130,8 +176,30 @@ export function OrdersPage() {
                                                 : ""
                                                 }`}
                                         >
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="min-w-0">
+                                            <div className="flex items-start gap-3">
+                                                {/* Miniaturas */}
+                                                <div className="flex shrink-0 -space-x-2">
+                                                    {thumbs.slice(0, 3).map((src, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="h-11 w-9 overflow-hidden rounded-md border-2 border-white bg-gray-100 shadow-sm"
+                                                        >
+                                                            <img
+                                                                src={src}
+                                                                alt=""
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                    {thumbs.length === 0 && (
+                                                        <div className="flex h-11 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-100 shadow-sm">
+                                                            <Package size={16} className="text-gray-300" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Info principal */}
+                                                <div className="min-w-0 flex-1">
                                                     <div className="mb-1 flex flex-wrap items-center gap-2">
                                                         <span className="font-bold text-gray-900">
                                                             {order.order_number}
@@ -153,19 +221,97 @@ export function OrdersPage() {
                                                     <p className="text-xs text-gray-400">
                                                         {new Date(order.created_at).toLocaleString("pt-BR")}
                                                     </p>
+                                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                                                        <span className="inline-flex items-center gap-1">
+                                                            <Truck size={12} className="text-gray-400" />
+                                                            {order.shipping_method || "—"}
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-1">
+                                                            💳 {payLabel}
+                                                        </span>
+                                                        <span>
+                                                            {pieces} {pieces === 1 ? "peça" : "peças"}
+                                                        </span>
+                                                    </div>
                                                     {order.tracking_code && (
-                                                        <p className="mt-0.5 text-xs text-indigo-500">
+                                                        <p className="mt-0.5 font-mono text-xs text-indigo-500">
                                                             {order.tracking_code}
                                                         </p>
                                                     )}
                                                 </div>
-                                                <div className="shrink-0 text-right">
+
+                                                {/* Total + acoes */}
+                                                <div className="flex shrink-0 flex-col items-end gap-2">
                                                     <p className="font-bold text-gray-900">
                                                         R$ {fmtBRL(order.total)}
                                                     </p>
-                                                    <p className="text-xs text-gray-400">
-                                                        {order.items?.length || 0} item(s)
-                                                    </p>
+                                                    <select
+                                                        value={order.status}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            changeStatus(order.id, e.target.value);
+                                                        }}
+                                                        className="max-w-[130px] rounded-lg border bg-white px-2 py-1 text-xs font-medium focus:ring-2 focus:ring-[#8C2F39]"
+                                                    >
+                                                        {Object.entries(STATUS_OPTIONS).map(([k, v]) => (
+                                                            <option key={k} value={k}>
+                                                                {v.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="flex items-center gap-1">
+                                                        {phone ? (
+                                                            <a
+                                                                href={`https://wa.me/55${phone}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                title="Abrir WhatsApp do cliente"
+                                                                className="rounded-lg bg-green-500 p-1.5 text-white hover:bg-green-600"
+                                                            >
+                                                                <MessageCircle size={13} />
+                                                            </a>
+                                                        ) : (
+                                                            <button
+                                                                disabled
+                                                                title="Cliente sem telefone cadastrado"
+                                                                className="cursor-not-allowed rounded-lg border p-1.5 text-gray-300"
+                                                            >
+                                                                <MessageCircle size={13} />
+                                                            </button>
+                                                        )}
+                                                        {order.label_url ? (
+                                                            <a
+                                                                href={order.label_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                title="Imprimir etiqueta"
+                                                                className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
+                                                            >
+                                                                <Printer size={13} />
+                                                            </a>
+                                                        ) : (
+                                                            <button
+                                                                disabled
+                                                                title="Etiqueta ainda não gerada"
+                                                                className="cursor-not-allowed rounded-lg border p-1.5 text-gray-300"
+                                                            >
+                                                                <Printer size={13} />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                select(order);
+                                                            }}
+                                                            title="Ver detalhe"
+                                                            className="rounded-lg border p-1.5 text-gray-500 hover:bg-gray-50"
+                                                        >
+                                                            <Eye size={13} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

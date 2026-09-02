@@ -1,6 +1,14 @@
-import { desc, eq, sql, and, inArray, isNull, ne } from 'drizzle-orm';
+import { desc, eq, sql, and, inArray, isNull, ne, gte, lte, ilike, or, type SQL } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { orders, orderItems, productsSkus, coupons, customers, products } from '../../config/db/schema';
+
+export type OrderListFilters = {
+    status?: typeof orders.$inferSelect['status'];
+    search?: string;
+    from?: string;
+    to?: string;
+    includeCancelled?: boolean;
+};
 
 
 export function findAll() {
@@ -158,7 +166,28 @@ export async function saveTrackingCode(orderId: string, trackingCode: string) {
 }
 
 
-export async function findAllWithRelations() {
+export async function findAllWithRelations(filters: OrderListFilters = {}) {
+    const conds: SQL[] = [];
+
+    if (filters.status) {
+        conds.push(eq(orders.status, filters.status));
+    } else if (!filters.includeCancelled) {
+        // Fila de trabalho: cancelados/falhados nao poluem a visao principal
+        conds.push(ne(orders.status, 'cancelled'));
+        conds.push(ne(orders.paymentStatus, 'failed'));
+    }
+
+    if (filters.from) {
+        conds.push(gte(orders.createdAt, new Date(`${filters.from}T00:00:00`)));
+    }
+    if (filters.to) {
+        conds.push(lte(orders.createdAt, new Date(`${filters.to}T23:59:59.999`)));
+    }
+    if (filters.search) {
+        const term = `%${filters.search}%`;
+        conds.push(or(ilike(orders.orderNumber, term), ilike(orders.trackingCode, term)) as SQL);
+    }
+
     const rows = await db
         .select({
             order: orders,
@@ -169,6 +198,7 @@ export async function findAllWithRelations() {
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(conds.length ? and(...conds) : undefined)
         .orderBy(desc(orders.createdAt));
 
     const orderIds = rows.map((r) => r.order.id);
