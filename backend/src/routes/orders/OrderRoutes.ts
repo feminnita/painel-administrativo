@@ -7,5 +7,7 @@ adminOrderRoutes.use(requireAdminAuth);
 
 adminOrderRoutes.get('/', OrderController.list);
 adminOrderRoutes.get('/:id', OrderController.getOne);
+adminOrderRoutes.get('/:id/history', OrderController.getHistory);
 adminOrderRoutes.put('/:id/tracking', OrderController.setTracking);
 adminOrderRoutes.put('/:id/status', OrderController.updateStatus);
+adminOrderRoutes.put('/:id/status-override', OrderController.setStatusOverride);

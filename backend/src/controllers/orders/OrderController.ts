@@ -49,6 +49,31 @@ export async function updateStatus(req: Request, res: Response) {
     }
 }
 
+export async function setStatusOverride(req: Request, res: Response) {
+    const id = req.params.id as string;
+    try {
+        const raw = req.body?.override;
+        const override = raw === null || raw === undefined || raw === '' ? null : String(raw);
+        res.json(await OrderService.setStatusOverride(id, override, 'admin'));
+    } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (message === 'ORDER_NOT_FOUND') return res.status(404).json({ error: 'Pedido nao encontrado' });
+        if (message === 'INVALID_OVERRIDE') return res.status(400).json({ error: 'Sobrescrita de status invalida' });
+        console.error(`Erro ao definir override do pedido ${id}:`, error);
+        res.status(500).json({ error: 'Erro ao definir status' });
+    }
+}
+
+export async function getHistory(req: Request, res: Response) {
+    const id = req.params.id as string;
+    try {
+        res.json(await OrderService.getStatusHistory(id));
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao carregar historico' });
+    }
+}
+
 export async function setTracking(req: Request, res: Response) {
     const id = req.params.id as string;
     try {

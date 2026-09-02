@@ -5,6 +5,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { DashboardPage } from "@/pages/dashboard/ui/DashboardPage";
 import { ProductsPage } from "@/pages/product/ui/ProductsPage";
 import { OrdersPage } from "@/pages/orders/ui/OrdersPage";
+import { OrderDetailPage } from "@/pages/orders/ui/OrderDetailPage";
 import { UnderConstructionPage } from "@/pages/UnderConstructionPage";
 import { CharacteristicsPage } from "./pages/characteristics/ui/CharacteristicsPage";
 import { CategoryBoard } from "./pages/categories/ui/CategoryBoard";
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/produtos" element={<ProductsPage />} />
             <Route path="/pedidos" element={<OrdersPage />} />
+            <Route path="/pedidos/:id" element={<OrderDetailPage />} />
             <Route path="/caracteristicas" element={<CharacteristicsPage />} />
             <Route path="/categorias" element={<CategoryBoard />} />
             <Route path="/estoque" element={<StockPage />} />

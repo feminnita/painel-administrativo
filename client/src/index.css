@@ -7,3 +7,28 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* --- Impressao (romaneio / pedido) ---
+   O conteudo de impressao vive num portal (.print-only) fora do #root.
+   Na tela fica escondido; ao imprimir, o app (#root) some e so' o portal
+   aparece, com layout limpo, sem menu/sidebar e com quebra de pagina. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  body > #root {
+    display: none;
+  }
+  .print-only {
+    display: block;
+  }
+  .print-page {
+    page-break-after: always;
+    break-after: page;
+  }
+  .print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}

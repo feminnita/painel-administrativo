@@ -1,4 +1,11 @@
-import type { Order, OrderFilters, PaymentStatus, FulfillmentStatus } from "./types";
+import type {
+  Order,
+  OrderFilters,
+  PaymentStatus,
+  FulfillmentStatus,
+  DerivedStatus,
+  OverrideValue,
+} from "./types";
 
 export const STATUS_OPTIONS: Record<string, { label: string; color: string }> = {
   pending: { label: "Pendente", color: "bg-yellow-100 text-yellow-800" },
@@ -9,6 +16,64 @@ export const STATUS_OPTIONS: Record<string, { label: string; color: string }> = 
   delivered: { label: "Entregue", color: "bg-green-100 text-green-800" },
   cancelled: { label: "Cancelado", color: "bg-red-100 text-red-800" },
 };
+
+// ---------------------------------------------------------------------------
+// STATUS DERIVADO (defeito 1): o status EXIBIDO nao e' mais escolhido na mao.
+// deriveStatus() calcula por UMA funcao, a partir dos campos que o sistema ja tem.
+// Ordem: primeiro que casar, de baixo pra cima do funil.
+// ---------------------------------------------------------------------------
+export function deriveStatus(order: Order): DerivedStatus {
+  if (order.status === "cancelled") return "cancelado";
+  if (order.status === "delivered") return "entregue";
+  if (order.tracking_code || order.status === "shipped") return "postado";
+  if (order.label_url) return "etiqueta_gerada";
+  if (order.nfe_number) return "nota_emitida";
+  if (order.bling_order_id) return "enviado_bling";
+  if (order.payment_status === "paid") return "pago";
+  return "aguardando_pagamento";
+}
+
+export const DERIVED_STATUS_META: Record<DerivedStatus, { label: string; color: string }> = {
+  aguardando_pagamento: { label: "Aguardando pagamento", color: "bg-yellow-100 text-yellow-800" },
+  pago: { label: "Pago", color: "bg-green-100 text-green-800" },
+  enviado_bling: { label: "Enviado ao Bling", color: "bg-teal-100 text-teal-800" },
+  nota_emitida: { label: "Nota emitida", color: "bg-cyan-100 text-cyan-800" },
+  etiqueta_gerada: { label: "Etiqueta gerada", color: "bg-indigo-100 text-indigo-800" },
+  postado: { label: "Em trânsito / Postado", color: "bg-blue-100 text-blue-800" },
+  entregue: { label: "Entregue", color: "bg-green-100 text-green-800" },
+  cancelado: { label: "Cancelado", color: "bg-red-100 text-red-800" },
+};
+
+// Sobrescrita manual (override) - excecao operacional apenas.
+export const OVERRIDE_META: Record<OverrideValue, { label: string; color: string }> = {
+  em_separacao: { label: "Em separação", color: "bg-purple-100 text-purple-800" },
+  aguardando_estoque: { label: "Aguardando estoque", color: "bg-orange-100 text-orange-800" },
+  cancelado: { label: "Cancelado", color: "bg-red-100 text-red-800" },
+};
+
+export const OVERRIDE_OPTIONS: { value: OverrideValue; label: string }[] = [
+  { value: "em_separacao", label: "Em separação" },
+  { value: "aguardando_estoque", label: "Aguardando estoque" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
+// Status EXIBIDO = status_override ?? deriveStatus(order)
+export function displayStatus(order: Order): { label: string; color: string; isOverride: boolean } {
+  if (order.status_override && OVERRIDE_META[order.status_override]) {
+    return { ...OVERRIDE_META[order.status_override], isOverride: true };
+  }
+  return { ...DERIVED_STATUS_META[deriveStatus(order)], isOverride: false };
+}
+
+// Etapa do stepper derivada dos campos (1..4). 0 = cancelado.
+export function derivedTimelineStep(order: Order): number {
+  if (order.status === "cancelled" || order.status_override === "cancelado") return 0;
+  if (order.status === "delivered") return 4;
+  if (order.tracking_code || order.label_url || order.nfe_number || order.bling_order_id || order.status === "shipped")
+    return 3;
+  if (order.payment_status === "paid") return 2;
+  return 1;
+}
 
 const PAYMENT_VALUES: PaymentStatus[] = [
   "pending", "paid", "failed", "overdue", "refunded", "disputed",

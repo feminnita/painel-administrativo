@@ -1,4 +1,11 @@
-import type { Order, OrderItem, ShippingAddress } from "./types";
+import type {
+  Order,
+  OrderDetail,
+  OrderItem,
+  OverrideValue,
+  ShippingAddress,
+  StatusHistoryEntry,
+} from "./types";
 
 type ApiOrder = Record<string, any>;
 
@@ -20,6 +27,7 @@ export function mapApiOrder(o: ApiOrder): Order {
     id: o.id,
     order_number: o.orderNumber,
     status: o.status,
+    status_override: (o.statusOverride as OverrideValue) ?? null,
     payment_method: o.paymentMethod ?? null,
     payment_status: o.paymentStatus ?? null,
     installments: o.installments ?? null,
@@ -33,7 +41,18 @@ export function mapApiOrder(o: ApiOrder): Order {
     tracking_code: o.trackingCode ?? null,
     tracking_url: o.trackingUrl ?? null,
     label_url: o.labelUrl ?? null,
+    label_generated_at: o.labelGeneratedAt ?? null,
+    me_order_id: o.meOrderId ?? null,
+    shipped_at: o.shippedAt ?? null,
     bling_order_id: o.blingOrderId ?? null,
+    bling_push_status: o.blingPushStatus ?? null,
+    coupon_code: o.couponCode ?? null,
+    nfe_id: o.nfeId ?? null,
+    nfe_number: o.nfeNumber ?? null,
+    nfe_key: o.nfeKey ?? null,
+    nfe_status: o.nfeStatus ?? null,
+    nfe_xml_url: o.nfeXmlUrl ?? null,
+    nfe_pdf_url: o.nfePdfUrl ?? null,
     notes: o.notes ?? null,
     created_at: o.createdAt ?? "",
     customer_name: o.customerName ?? "",
@@ -41,5 +60,24 @@ export function mapApiOrder(o: ApiOrder): Order {
     customer_phone: o.customerPhone ?? "",
     customer_cpf: o.customerCpf ?? null,
     items: Array.isArray(o.items) ? o.items.map(mapApiOrderItem) : [],
+  };
+}
+
+function mapStatusHistoryEntry(h: Record<string, any>): StatusHistoryEntry {
+  return {
+    id: h.id,
+    from_status: h.fromStatus ?? null,
+    to_status: h.toStatus ?? "",
+    source: h.source ?? "admin",
+    created_at: h.createdAt ?? "",
+  };
+}
+
+export function mapApiOrderDetail(o: ApiOrder): OrderDetail {
+  return {
+    ...mapApiOrder(o),
+    status_history: Array.isArray(o.statusHistory)
+      ? o.statusHistory.map(mapStatusHistoryEntry)
+      : [],
   };
 }

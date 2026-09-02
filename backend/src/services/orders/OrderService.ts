@@ -13,11 +13,48 @@ export async function getOrder(id: string) {
     if (!order) throw new Error('ORDER_NOT_FOUND');
 
     const items = await OrdeRepository.findItemsByOrderId(order.id);
+    const statusHistory = await OrdeRepository.findStatusHistory(order.id);
+    const customer = order.customerId
+        ? await OrdeRepository.findCustomerForShipping(order.customerId)
+        : null;
 
     return {
         ...order,
+        customerName: customer?.name ?? '',
+        customerEmail: customer?.email ?? '',
+        customerPhone: customer?.phone ?? '',
+        customerCpf: customer?.cpf ?? '',
         items,
+        statusHistory,
     }
+}
+
+// Sobrescritas manuais permitidas (excecao operacional). null limpa o override
+// e o pedido volta a exibir o status DERIVADO.
+export const STATUS_OVERRIDE_VALUES = ['em_separacao', 'aguardando_estoque', 'cancelado'] as const;
+
+export async function setStatusOverride(id: string, override: string | null, source = 'admin') {
+    if (override !== null && !STATUS_OVERRIDE_VALUES.includes(override as never)) {
+        throw new Error('INVALID_OVERRIDE');
+    }
+
+    const before = await OrdeRepository.findById(id);
+    if (!before) throw new Error('ORDER_NOT_FOUND');
+
+    const order = await OrdeRepository.setStatusOverride(id, override);
+
+    await OrdeRepository.insertStatusHistory({
+        orderId: id,
+        fromStatus: before.statusOverride ?? null,
+        toStatus: override ?? 'auto',
+        source,
+    });
+
+    return order;
+}
+
+export function getStatusHistory(id: string) {
+    return OrdeRepository.findStatusHistory(id);
 }
 
 async function confirmSaleForOrder(orderId: string) {

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
 import { calcTotalRevenue, filterOrders } from "./domain";
 import { mapApiOrder } from "./mappers";
-import type { Order } from "./types";
+import type { Order, OverrideValue } from "./types";
+
+const AUTO_REFRESH_MS = 45_000;
 
 export function useOrdersAdmin() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -10,101 +12,62 @@ export function useOrdersAdmin() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [selected, setSelected] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [trackingInput, setTrackingInput] = useState("");
-  const [savingTracking, setSavingTracking] = useState(false);
-  const [buyingLabel, setBuyingLabel] = useState(false);
-  const [refreshingTracking, setRefreshingTracking] = useState(false);
   const [pushingBlingId, setPushingBlingId] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const load = useCallback(
-    async (keepSelectedId?: string) => {
-      try {
-        const params = new URLSearchParams();
-        // "all" = fila de trabalho (servidor esconde cancelados/falhados).
-        // Um status especifico (inclusive "cancelled") sobrepoe esse padrao.
-        if (statusFilter !== "all") params.set("status", statusFilter);
-        if (dateFrom) params.set("from", dateFrom);
-        if (dateTo) params.set("to", dateTo);
-        const qs = params.toString();
+  // Guardamos os filtros num ref pra o timer de auto-refresh ler sempre o valor
+  // atual sem recriar o intervalo (evita piscar a tela / perder scroll).
+  const filtersRef = useRef({ statusFilter, dateFrom, dateTo });
+  filtersRef.current = { statusFilter, dateFrom, dateTo };
 
-        const data = await api.get<Record<string, any>[]>(
-          `/api/admin/orders${qs ? `?${qs}` : ""}`,
-        );
-        const mapped = data.map(mapApiOrder);
-        setOrders(mapped);
-        if (keepSelectedId) {
-          setSelected(mapped.find((o) => o.id === keepSelectedId) ?? null);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar pedidos:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [statusFilter, dateFrom, dateTo],
-  );
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const { statusFilter, dateFrom, dateTo } = filtersRef.current;
+    try {
+      const params = new URLSearchParams();
+      // "all" = fila de trabalho (servidor esconde cancelados/falhados).
+      // Um status especifico (inclusive "cancelled") sobrepoe esse padrao.
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
+      const qs = params.toString();
 
+      const data = await api.get<Record<string, any>[]>(
+        `/api/admin/orders${qs ? `?${qs}` : ""}`,
+      );
+      // Merge no estado (mesma referencia de linha por id) - nao remonta a lista.
+      setOrders(data.map(mapApiOrder));
+      setLastUpdated(new Date());
+    } catch (error) {
+      // Refresh silencioso nao deve estourar alertas nem limpar a lista.
+      console.error("Erro ao carregar pedidos:", error);
+    } finally {
+      if (!opts?.silent) setLoading(false);
+    }
+  }, []);
+
+  // Recarrega ao mudar filtros (com spinner).
   useEffect(() => {
+    setLoading(true);
     load();
+  }, [statusFilter, dateFrom, dateTo, load]);
+
+  // Auto-refresh (defeito 3): recarrega sozinha sem piscar nem perder filtro/scroll.
+  useEffect(() => {
+    const id = window.setInterval(() => load({ silent: true }), AUTO_REFRESH_MS);
+    return () => window.clearInterval(id);
   }, [load]);
 
   const filtered = filterOrders(orders, { search, status: statusFilter });
   const totalRevenue = calcTotalRevenue(orders);
 
-  const select = (order: Order | null) => {
-    setSelected(order);
-    setTrackingInput(order?.tracking_code || "");
-  };
-
-  const changeStatus = async (id: string, status: string) => {
+  const setStatusOverride = async (id: string, override: OverrideValue | null) => {
     try {
-      await api.put(`/api/admin/orders/${id}/status`, { status });
-      await load(id);
+      await api.put(`/api/admin/orders/${id}/status-override`, { override });
+      await load({ silent: true });
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Erro ao mudar status");
-    }
-  };
-
-  const saveTracking = async () => {
-    if (!selected || !trackingInput.trim()) return;
-    setSavingTracking(true);
-    try {
-      await api.put(`/api/admin/orders/${selected.id}/tracking`, {
-        trackingCode: trackingInput,
-      });
-      await load(selected.id);
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Erro ao salvar rastreio");
-    } finally {
-      setSavingTracking(false);
-    }
-  };
-
-  const buyLabel = async () => {
-    if (!selected) return;
-    setBuyingLabel(true);
-    try {
-      await api.post(`/api/admin/orders/${selected.id}/shipping/label`);
-      await load(selected.id);
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Erro ao comprar etiqueta");
-    } finally {
-      setBuyingLabel(false);
-    }
-  };
-
-  const refreshTracking = async () => {
-    if (!selected) return;
-    setRefreshingTracking(true);
-    try {
-      await api.post(`/api/admin/orders/${selected.id}/shipping/tracking`);
-      await load(selected.id);
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Erro ao atualizar rastreio");
-    } finally {
-      setRefreshingTracking(false);
     }
   };
 
@@ -112,7 +75,7 @@ export function useOrdersAdmin() {
     setPushingBlingId(orderId);
     try {
       await api.post(`/api/admin/bling/push-order/${orderId}`);
-      await load(selected?.id);
+      await load({ silent: true });
       alert("Pedido enviado ao Bling — a nota vai sair.");
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Erro ao enviar ao Bling");
@@ -121,11 +84,42 @@ export function useOrdersAdmin() {
     }
   };
 
+  // --- Selecao em lote (impressao de romaneios) ---
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (filtered.length > 0 && filtered.every((o) => prev.has(o.id))) {
+        const next = new Set(prev);
+        filtered.forEach((o) => next.delete(o.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach((o) => next.add(o.id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectedOrders = orders.filter((o) => selectedIds.has(o.id));
+
   return {
     orders,
     loading,
     filtered,
     totalRevenue,
+    lastUpdated,
     search,
     setSearch,
     statusFilter,
@@ -134,18 +128,16 @@ export function useOrdersAdmin() {
     setDateFrom,
     dateTo,
     setDateTo,
-    selected,
-    select,
-    trackingInput,
-    setTrackingInput,
-    savingTracking,
-    changeStatus,
-    saveTracking,
-    buyingLabel,
-    buyLabel,
-    refreshingTracking,
-    refreshTracking,
+    setStatusOverride,
     pushingBlingId,
     pushToBling,
+    // batch
+    selectedIds,
+    selectedOrders,
+    toggleSelect,
+    toggleSelectAll,
+    allFilteredSelected,
+    clearSelection,
+    reload: () => load({ silent: true }),
   };
 }
