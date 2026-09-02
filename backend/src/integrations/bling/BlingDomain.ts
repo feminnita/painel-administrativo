@@ -1,4 +1,5 @@
 import type { BlingProductDetail, BlingProductListItem, BlingStockDeposit, ParsedSku, BuildPayloadInput, SalesOrderData } from "./types";
+import { normalizeSize } from "../../domain/product/size";
 
 const PIX_DISCOUNT_RATE = 0.05;
 
@@ -56,6 +57,8 @@ export function parseVariations(
                 size = val || '';
             else if (!color) color = val || '';
         }
+
+        size = normalizeSize(size);
 
         if (color) colorSet.add(color);
         if (size) sizesSet.add(size);
