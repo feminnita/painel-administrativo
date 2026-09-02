@@ -4,6 +4,7 @@ import { env } from '../../config/env';
 import * as TokenService from '../../integrations/bling/TokenService';
 import * as BlingSyncService from '../../integrations/bling/BlingSyncService';
 import * as BlingOrderService from '../../integrations/bling/BlingOrderService';
+import * as OrderRepository from '../../repository/orders/OrderRepository';
 
 
 const STATE_COOKIE = 'bling_oauth_state';
@@ -90,14 +91,20 @@ export async function syncLogs(_req: Request, res: Response) {
 export async function pushOrder(req: Request, res: Response) {
     const orderId = req.params.orderId as string;
 
+    // Retry manual: se estava marcado como erro, limpa a pendencia antes de reprocessar.
+    await OrderRepository.resetPushToPending(orderId).catch(() => { });
+
     try {
-        res.json(await BlingOrderService.pushOrder(orderId));
+        const result = await BlingOrderService.pushOrder(orderId);
+        await OrderRepository.markPushed(orderId).catch(() => { });
+        res.json(result);
     } catch (error) {
         if (error instanceof Error) {
             if (error.message === 'ORDER_NOT_FOUND') {
                 return res.status(404).json({ error: 'Pedido não encontrado' });
             }
             if (error.message.startsWith('ALREADY_PUSHED')) {
+                await OrderRepository.markPushed(orderId).catch(() => { });
                 return res.status(409).json({
                     error: 'Pedido já enviado ao Bling',
                     blingOrderId: Number(error.message.split(':')[1]),
@@ -107,6 +114,8 @@ export async function pushOrder(req: Request, res: Response) {
                 return res.status(409).json({ error: 'Conecte o Bling primeiro' });
             }
         }
+        const msg = error instanceof Error ? error.message : String(error);
+        await OrderRepository.saveBlingPushError(orderId, msg).catch(() => { });
         console.error(`Bling push-order falhou (${orderId}):`, error);
         res.status(500).json({ error: 'Erro ao enviar pedido ao Bling' });
     }
