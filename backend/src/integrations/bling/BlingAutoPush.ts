@@ -16,15 +16,25 @@ let running = false;
  *   + filtro findPaidOrdersToPush.
  */
 export async function pushPaidOrders(): Promise<void> {
-    if (!TokenService.isBlingConfigured()) return;
+    // Instrumentacao: os returns antes eram mudos. Agora todo ciclo loga uma
+    // linha — contagem de elegiveis + host do banco que ESTE processo usa —
+    // pra distinguir "intervalo nao roda" de "consulta devolve 0" e pegar
+    // divergencia de DATABASE_URL entre o deploy e o banco que eu manipulo.
+    const dbHost = (process.env.DATABASE_URL ?? '').match(/@([^/]+)/)?.[1] ?? '?';
+
+    if (!TokenService.isBlingConfigured()) {
+        console.warn(`[BLING AUTO-PUSH] ciclo: Bling NAO configurado (sem client id/secret) db=${dbHost}`);
+        return;
+    }
 
     const token = await TokenService.getAccessToken();
     if (!token) {
-        console.warn('[BLING AUTO-PUSH] sem token — Bling nao conectado; nada marcado como erro');
+        console.warn(`[BLING AUTO-PUSH] ciclo: sem token db=${dbHost}`);
         return;
     }
 
     const pending = await OrderRepository.findPaidOrdersToPush();
+    console.log(`[BLING AUTO-PUSH] ciclo: ${pending.length} pedidos elegiveis db=${dbHost}`);
 
     for (const order of pending) {
         try {
