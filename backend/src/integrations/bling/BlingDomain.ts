@@ -150,11 +150,24 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
     const addr = (order.shippingAddress ?? {}) as Record<string, string>;
     const today = now.toISOString().slice(0, 10);
 
-    const paymentLabel = order.paymentMethod === 'pix'
-        ? 'PIX'
-        : order.paymentMethod === 'boleto'
-            ? 'Boleto'
-            : 'Cartão de Crédito';
+    // Forma de pagamento fiscal (NT 2020.006 / rejeição SEFAZ 441): a parcela
+    // PRECISA referenciar uma forma cadastrada no Bling. Sem isso a NF-e sai com
+    // tPag 99 (Outros) e é rejeitada. Mapeia o método do Asaas -> id da forma do
+    // Bling. Desconhecido FALHA com log explícito — NUNCA cai em 99 silencioso.
+    // (ids das formas cadastradas na conta FNT; o tPag fiscal é config de cada
+    //  forma no próprio Bling — hoje Cartão=3, Pix=20, Boleto=15.)
+    const FORMA_PAGAMENTO: Record<string, { id: number; label: string }> = {
+        pix: { id: 8263728, label: 'PIX' },
+        card: { id: 8487566, label: 'Cartão de Crédito' },
+        boleto: { id: 8263723, label: 'Boleto' },
+    };
+    const forma = FORMA_PAGAMENTO[String(order.paymentMethod ?? '')];
+    if (!forma) {
+        throw new Error(
+            `FORMA_PAGAMENTO_DESCONHECIDA: paymentMethod="${order.paymentMethod}" no pedido ${order.orderNumber} — sem forma do Bling mapeada (evita NF-e com tPag 99/rejeição 441)`,
+        );
+    }
+    console.log(`[BLING] pedido ${order.orderNumber}: forma "${order.paymentMethod}" -> Bling id ${forma.id} (${forma.label})`);
 
     // modFrete da NF-e = quem CONTRATA o transporte (não quem paga).
     // Retirada no local = sem transporte: fretePorConta 9, sem frete, sem etiqueta/endereço
@@ -204,7 +217,8 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
             {
                 dataVencimento: today,
                 valor: Number(order.total),
-                observacoes: paymentLabel,
+                observacoes: forma.label,
+                formaPagamento: { id: forma.id },
             },
         ],
         transporte,
