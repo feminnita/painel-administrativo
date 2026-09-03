@@ -166,6 +166,10 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
                   </span>
                 </label>
 
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Mobile 1080×1350 (4:5) — obrigatório
+                </p>
+
                 <div className="my-3 flex items-center gap-3">
                   <div className="h-px flex-1 bg-gray-200" />
                   <span className="text-xs text-gray-400">ou cole a URL</span>
@@ -225,6 +229,10 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
                     {uploading ? "Enviando..." : "Clique para enviar (opcional)"}
                   </span>
                 </label>
+
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Desktop 1920×1080 (16:9) — opcional
+                </p>
 
                 <div className="my-3 flex items-center gap-3">
                   <div className="h-px flex-1 bg-gray-200" />

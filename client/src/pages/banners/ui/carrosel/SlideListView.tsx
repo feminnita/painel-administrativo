@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Image as ImageIcon,
+  Plus,
   Trash2,
   Video,
 } from "lucide-react";
@@ -15,7 +16,15 @@ export function SlideListView({
 }: {
   vm: ReturnType<typeof useSlidesAdmin>;
 }) {
-  const { slides, loading, openEdit, handleDelete, toggleActive, move } = vm;
+  const {
+    slides,
+    loading,
+    openEdit,
+    handleDelete,
+    toggleActive,
+    move,
+    openNew,
+  } = vm;
 
   if (loading) {
     return (
@@ -33,6 +42,13 @@ export function SlideListView({
         <p className="mt-1 text-sm">
           Adicione slides ao carrossel da página inicial
         </p>
+        <button
+          onClick={openNew}
+          className="mx-auto mt-6 flex items-center gap-2 rounded-lg bg-[#8C2F39] px-5 py-3 font-semibold text-white hover:bg-[#7a2832]"
+        >
+          <Plus size={18} />
+          Adicionar slide
+        </button>
       </div>
     );
   }
@@ -140,6 +156,14 @@ export function SlideListView({
           </div>
         </div>
       ))}
+
+      <button
+        onClick={openNew}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#8C2F39] py-4 font-semibold text-[#8C2F39] transition-colors hover:bg-red-50/40"
+      >
+        <Plus size={18} />
+        Adicionar slide
+      </button>
     </div>
   );
 }

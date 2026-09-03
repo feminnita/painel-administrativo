@@ -42,7 +42,7 @@ export function BannersPage() {
             className="flex items-center gap-2 rounded-lg bg-[#8C2F39] px-5 py-3 font-semibold text-white hover:bg-[#7a2832]"
           >
             <Plus size={18} />
-            Novo Slide
+            Adicionar slide
           </button>
         ) : (
           <button
