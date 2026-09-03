@@ -14,6 +14,7 @@ export const heroSlides = pgTable('hero_slides', {
     title: text('title'),
     subtitle: text('subtitle'),
     textPosition: text('text_position').default('center-center'),
+    textTheme: text('text_theme').default('light'),
     focal: text('focal').default('center'),
     orderIndex: integer('order_index').notNull().default(0),
     active: boolean('active').notNull().default(true),

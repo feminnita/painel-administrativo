@@ -10,6 +10,7 @@ export type Slide = {
   title: string | null;
   subtitle: string | null;
   text_position: string;
+  text_theme: string;
   focal: string;
   order_index: number;
   active: boolean;
@@ -27,6 +28,7 @@ export type SlideInput = {
   title: string | null;
   subtitle: string | null;
   text_position: string;
+  text_theme: string;
   focal: string;
   order_index: number;
   active: boolean;
