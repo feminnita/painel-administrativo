@@ -101,6 +101,32 @@ export function VitrinePage() {
                 <p className="text-gray-500">Carregando...</p>
             ) : (
                 <div className="max-w-3xl">
+                    {/* Categoria de origem da seção */}
+                    <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <label className="mb-1 block text-sm font-semibold text-gray-700">
+                            Categoria de origem —{" "}
+                            {SECTIONS.find((s) => s.key === tab)?.label}
+                        </label>
+                        <p className="mb-2 text-xs text-gray-500">
+                            Os produtos desta seção saem desta categoria. Vazio = seção não
+                            configurada.
+                        </p>
+                        <select
+                            value={vm.sectionCategories[tab]}
+                            onChange={(e) => vm.setSectionCategory(tab, e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8C2F39] focus:outline-none"
+                        >
+                            <option value="">— Nenhuma (não configurada) —</option>
+                            {vm.categories
+                                .filter((c) => c.active)
+                                .map((c) => (
+                                    <option key={c.id} value={c.slug}>
+                                        {c.name}
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+
                     {/* Busca + adicionar */}
                     <div className="mb-2 flex items-center gap-2">
                         <div className="relative flex-1">

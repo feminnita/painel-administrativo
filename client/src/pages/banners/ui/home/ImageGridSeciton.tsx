@@ -1,4 +1,7 @@
-import type { useHomeBannersAdmin } from "@/pages/banners/useBannersAdmin";
+import {
+  MAX_GRID_IMAGES,
+  type useHomeBannersAdmin,
+} from "@/pages/banners/useBannersAdmin";
 import { ChevronDown, ChevronUp, Plus, Trash2, Upload } from "lucide-react";
 
 export function ImageGridSection({
@@ -119,11 +122,17 @@ export function ImageGridSection({
 
       <button
         onClick={addGridImage}
-        className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-600 hover:border-[#8C2F39] hover:text-[#8C2F39]"
+        disabled={(settings.imageGrid.images?.length ?? 0) >= MAX_GRID_IMAGES}
+        className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-600 hover:border-[#8C2F39] hover:text-[#8C2F39] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus size={16} />
         Adicionar imagem
       </button>
+
+      <p className="text-xs text-gray-400">
+        {(settings.imageGrid.images?.length ?? 0)}/{MAX_GRID_IMAGES} imagens
+        (máximo de {MAX_GRID_IMAGES} blocos na faixa).
+      </p>
     </div>
   );
 }

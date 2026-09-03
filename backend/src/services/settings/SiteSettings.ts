@@ -6,6 +6,7 @@ export const ALLOWED_KEYS = [
     'home_image_grid',
     'home_category_banners',
     'home_sections',
+    'home_section_categories',
     'shipping_config',
 ] as const;
 
