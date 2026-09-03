@@ -11,6 +11,7 @@ import { CategoryBoard } from "./pages/categories/ui/CategoryBoard";
 import { StockPage } from "./pages/stock/ui/StockPage";
 import { CouponsPage } from "./pages/coupons/ui/CouponsPage";
 import { BannersPage } from './pages/banners/ui/BannersPage';
+import { VitrinePage } from './pages/vitrine/ui/VitrinePage';
 import { IntegracoesPage } from "./pages/integrations/ui/IntegracoesPage";
 import { CartsPage } from "./pages/carts/ui/CartsPage";
 import { VendasPage } from "./pages/vendas/ui/VendasPage";
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/estoque" element={<StockPage />} />
             <Route path="/cupons" element={<CouponsPage />} />
             <Route path="/slides" element={<BannersPage />} />
+            <Route path="/vitrine" element={<VitrinePage />} />
             <Route path="/integracoes" element={<IntegracoesPage />} />
             <Route path="/carrinhos" element={<CartsPage />} />
             <Route path="/vendas" element={<VendasPage />} />
