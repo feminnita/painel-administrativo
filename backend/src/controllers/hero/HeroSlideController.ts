@@ -1,6 +1,25 @@
 import { Request, Response } from 'express';
 import * as HeroSlideService from '../../services/hero/HeroSlideService';
 
+// Traduz o erro real em mensagem útil pra quem está usando o painel:
+// diz QUAL campo faltou e o que fazer, em vez do genérico "confira type e src".
+function respondSlideError(res: Response, error: unknown, fallbackStatus: number, fallbackMsg: string) {
+    if (error instanceof Error && error.message === 'INVALID_VIDEO_ID') {
+        return res.status(400).json({ error: 'Vídeo deve ser só o ID do YouTube (11 caracteres), não a URL' });
+    }
+    const pgErr = error as { code?: string; column?: string };
+    if (pgErr?.code === '23502') {
+        const campos: Record<string, string> = {
+            alt: 'o texto alternativo (alt) — descreva a imagem',
+            src: 'a imagem principal — o link não chegou; reenvie o arquivo (o upload não retornou URL)',
+        };
+        const campo = campos[pgErr.column ?? ''] ?? `o campo obrigatório "${pgErr.column ?? '—'}"`;
+        return res.status(400).json({ error: `Não salvou: falta ${campo}.` });
+    }
+    console.error('[hero-slide]', error);
+    return res.status(fallbackStatus).json({ error: fallbackMsg });
+}
+
 export async function list(req: Request, res: Response) {
     res.json(await HeroSlideService.listSlides());
 }
@@ -18,10 +37,7 @@ export async function create(req: Request, res: Response) {
             ctaHref,
         }));
     } catch (error) {
-        if (error instanceof Error && error.message === 'INVALID_VIDEO_ID') {
-            return res.status(400).json({ error: 'Vídeo deve ser só o ID do YouTube (11 caracteres), não a URL' });
-        }
-        res.status(400).json({ error: 'Erro ao criar slide — confira type e src' });
+        return respondSlideError(res, error, 400, 'Não foi possível criar o slide. O erro foi registrado no servidor.');
     }
 }
 
@@ -31,10 +47,10 @@ export async function update(req: Request, res: Response) {
     try {
         res.json(await HeroSlideService.updateSlide(id, req.body));
     } catch (error) {
-        if (error instanceof Error && error.message === 'INVALID_VIDEO_ID') {
-            return res.status(400).json({ error: 'Vídeo deve ser só o ID do YouTube (11 caracteres), não a URL' });
+        if (error instanceof Error && error.message === 'SLIDE_NOT_FOUND') {
+            return res.status(404).json({ error: 'Slide não encontrado' });
         }
-        res.status(404).json({ error: 'Slide não encontrado' });
+        return respondSlideError(res, error, 404, 'Slide não encontrado');
     }
 }
 
