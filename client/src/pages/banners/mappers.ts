@@ -74,5 +74,6 @@ export function emptyHomeBanners(): HomeBannersSettings {
     imageGrid: {
       images: [],
     },
+    categoryBanners: [],
   };
 }
