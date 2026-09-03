@@ -39,6 +39,10 @@ export type VideoSectionInput = {
 export type ImageGridItemInput = {
   src: string;
   alt: string;
+  title?: string;
+  href?: string;
+  order?: number;
+  active?: boolean;
 };
 
 export type ImageGridInput = {
