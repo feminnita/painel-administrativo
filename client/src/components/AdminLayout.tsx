@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
     BarChart,
     BarChart2, BookOpen, Camera, ChevronRight, Image, LayoutDashboard,
-    LogOut, Mail, Megaphone, Menu, Package, Palette, Settings,
+    LayoutGrid, LogOut, Mail, Megaphone, Menu, Package, Palette, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, Users2, X, Zap,
 } from "lucide-react";
 
@@ -54,6 +54,7 @@ const navItems: NavEntry[] = [
         ],
     },
     { href: "/slides", label: "Carrossel Hero", icon: Image },
+    { href: "/vitrine", label: "Vitrine", icon: LayoutGrid },
     {
         label: "Configurações", icon: Settings,
         children: [
