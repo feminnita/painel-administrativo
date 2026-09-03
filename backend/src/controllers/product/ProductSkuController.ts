@@ -28,8 +28,8 @@ export async function update(req: Request, res: Response) {
 export async function remove(req: Request, res: Response) {
     const id = req.params.id as string;
     try {
-        await ProductSkuService.deleteSku(id);
-        res.status(204).send();
+        const result = await ProductSkuService.deleteSku(id);
+        res.json(result); // { action: 'deleted' | 'deactivated' }
     } catch {
         res.status(404).json({ error: 'SKU não encontrado' });
     }
