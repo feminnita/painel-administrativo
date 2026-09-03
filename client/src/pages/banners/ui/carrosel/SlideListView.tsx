@@ -1,10 +1,12 @@
 import type { useSlidesAdmin } from "@/pages/banners/useSlidesAdmin";
 import {
+  ChevronDown,
+  ChevronUp,
   Edit,
   Eye,
   EyeOff,
-  GripVertical,
   Image as ImageIcon,
+  Plus,
   Trash2,
   Video,
 } from "lucide-react";
@@ -14,7 +16,15 @@ export function SlideListView({
 }: {
   vm: ReturnType<typeof useSlidesAdmin>;
 }) {
-  const { slides, loading, openEdit, handleDelete, toggleActive } = vm;
+  const {
+    slides,
+    loading,
+    openEdit,
+    handleDelete,
+    toggleActive,
+    move,
+    openNew,
+  } = vm;
 
   if (loading) {
     return (
@@ -32,25 +42,49 @@ export function SlideListView({
         <p className="mt-1 text-sm">
           Adicione slides ao carrossel da página inicial
         </p>
+        <button
+          onClick={openNew}
+          className="mx-auto mt-6 flex items-center gap-2 rounded-lg bg-[#8C2F39] px-5 py-3 font-semibold text-white hover:bg-[#7a2832]"
+        >
+          <Plus size={18} />
+          Adicionar slide
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {slides.map((slide) => (
+      {slides.map((slide, index) => (
         <div
           key={slide.id}
           className={`flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm ${
             slide.active ? "border-gray-100" : "border-gray-200 opacity-60"
           }`}
         >
-          <GripVertical size={18} className="shrink-0 text-gray-300" />
+          <div className="flex shrink-0 flex-col">
+            <button
+              onClick={() => move(index, -1)}
+              disabled={index === 0}
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 disabled:opacity-30"
+              title="Mover para cima"
+            >
+              <ChevronUp size={16} />
+            </button>
+            <button
+              onClick={() => move(index, 1)}
+              disabled={index === slides.length - 1}
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 disabled:opacity-30"
+              title="Mover para baixo"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
 
           <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-            {slide.type === "image" && slide.src ? (
+            {slide.type === "image" && (slide.src || slide.src_mobile) ? (
               <img
-                src={slide.src}
+                src={slide.src || slide.src_mobile || ""}
                 alt={slide.alt || ""}
                 className="h-full w-full object-cover"
               />
@@ -122,6 +156,14 @@ export function SlideListView({
           </div>
         </div>
       ))}
+
+      <button
+        onClick={openNew}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#8C2F39] py-4 font-semibold text-[#8C2F39] transition-colors hover:bg-red-50/40"
+      >
+        <Plus size={18} />
+        Adicionar slide
+      </button>
     </div>
   );
 }

@@ -7,10 +7,11 @@ export async function list(req: Request, res: Response) {
 
 export async function create(req: Request, res: Response) {
     try {
-        const { type, src, alt, poster, ctaText, ctaHref } = req.body;
+        const { type, src, srcMobile, alt, poster, ctaText, ctaHref } = req.body;
         res.status(201).json(await HeroSlideService.createSlide({
             type,
             src,
+            srcMobile,
             alt,
             poster,
             ctaText,

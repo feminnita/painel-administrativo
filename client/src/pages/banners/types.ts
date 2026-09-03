@@ -2,6 +2,7 @@ export type Slide = {
   id: string;
   type: "image" | "video";
   src: string;
+  src_mobile: string | null;
   alt: string;
   poster: string | null;
   cta_text: string | null;
@@ -14,6 +15,7 @@ export type Slide = {
 export type SlideInput = {
   type: "image" | "video";
   src: string;
+  src_mobile: string | null;
   alt: string | null;
   poster: string | null;
   cta_text: string | null;
