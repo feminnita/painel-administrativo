@@ -11,7 +11,6 @@ import {
     Save,
     EyeOff,
     Star,
-    Sparkles,
     TrendingUp,
     Images,
     Hash,
@@ -169,8 +168,9 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
     const badges = [
         { key: "featured", label: "Selo destaque", desc: "Aumenta a visibilidade na página inicial.", icon: Star },
-        { key: "is_new", label: "Selo lançamento", desc: "Marca o produto como novidade no catálogo.", icon: Sparkles },
-        { key: "is_bestseller", label: "Selo mais vendido", desc: "Destaca o produto como campeão de vendas.", icon: TrendingUp },
+        // Selo lançamento / Selo mais vendido removidos: a fileira agora sai da
+        // CATEGORIA (lancamentos / mais-vendidos). Dois mecanismos p/ a mesma coisa
+        // levava a fileira vazia sem ninguém saber por quê.
     ] as const;
 
     const varKey = (s: Sku) => `${s.color}__${s.size}`;
