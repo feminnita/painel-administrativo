@@ -26,7 +26,7 @@ export async function list(req: Request, res: Response) {
 
 export async function create(req: Request, res: Response) {
     try {
-        const { type, src, srcMobile, alt, poster, ctaText, ctaHref } = req.body;
+        const { type, src, srcMobile, alt, poster, ctaText, ctaHref, title, subtitle, textPosition, focal } = req.body;
         res.status(201).json(await HeroSlideService.createSlide({
             type,
             src,
@@ -35,6 +35,10 @@ export async function create(req: Request, res: Response) {
             poster,
             ctaText,
             ctaHref,
+            title,
+            subtitle,
+            textPosition,
+            focal,
         }));
     } catch (error) {
         return respondSlideError(res, error, 400, 'Não foi possível criar o slide. O erro foi registrado no servidor.');

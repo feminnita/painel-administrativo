@@ -189,7 +189,7 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Imagem desktop (16:9, ex. 1920×1080) — opcional
+                  Imagem desktop (2,4:1, ex. 1920×800) — opcional
                 </label>
 
                 {editing.src && (
@@ -231,7 +231,7 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
                 </label>
 
                 <p className="mt-1.5 text-xs text-gray-400">
-                  Desktop 1920×1080 (16:9) — opcional
+                  Desktop 1920×800 (2,4:1) — opcional
                 </p>
 
                 <div className="my-3 flex items-center gap-3">
@@ -338,10 +338,85 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
             </div>
           </div>
 
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Título
+            </label>
+            <input
+              type="text"
+              value={editing.title || ""}
+              onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+              className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              placeholder="Título grande sobre o banner"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Subtítulo
+            </label>
+            <input
+              type="text"
+              value={editing.subtitle || ""}
+              onChange={(e) =>
+                setEditing({ ...editing, subtitle: e.target.value })
+              }
+              className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              placeholder="Texto de apoio (opcional)"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Posição (ordem)
+                Posição do texto
+              </label>
+              <select
+                value={editing.text_position || "center-center"}
+                onChange={(e) =>
+                  setEditing({ ...editing, text_position: e.target.value })
+                }
+                className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              >
+                <option value="top-left">Topo · Esquerda</option>
+                <option value="top-center">Topo · Centro</option>
+                <option value="top-right">Topo · Direita</option>
+                <option value="center-left">Meio · Esquerda</option>
+                <option value="center-center">Meio · Centro</option>
+                <option value="center-right">Meio · Direita</option>
+                <option value="bottom-left">Base · Esquerda</option>
+                <option value="bottom-center">Base · Centro</option>
+                <option value="bottom-right">Base · Direita</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Ponto focal
+              </label>
+              <select
+                value={editing.focal || "center"}
+                onChange={(e) =>
+                  setEditing({ ...editing, focal: e.target.value })
+                }
+                className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              >
+                <option value="center">Centro</option>
+                <option value="center top">Topo</option>
+                <option value="center bottom">Base</option>
+                <option value="left">Esquerda</option>
+                <option value="right">Direita</option>
+                <option value="left top">Topo · Esquerda</option>
+                <option value="right top">Topo · Direita</option>
+                <option value="left bottom">Base · Esquerda</option>
+                <option value="right bottom">Base · Direita</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Ordem
               </label>
               <input
                 type="number"
