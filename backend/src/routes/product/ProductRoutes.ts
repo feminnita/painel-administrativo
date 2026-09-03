@@ -12,4 +12,5 @@ adminProductRoutes.get('/:id', ProductController.getOne);
 adminProductRoutes.put('/:id/full', ProductController.saveFull);
 adminProductRoutes.get('/:id/color-images', ProductController.colorImages);
 adminProductRoutes.patch('/:id/active', ProductController.setActive);
+adminProductRoutes.patch('/:id/visible', ProductController.setVisible);
 adminProductRoutes.delete('/:id', ProductController.remove);

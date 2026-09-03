@@ -34,6 +34,10 @@ export type AdminProduct = {
   meta_title: string | null;
   meta_description: string | null;
   created_at: string;
+  // Agregados vindos da listagem (backend)
+  variation_count: number;
+  stock_sum: number;
+  sales_count: number | null; // sem fonte agregada -> null -> UI mostra "—"
 };
 
 export type Color = {
@@ -42,12 +46,24 @@ export type Color = {
   image_url: string;
 };
 
-export type ProductSortKey = "created_at" | "name" | "base_price" | "stock";
+export type ProductSortKey =
+  | "created_at"
+  | "name"
+  | "code"
+  | "base_price"
+  | "stock_sum"
+  | "sales_count";
+
+export type StockFilter = "" | "in" | "out";
 
 export type ProductFilters = {
   search?: string;
   categoryId?: string;
   status?: "" | "active" | "inactive";
+  brand?: string;
+  stock?: StockFilter;
+  attribute?: string;
+  suspicious?: boolean;
   sortBy?: ProductSortKey;
   sortDir?: "asc" | "desc";
 };
@@ -72,4 +88,7 @@ export type ColorImages = {
   images: string[];
 };
 
-export type ProductInput = Omit<AdminProduct, "id" | "created_at">;
+export type ProductInput = Omit<
+  AdminProduct,
+  "id" | "created_at" | "variation_count" | "stock_sum" | "sales_count"
+>;

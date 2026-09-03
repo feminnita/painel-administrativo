@@ -5,7 +5,7 @@ import type { CategoryRow } from "@/lib/categories";
 import { buildProductPayload, emptyProduct, filterAndSortProducts, sizeRank } from "./domain";
 import { mapApiCategory, mapApiColor, mapApiProduct, toApiProduct } from "./mappers";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
-import type { AdminProduct, Color, ColorImages, ProductInput, ProductSortKey, Sku } from "./types";
+import type { AdminProduct, Color, ColorImages, ProductInput, ProductSortKey, Sku, StockFilter } from "./types";
 
 export function useProductsAdmin() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -25,6 +25,10 @@ export function useProductsAdmin() {
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "inactive">(
     "",
   );
+  const [filterBrand, setFilterBrand] = useState("");
+  const [filterStock, setFilterStock] = useState<StockFilter>("");
+  const [filterAttribute, setFilterAttribute] = useState("");
+  const [filterSuspicious, setFilterSuspicious] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [sortBy, setSortBy] = useState<ProductSortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -69,6 +73,10 @@ export function useProductsAdmin() {
     search,
     categoryId: filterCategory,
     status: filterStatus,
+    brand: filterBrand,
+    stock: filterStock,
+    attribute: filterAttribute,
+    suspicious: filterSuspicious,
     sortBy,
     sortDir,
   });
@@ -460,8 +468,29 @@ export function useProductsAdmin() {
   };
 
   const toggleActive = async (p: AdminProduct) => {
-    await api.patch(`/api/admin/products/${p.id}/active`, { active: !p.active });
+    try {
+      await api.patch(`/api/admin/products/${p.id}/active`, { active: !p.active });
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Erro ao atualizar status");
+    }
     load();
+  };
+
+  // Alterna "Exibir na loja" (visible_in_store) na propria linha; respeita a trava de preco.
+  const toggleVisible = async (p: AdminProduct) => {
+    try {
+      await api.patch(`/api/admin/products/${p.id}/visible`, {
+        visibleInStore: !p.visible_in_store,
+      });
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Erro ao atualizar visibilidade");
+    }
+    load();
+  };
+
+  // Historico do produto: sem fonte agregada ainda no backend.
+  const openHistory = (p: AdminProduct) => {
+    alert(`Histórico de "${p.name}" — em breve.`);
   };
 
   return {
@@ -487,6 +516,14 @@ export function useProductsAdmin() {
     setFilterCategory,
     filterStatus,
     setFilterStatus,
+    filterBrand,
+    setFilterBrand,
+    filterStock,
+    setFilterStock,
+    filterAttribute,
+    setFilterAttribute,
+    filterSuspicious,
+    setFilterSuspicious,
     viewMode,
     setViewMode,
     sortBy,
@@ -516,6 +553,8 @@ export function useProductsAdmin() {
     handleSave,
     handleDelete,
     toggleActive,
+    toggleVisible,
+    openHistory,
     getColorImages,
     uploadColorImages,
     removeColorImage,

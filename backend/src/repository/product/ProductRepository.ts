@@ -17,8 +17,27 @@ type SkuGridItem = {
 };
 type ColorImagesItem = { color: string; images: string[] };
 
-export function findAll() {
-    return db.query.products.findMany();
+export async function findAll() {
+    const rows = await db.query.products.findMany();
+    if (rows.length === 0) return rows;
+    // Agrega por produto: numero de variacoes e soma de estoque (fonte StockHub).
+    const agg = await db
+        .select({
+            productId: productsSkus.productId,
+            variationCount: sql<number>`count(*)::int`,
+            stockSum: sql<number>`coalesce(sum(${productsSkus.stockQty}), 0)::int`,
+        })
+        .from(productsSkus)
+        .where(inArray(productsSkus.productId, rows.map((r) => r.id)))
+        .groupBy(productsSkus.productId);
+    const byId = new Map(agg.map((a) => [a.productId, a]));
+    return rows.map((r) => ({
+        ...r,
+        variationCount: byId.get(r.id)?.variationCount ?? 0,
+        stockSum: byId.get(r.id)?.stockSum ?? 0,
+        // Sem fonte agregada de vendas por produto: o painel mostra "—".
+        salesCount: null as number | null,
+    }));
 }
 
 export function findById(id: string) {

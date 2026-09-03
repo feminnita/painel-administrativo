@@ -1,5 +1,19 @@
 import type { AdminProduct, ProductFilters, ProductInput } from "./types";
 
+// Abaixo deste valor o preco e tratado como "suspeito" (ferramenta de conferencia).
+export const SUSPICIOUS_PRICE_THRESHOLD = 5;
+
+/** Preco de venda efetivo do produto: promocional quando houver, senao o cheio. */
+export function effectivePrice(p: AdminProduct): number {
+    return p.sale_price != null && p.sale_price > 0 ? p.sale_price : p.base_price;
+}
+
+/** Preco <= 0 ou suspeitosamente baixo (pente-fino). */
+export function isSuspiciousPrice(p: AdminProduct): boolean {
+    const eff = effectivePrice(p);
+    return eff <= 0 || eff < SUSPICIOUS_PRICE_THRESHOLD;
+}
+
 export function filterAndSortProducts(
     products: AdminProduct[],
     filters: ProductFilters,
@@ -8,6 +22,10 @@ export function filterAndSortProducts(
         search = "",
         categoryId = "",
         status = "",
+        brand = "",
+        stock = "",
+        attribute = "",
+        suspicious = false,
         sortBy = "created_at",
         sortDir = "desc",
     } = filters;
@@ -18,13 +36,24 @@ export function filterAndSortProducts(
         if (
             term &&
             !p.name.toLowerCase().includes(term) &&
-            !(p.code ?? "").toLowerCase().includes(term)
+            !(p.code ?? "").toLowerCase().includes(term) &&
+            !(p.reference ?? "").toLowerCase().includes(term)
         )
             return false;
 
         if (categoryId && p.category_id !== categoryId) return false;
         if (status === "active" && !p.active) return false;
         if (status === "inactive" && p.active) return false;
+        if (brand && p.brand !== brand) return false;
+        if (stock === "in" && p.stock_sum <= 0) return false;
+        if (stock === "out" && p.stock_sum > 0) return false;
+        if (
+            attribute &&
+            !(p.sizes || []).includes(attribute) &&
+            !(p.colors || []).includes(attribute)
+        )
+            return false;
+        if (suspicious && !isSuspiciousPrice(p)) return false;
 
         return true;
     });
@@ -32,8 +61,8 @@ export function filterAndSortProducts(
     return filtered.sort((a, b) => {
         const va = a[sortBy];
         const vb = b[sortBy];
-        const na = typeof va === "string" ? va.toLowerCase() : va;
-        const nb = typeof vb === "string" ? vb.toLowerCase() : vb;
+        const na = va == null ? "" : typeof va === "string" ? va.toLowerCase() : va;
+        const nb = vb == null ? "" : typeof vb === "string" ? vb.toLowerCase() : vb;
 
         if (na < nb) return sortDir === "asc" ? -1 : 1;
         if (na > nb) return sortDir === "asc" ? 1 : -1;

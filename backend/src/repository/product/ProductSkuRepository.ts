@@ -9,6 +9,10 @@ export function findByProductId(productId: string) {
     return db.query.productsSkus.findMany({ where: eq(productsSkus.productId, productId) });
 }
 
+export function findById(id: string) {
+    return db.query.productsSkus.findFirst({ where: eq(productsSkus.id, id) });
+}
+
 /** SKUs do produto com flag hasOrders (aparece em algum order_items). */
 export async function findByProductIdWithOrders(productId: string) {
     const skus = await db.query.productsSkus.findMany({ where: eq(productsSkus.productId, productId) });

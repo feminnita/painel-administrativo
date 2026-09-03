@@ -37,6 +37,9 @@ export function mapApiProduct(p: ApiProduct): AdminProduct {
     meta_title: p.metaTitle ?? null,
     meta_description: p.metaDescription ?? null,
     created_at: p.createdAt ?? "",
+    variation_count: p.variationCount ?? 0,
+    stock_sum: p.stockSum ?? p.stock ?? 0,
+    sales_count: p.salesCount ?? null,
   };
 }
 

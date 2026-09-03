@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as ProductService from '../../services/product/ProductService';
+import { PRICE_INVALID_ACTIVE, PRICE_INVALID_ACTIVE_MESSAGE } from '../../domain/product/price';
 
 function normalizePrice(value: unknown): string | null | undefined {
     if (value === undefined) return undefined;
@@ -52,6 +53,7 @@ export async function saveFull(req: Request, res: Response) {
         const message = err instanceof Error ? err.message : '';
         if (message === 'PRODUCT_NOT_FOUND') return res.status(404).json({ error: 'Produto não encontrado' });
         if (message === 'NAME_REQUIRED') return res.status(400).json({ error: 'Nome é obrigatório' });
+        if (message === PRICE_INVALID_ACTIVE) return res.status(400).json({ error: PRICE_INVALID_ACTIVE_MESSAGE });
         if (message.startsWith('COLOR_NOT_REGISTERED')) {
             return res.status(400).json({ error: `Cor não cadastrada em Características: ${message.split(':')[1]}` });
         }
@@ -69,7 +71,22 @@ export async function setActive(req: Request, res: Response) {
     const id = req.params.id as string;
     try {
         res.json(await ProductService.updateProduct(id, { active: Boolean(req.body.active) }));
-    } catch {
+    } catch (err) {
+        if (err instanceof Error && err.message === PRICE_INVALID_ACTIVE) {
+            return res.status(400).json({ error: PRICE_INVALID_ACTIVE_MESSAGE });
+        }
+        res.status(404).json({ error: 'Produto não encontrado' });
+    }
+}
+
+export async function setVisible(req: Request, res: Response) {
+    const id = req.params.id as string;
+    try {
+        res.json(await ProductService.updateProduct(id, { visibleInStore: Boolean(req.body.visibleInStore) }));
+    } catch (err) {
+        if (err instanceof Error && err.message === PRICE_INVALID_ACTIVE) {
+            return res.status(400).json({ error: PRICE_INVALID_ACTIVE_MESSAGE });
+        }
         res.status(404).json({ error: 'Produto não encontrado' });
     }
 }

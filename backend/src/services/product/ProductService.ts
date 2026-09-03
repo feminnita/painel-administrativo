@@ -1,5 +1,6 @@
 import * as ProductRepository from '../../repository/product/ProductRepository';
 import * as ProductColorImageRepository from '../../repository/product/ProductColorImageRepository';
+import { assertPriceAllowsPublish } from '../../domain/product/price';
 
 export function listProducts() {
     return ProductRepository.findAll();
@@ -12,6 +13,17 @@ export async function getProduct(id: string) {
 }
 
 export async function updateProduct(id: string, values: Record<string, unknown>) {
+    // Trava: nao deixa ATIVAR nem EXIBIR na loja produto com preco <= 0.
+    if (values.active === true || values.visibleInStore === true) {
+        const existing = await ProductRepository.findById(id);
+        if (!existing) throw new Error('PRODUCT_NOT_FOUND');
+        assertPriceAllowsPublish({
+            basePrice: existing.basePrice,
+            salePrice: existing.salePrice,
+            active: (values.active as boolean | undefined) ?? existing.active,
+            visibleInStore: (values.visibleInStore as boolean | undefined) ?? existing.visibleInStore,
+        });
+    }
     const product = await ProductRepository.update(id, values as never);
     if (!product) throw new Error('PRODUCT_NOT_FOUND');
     return product;
@@ -23,6 +35,14 @@ export function saveFullProduct(
 ) {
     const product = input.product ?? {};
     if (!product.name || typeof product.name !== 'string') throw new Error('NAME_REQUIRED');
+
+    // Trava: produto com preco de venda efetivo <= 0 nao pode nascer/ficar ativo nem visivel.
+    assertPriceAllowsPublish({
+        basePrice: product.basePrice,
+        salePrice: product.salePrice,
+        active: product.active as boolean | undefined,
+        visibleInStore: product.visibleInStore as boolean | undefined,
+    });
 
     const toPrice = (v: unknown): string | null =>
         v === null || v === undefined || v === '' ? null : Number(v).toFixed(2);

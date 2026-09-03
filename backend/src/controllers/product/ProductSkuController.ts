@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as ProductSkuService from '../../services/product/ProductSkuService';
+import { PRICE_INVALID_ACTIVE, PRICE_INVALID_ACTIVE_MESSAGE } from '../../domain/product/price';
 
 export async function list(req: Request, res: Response) {
     const productId = req.params.productId as string;
@@ -11,7 +12,10 @@ export async function create(req: Request, res: Response) {
         const productId = req.params.productId as string;
         const { size, colorId, stockQty, price, salePrice } = req.body;
         res.status(201).json(await ProductSkuService.createSku({ productId, size, colorId, stockQty, price, salePrice }));
-    } catch {
+    } catch (err) {
+        if (err instanceof Error && err.message === PRICE_INVALID_ACTIVE) {
+            return res.status(400).json({ error: PRICE_INVALID_ACTIVE_MESSAGE });
+        }
         res.status(400).json({ error: 'Erro ao criar SKU' });
     }
 }
@@ -20,7 +24,10 @@ export async function update(req: Request, res: Response) {
     const id = req.params.id as string;
     try {
         res.json(await ProductSkuService.updateSku(id, req.body));
-    } catch {
+    } catch (err) {
+        if (err instanceof Error && err.message === PRICE_INVALID_ACTIVE) {
+            return res.status(400).json({ error: PRICE_INVALID_ACTIVE_MESSAGE });
+        }
         res.status(404).json({ error: 'SKU não encontrado' });
     }
 }
