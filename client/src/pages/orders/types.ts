@@ -2,6 +2,8 @@ export type OrderItem = {
     id: string;
     product_name: string;
     product_image: string;
+    product_code: string | null;
+    brand: string | null;
     color: string | null;
     size: string | null;
     quantity: number;
@@ -28,6 +30,8 @@ export type Order = {
     payment_status: string | null;
     installments: number | null;
     asaas_payment_id: string | null;
+    printed_at: string | null;
+    printed_by: string | null;
     subtotal: number;
     shipping_cost: number;
     discount: number;
@@ -66,8 +70,16 @@ export type StatusHistoryEntry = {
     created_at: string;
 };
 
+export type OrderNote = {
+    id: string;
+    author: string;
+    body: string;
+    created_at: string;
+};
+
 export type OrderDetail = Order & {
     status_history: StatusHistoryEntry[];
+    order_notes: OrderNote[];
 };
 
 export type OrderFilters = {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     Check,
     ChevronDown,
@@ -29,7 +29,7 @@ import {
     STATUS_OPTIONS,
 } from "../domain";
 import type { Order, OverrideValue } from "../types";
-import { PrintPortal, RomaneioSheet } from "./PrintSheets";
+import { PrintModal } from "./PrintModal";
 
 export function OrdersPage() {
     const {
@@ -58,17 +58,9 @@ export function OrdersPage() {
         reload,
     } = useOrdersAdmin();
 
-    // Impressao (romaneio) em lote ou de um pedido: renderiza o portal e chama print().
+    // Impressao (romaneio/etiqueta/declaracao/produtos) em lote ou de um pedido:
+    // abre o modal de escolha; a saida vai pra rota dedicada /pedidos/print.
     const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
-    useEffect(() => {
-        if (printOrders && printOrders.length) {
-            const t = window.setTimeout(() => {
-                window.print();
-                setPrintOrders(null);
-            }, 60);
-            return () => window.clearTimeout(t);
-        }
-    }, [printOrders]);
 
     return (
         <div className="p-6">
@@ -209,7 +201,7 @@ export function OrdersPage() {
                             onClick={() => setPrintOrders(selectedOrders)}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-[#8C2F39] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#7a2832]"
                         >
-                            <Printer size={14} /> Imprimir romaneios ({selectedIds.size})
+                            <Printer size={14} /> Imprimir ({selectedIds.size})
                         </button>
                         <button
                             onClick={clearSelection}
@@ -299,6 +291,14 @@ export function OrdersPage() {
                                             >
                                                 {FULFILLMENT_STATUS_META[ful].label}
                                             </span>
+                                            {order.printed_at && (
+                                                <span
+                                                    title={`Impresso${order.printed_by ? ` por ${order.printed_by}` : ""}`}
+                                                    className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+                                                >
+                                                    <Printer size={11} /> Impresso
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="truncate text-sm text-gray-700">{order.customer_name}</p>
                                         <p className="text-xs text-gray-400">
@@ -345,8 +345,64 @@ export function OrdersPage() {
                                             ))}
                                         </select>
 
+                                        {/* Bling (status/acao separada dos 4 icones) */}
+                                        {order.bling_order_id ? (
+                                            <span
+                                                title={`Pedido no Bling (#${order.bling_order_id})`}
+                                                className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
+                                            >
+                                                <Check size={12} /> no Bling #{order.bling_order_id}
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => pushToBling(order.id)}
+                                                disabled={pushingBlingId === order.id}
+                                                title="Enviar pedido ao Bling"
+                                                className="inline-flex items-center gap-1 rounded-lg border border-[#8C2F39] px-2 py-1 text-xs font-medium text-[#8C2F39] hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                {pushingBlingId === order.id ? (
+                                                    <Loader2 size={12} className="animate-spin" />
+                                                ) : (
+                                                    <Send size={12} />
+                                                )}
+                                                Enviar ao Bling
+                                            </button>
+                                        )}
+
+                                        {/* 4 icones na ordem: olho, impressora, caminhao, WhatsApp */}
                                         <div className="flex items-center gap-1">
-                                            {/* WhatsApp */}
+                                            {/* Olho - abre a pagina do pedido em NOVA ABA, pagina inteira */}
+                                            <a
+                                                href={`/pedidos/${order.id}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Abrir pedido (nova aba)"
+                                                className="rounded-lg border p-1.5 text-gray-500 hover:bg-gray-50"
+                                            >
+                                                <Eye size={13} />
+                                            </a>
+
+                                            {/* Impressora - abre o fluxo de impressao so' com este pedido */}
+                                            <button
+                                                onClick={() => setPrintOrders([order])}
+                                                title="Imprimir este pedido"
+                                                className="rounded-lg border p-1.5 text-gray-600 hover:bg-gray-50"
+                                            >
+                                                <Printer size={13} />
+                                            </button>
+
+                                            {/* Caminhao - envio / Melhor Envio */}
+                                            <a
+                                                href={labelHref ?? `/pedidos/${order.id}#envio`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title={labelHref ? "Ver etiqueta (Melhor Envio)" : "Envio / Melhor Envio"}
+                                                className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
+                                            >
+                                                <Truck size={13} />
+                                            </a>
+
+                                            {/* WhatsApp - abre wa.me com o telefone da cliente */}
                                             {phone ? (
                                                 <a
                                                     href={`https://wa.me/55${phone}`}
@@ -366,61 +422,6 @@ export function OrdersPage() {
                                                     <MessageCircle size={13} />
                                                 </button>
                                             )}
-
-                                            {/* Impressora - romaneio deste pedido */}
-                                            <button
-                                                onClick={() => setPrintOrders([order])}
-                                                title="Imprimir romaneio"
-                                                className="rounded-lg border p-1.5 text-gray-600 hover:bg-gray-50"
-                                            >
-                                                <Printer size={13} />
-                                            </button>
-
-                                            {/* Caminhao - envio (etiqueta ou pagina do pedido) */}
-                                            <a
-                                                href={labelHref ?? `/pedidos/${order.id}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title={labelHref ? "Ver etiqueta" : "Envio / etiqueta"}
-                                                className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
-                                            >
-                                                <Truck size={13} />
-                                            </a>
-
-                                            {/* Bling */}
-                                            {order.bling_order_id ? (
-                                                <span
-                                                    title={`Pedido no Bling (#${order.bling_order_id})`}
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
-                                                >
-                                                    <Check size={12} /> no Bling #{order.bling_order_id}
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    onClick={() => pushToBling(order.id)}
-                                                    disabled={pushingBlingId === order.id}
-                                                    title="Enviar pedido ao Bling"
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#8C2F39] px-2 py-1 text-xs font-medium text-[#8C2F39] hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    {pushingBlingId === order.id ? (
-                                                        <Loader2 size={12} className="animate-spin" />
-                                                    ) : (
-                                                        <Send size={12} />
-                                                    )}
-                                                    Enviar ao Bling
-                                                </button>
-                                            )}
-
-                                            {/* Olho - abre a pagina do pedido em NOVA ABA */}
-                                            <a
-                                                href={`/pedidos/${order.id}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title="Abrir pedido (nova aba)"
-                                                className="rounded-lg border p-1.5 text-gray-500 hover:bg-gray-50"
-                                            >
-                                                <Eye size={13} />
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -431,11 +432,11 @@ export function OrdersPage() {
             </div>
 
             {printOrders && (
-                <PrintPortal>
-                    {printOrders.map((o) => (
-                        <RomaneioSheet key={o.id} order={o} />
-                    ))}
-                </PrintPortal>
+                <PrintModal
+                    orders={printOrders}
+                    onClose={() => setPrintOrders(null)}
+                    onChanged={reload}
+                />
             )}
         </div>
     );

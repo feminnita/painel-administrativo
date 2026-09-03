@@ -1,6 +1,23 @@
 import { desc, eq, sql, and, inArray, isNull, ne, gte, lte, ilike, or, type SQL } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { orders, orderItems, productsSkus, coupons, customers, products, orderStatusHistory } from '../../config/db/schema';
+import { orders, orderItems, productsSkus, coupons, customers, products, orderStatusHistory, orderNotes } from '../../config/db/schema';
+
+// Colunas do item + codigo interno do produto (join). Reutilizado na lista e no
+// detalhe para o romaneio ter "Codigo" e montar a Ref.
+const orderItemSelect = {
+    id: orderItems.id,
+    orderId: orderItems.orderId,
+    productId: orderItems.productId,
+    skuId: orderItems.skuId,
+    productName: orderItems.productName,
+    productImage: orderItems.productImage,
+    color: orderItems.color,
+    size: orderItems.size,
+    quantity: orderItems.quantity,
+    unitPrice: orderItems.unitPrice,
+    totalPrice: orderItems.totalPrice,
+    productCode: products.code,
+} as const;
 
 export type OrderListFilters = {
     status?: typeof orders.$inferSelect['status'];
@@ -20,7 +37,45 @@ export function findById(id: string) {
 }
 
 export function findItemsByOrderId(orderId: string) {
-    return db.query.orderItems.findMany({ where: eq(orderItems.orderId, orderId) })
+    return db
+        .select(orderItemSelect)
+        .from(orderItems)
+        .leftJoin(products, eq(orderItems.productId, products.id))
+        .where(eq(orderItems.orderId, orderId));
+}
+
+// --- Impressao: flag de ja-impresso (NAO mexe em estoque/situacao) ---
+
+export async function markPrinted(ids: string[], printedBy: string) {
+    if (!ids.length) return [];
+    return db
+        .update(orders)
+        .set({ printedAt: new Date(), printedBy, updatedAt: new Date() })
+        .where(inArray(orders.id, ids))
+        .returning({ id: orders.id, printedAt: orders.printedAt, printedBy: orders.printedBy });
+}
+
+export async function clearPrinted(ids: string[]) {
+    if (!ids.length) return [];
+    return db
+        .update(orders)
+        .set({ printedAt: null, printedBy: null, updatedAt: new Date() })
+        .where(inArray(orders.id, ids))
+        .returning({ id: orders.id });
+}
+
+// --- Observacoes internas (append-only, com autor + data/hora) ---
+
+export async function insertOrderNote(entry: { orderId: string; author: string; body: string }) {
+    const [row] = await db.insert(orderNotes).values(entry).returning();
+    return row;
+}
+
+export function findOrderNotes(orderId: string) {
+    return db.query.orderNotes.findMany({
+        where: eq(orderNotes.orderId, orderId),
+        orderBy: [desc(orderNotes.createdAt)],
+    });
 }
 
 // --- Sobrescrita de status (override) + auditoria ---
@@ -234,7 +289,11 @@ export async function findAllWithRelations(filters: OrderListFilters = {}) {
 
     const orderIds = rows.map((r) => r.order.id);
     const items = orderIds.length
-        ? await db.query.orderItems.findMany({ where: inArray(orderItems.orderId, orderIds) })
+        ? await db
+              .select(orderItemSelect)
+              .from(orderItems)
+              .leftJoin(products, eq(orderItems.productId, products.id))
+              .where(inArray(orderItems.orderId, orderIds))
         : [];
 
     const itemsByOrder = new Map<string, typeof items>();

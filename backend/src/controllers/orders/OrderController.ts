@@ -74,6 +74,54 @@ export async function getHistory(req: Request, res: Response) {
     }
 }
 
+export async function listNotes(req: Request, res: Response) {
+    const id = req.params.id as string;
+    try {
+        res.json(await OrderService.listNotes(id));
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao carregar observacoes' });
+    }
+}
+
+export async function createNote(req: Request, res: Response) {
+    const id = req.params.id as string;
+    const author = req.admin?.name ?? 'admin';
+    try {
+        const body = String(req.body?.body ?? '');
+        res.json(await OrderService.addNote(id, author, body));
+    } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (message === 'ORDER_NOT_FOUND') return res.status(404).json({ error: 'Pedido nao encontrado' });
+        if (message === 'NOTE_REQUIRED') return res.status(400).json({ error: 'Escreva a observacao' });
+        console.error(`Erro ao salvar observacao do pedido ${id}:`, error);
+        res.status(500).json({ error: 'Erro ao salvar observacao' });
+    }
+}
+
+// Carimbo de ja-impresso (romaneio). NAO da baixa em estoque nem muda situacao.
+export async function markPrinted(req: Request, res: Response) {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+    const printedBy = req.admin?.name ?? 'admin';
+    try {
+        res.json(await OrderService.markOrdersPrinted(ids, printedBy));
+    } catch (error) {
+        console.error('Erro ao marcar impresso:', error);
+        res.status(500).json({ error: 'Erro ao marcar impresso' });
+    }
+}
+
+// Limpa o flag de impresso (permite reimpressao proposital).
+export async function clearPrinted(req: Request, res: Response) {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+    try {
+        res.json(await OrderService.clearOrdersPrinted(ids));
+    } catch (error) {
+        console.error('Erro ao limpar flag de impresso:', error);
+        res.status(500).json({ error: 'Erro ao limpar impresso' });
+    }
+}
+
 export async function setTracking(req: Request, res: Response) {
     const id = req.params.id as string;
     try {

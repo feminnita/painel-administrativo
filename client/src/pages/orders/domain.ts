@@ -1,6 +1,7 @@
 import type {
   Order,
   OrderFilters,
+  OrderItem,
   PaymentStatus,
   FulfillmentStatus,
   DerivedStatus,
@@ -179,3 +180,75 @@ export const PAYMENT_LABELS: Record<string, string> = {
   card: "Cartão de Crédito",
   credit_card: "Cartão de Crédito",
 };
+
+// ---------------------------------------------------------------------------
+// Normalizacao de MARCA (defeito E): a marca vem suja. Na EXIBICAO do romaneio,
+// "Feminitta"/"Feminnita" (erro de digitacao) -> "Feminnita"; "FNT" -> "FNT".
+// ---------------------------------------------------------------------------
+export function normalizeBrand(raw: string | null | undefined): string {
+  const v = (raw ?? "").trim();
+  if (!v) return "—";
+  const k = v.toLowerCase().replace(/\s+/g, "");
+  if (k === "fnt") return "FNT";
+  if (k === "feminnita" || k === "feminitta" || k === "feminita") return "Feminnita";
+  return v;
+}
+
+// URL de rastreio do Melhor Envio: usa a gravada no pedido; senao monta pelo
+// codigo (melhorrastreio). Sem codigo -> null (a UI mostra "—").
+export function buildTrackingUrl(order: {
+  tracking_url: string | null;
+  tracking_code: string | null;
+}): string | null {
+  if (order.tracking_url) return order.tracking_url;
+  if (order.tracking_code)
+    return `https://www.melhorrastreio.com.br/rastreio/${order.tracking_code}`;
+  return null;
+}
+
+// Ref do item: codigo interno + cor + tamanho embutidos (ex.: 21202PRE52).
+export function itemRef(item: OrderItem): string {
+  const code = (item.product_code ?? "").trim();
+  const color = (item.color ?? "").replace(/[^A-Za-zÀ-ÿ0-9]/g, "").slice(0, 3).toUpperCase();
+  const size = (item.size ?? "").trim();
+  const ref = `${code}${color}${size}`;
+  return ref || "—";
+}
+
+// Data por extenso: "1 de setembro de 2026 às 20:04:45".
+export function fmtDateLong(v: string | null | undefined): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return "—";
+  return d
+    .toLocaleString("pt-BR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+    .replace(", ", " às ");
+}
+
+export type ConsolidatedItem = OrderItem & { quantity: number };
+
+// PRODUTOS VENDIDOS: soma todos os itens dos pedidos selecionados por SKU
+// (codigo|cor|tamanho) e ORDENA POR CODIGO. Nao movimenta estoque - so' lista.
+export function consolidateItems(orders: { items: OrderItem[] }[]): ConsolidatedItem[] {
+  const map = new Map<string, ConsolidatedItem>();
+  for (const o of orders) {
+    for (const it of o.items || []) {
+      const key = `${it.product_code ?? it.product_name}|${it.color ?? ""}|${it.size ?? ""}`;
+      const ex = map.get(key);
+      if (ex) ex.quantity += it.quantity;
+      else map.set(key, { ...it, quantity: it.quantity });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) =>
+    String(a.product_code ?? "").localeCompare(String(b.product_code ?? ""), "pt-BR", {
+      numeric: true,
+    }),
+  );
+}

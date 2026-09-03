@@ -13,6 +13,7 @@ export function useOrderDetail(id: string | undefined) {
   const [refreshingTracking, setRefreshingTracking] = useState(false);
   const [pushingBling, setPushingBling] = useState(false);
   const [savingOverride, setSavingOverride] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -45,6 +46,19 @@ export function useOrderDetail(id: string | undefined) {
       alert(err instanceof ApiError ? err.message : "Erro ao mudar status");
     } finally {
       setSavingOverride(false);
+    }
+  };
+
+  const addNote = async (body: string) => {
+    if (!id || !body.trim()) return;
+    setSavingNote(true);
+    try {
+      await api.post(`/api/admin/orders/${id}/notes`, { body });
+      await load();
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Erro ao salvar observação");
+    } finally {
+      setSavingNote(false);
     }
   };
 
@@ -117,6 +131,8 @@ export function useOrderDetail(id: string | undefined) {
     pushToBling,
     savingOverride,
     setStatusOverride,
+    savingNote,
+    addNote,
     reload: load,
   };
 }

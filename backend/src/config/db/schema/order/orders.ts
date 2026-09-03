@@ -47,6 +47,10 @@ export const orders = pgTable('orders', {
     nfeStatus: text('nfe_status'),
     installments: integer('installments'),
     shippingMethod: text('shipping_method'),
+    // Flag de "ja impresso" (romaneio): carimbado quando a operadora imprime o
+    // pedido. NAO afeta estoque/situacao - so' evita reimpressao acidental.
+    printedAt: timestamp('printed_at', { withTimezone: true }),
+    printedBy: text('printed_by'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({

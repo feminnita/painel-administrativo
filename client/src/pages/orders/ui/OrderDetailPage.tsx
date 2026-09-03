@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
     Copy,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { useOrderDetail } from "../useOrderDetail";
 import {
+    buildTrackingUrl,
     derivedTimelineStep,
     displayStatus,
     fmtBRL,
@@ -23,7 +25,6 @@ import {
     TIMELINE_STEPS,
 } from "../domain";
 import type { OverrideValue } from "../types";
-import { OrderSheet, PrintPortal, RomaneioSheet } from "./PrintSheets";
 
 function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).catch((e) => console.error("Falha ao copiar:", e));
@@ -73,7 +74,11 @@ export function OrderDetailPage() {
         pushingBling,
         savingOverride,
         setStatusOverride,
+        savingNote,
+        addNote,
     } = vm;
+
+    const [noteInput, setNoteInput] = useState("");
 
     if (loading) {
         return (
@@ -101,6 +106,7 @@ export function OrderDetailPage() {
     const canBuyLabel = !order.label_url && order.payment_status === "paid";
     const labelHref = order.label_url && !isSandboxLabel(order.label_url) ? order.label_url : null;
     const a = order.shipping_address;
+    const trackingUrl = buildTrackingUrl(order);
 
     return (
         <div className="min-h-full bg-gray-100 pb-16">
@@ -141,13 +147,15 @@ export function OrderDetailPage() {
                             {pushingBling ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                         </button>
                     )}
-                    <button
-                        onClick={() => window.print()}
+                    <a
+                        href={`/pedidos/print?ids=${order.id}&types=pedidos&foto=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         title="Imprimir pedido / romaneio"
                         className="rounded-lg bg-[#8C2F39] p-2 text-white hover:bg-[#7a2832]"
                     >
                         <Printer size={16} />
-                    </button>
+                    </a>
                     <Link
                         to="/pedidos"
                         title="Voltar à lista"
@@ -316,11 +324,48 @@ export function OrderDetailPage() {
                             </div>
                         </Card>
 
-                        {/* Observacoes internas */}
+                        {/* Observacoes internas: editavel, salva com autor + data/hora */}
                         <Card title="Observações internas">
-                            <p className="whitespace-pre-wrap text-sm text-gray-600">
-                                {order.notes || "—"}
-                            </p>
+                            <div className="mb-3 flex flex-col gap-2">
+                                <textarea
+                                    value={noteInput}
+                                    onChange={(e) => setNoteInput(e.target.value)}
+                                    placeholder="Escreva uma observação interna (só a equipe vê)..."
+                                    rows={3}
+                                    className="w-full resize-y rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+                                />
+                                <button
+                                    onClick={async () => {
+                                        await addNote(noteInput);
+                                        setNoteInput("");
+                                    }}
+                                    disabled={savingNote || !noteInput.trim()}
+                                    className="self-end rounded-lg bg-[#8C2F39] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#7a2832] disabled:opacity-50"
+                                >
+                                    {savingNote ? "Salvando..." : "Salvar observação"}
+                                </button>
+                            </div>
+
+                            {order.notes && (
+                                <p className="mb-3 whitespace-pre-wrap rounded-lg bg-gray-50 p-2 text-xs text-gray-500">
+                                    <span className="font-medium text-gray-600">Nota do pedido:</span> {order.notes}
+                                </p>
+                            )}
+
+                            {order.order_notes.length === 0 ? (
+                                <p className="text-sm text-gray-400">Nenhuma observação ainda.</p>
+                            ) : (
+                                <ul className="space-y-2">
+                                    {order.order_notes.map((n) => (
+                                        <li key={n.id} className="border-b border-gray-50 pb-2 last:border-0">
+                                            <p className="whitespace-pre-wrap text-sm text-gray-700">{n.body}</p>
+                                            <p className="mt-0.5 text-[11px] text-gray-400">
+                                                {n.author} • {fmtDate(n.created_at)}
+                                            </p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </Card>
 
                         {/* Historico */}
@@ -430,18 +475,31 @@ export function OrderDetailPage() {
 
                                 {order.tracking_code ? (
                                     <div className="flex items-center gap-2">
-                                        <span className="flex-1 rounded-lg border bg-gray-50 px-3 py-2 font-mono text-sm">
-                                            {order.tracking_code}
-                                        </span>
+                                        {/* Codigo de rastreio CLICAVEL -> rastreio do Melhor Envio (nova aba) */}
+                                        {trackingUrl ? (
+                                            <a
+                                                href={trackingUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Abrir rastreio do Melhor Envio"
+                                                className="flex-1 rounded-lg border bg-gray-50 px-3 py-2 font-mono text-sm text-indigo-600 underline hover:bg-gray-100"
+                                            >
+                                                {order.tracking_code}
+                                            </a>
+                                        ) : (
+                                            <span className="flex-1 rounded-lg border bg-gray-50 px-3 py-2 font-mono text-sm">
+                                                {order.tracking_code}
+                                            </span>
+                                        )}
                                         <button
                                             onClick={() => copyToClipboard(order.tracking_code!)}
                                             className="rounded-lg border p-2 hover:bg-gray-50"
                                         >
                                             <Copy size={13} className="text-gray-400" />
                                         </button>
-                                        {order.tracking_url && (
+                                        {trackingUrl && (
                                             <a
-                                                href={order.tracking_url}
+                                                href={trackingUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="rounded-lg border p-2 hover:bg-gray-50"
@@ -519,12 +577,6 @@ export function OrderDetailPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Versao de impressao (limpa) desta pagina */}
-            <PrintPortal>
-                <RomaneioSheet order={order} />
-                <OrderSheet order={order} />
-            </PrintPortal>
         </div>
     );
 }

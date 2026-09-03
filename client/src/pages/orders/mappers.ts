@@ -2,6 +2,7 @@ import type {
   Order,
   OrderDetail,
   OrderItem,
+  OrderNote,
   OverrideValue,
   ShippingAddress,
   StatusHistoryEntry,
@@ -14,6 +15,8 @@ function mapApiOrderItem(i: Record<string, any>): OrderItem {
     id: i.id,
     product_name: i.productName ?? "",
     product_image: i.productImage ?? "",
+    product_code: i.productCode ?? null,
+    brand: i.brand ?? null,
     color: i.color ?? null,
     size: i.size ?? null,
     quantity: i.quantity ?? 0,
@@ -32,6 +35,8 @@ export function mapApiOrder(o: ApiOrder): Order {
     payment_status: o.paymentStatus ?? null,
     installments: o.installments ?? null,
     asaas_payment_id: o.asaasPaymentId ?? null,
+    printed_at: o.printedAt ?? null,
+    printed_by: o.printedBy ?? null,
     subtotal: Number(o.subtotal) || 0,
     shipping_cost: Number(o.shippingCost) || 0,
     discount: Number(o.discount) || 0,
@@ -73,11 +78,21 @@ function mapStatusHistoryEntry(h: Record<string, any>): StatusHistoryEntry {
   };
 }
 
+function mapOrderNote(n: Record<string, any>): OrderNote {
+  return {
+    id: n.id,
+    author: n.author ?? "",
+    body: n.body ?? "",
+    created_at: n.createdAt ?? "",
+  };
+}
+
 export function mapApiOrderDetail(o: ApiOrder): OrderDetail {
   return {
     ...mapApiOrder(o),
     status_history: Array.isArray(o.statusHistory)
       ? o.statusHistory.map(mapStatusHistoryEntry)
       : [],
+    order_notes: Array.isArray(o.notes) ? o.notes.map(mapOrderNote) : [],
   };
 }

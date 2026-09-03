@@ -14,6 +14,7 @@ export async function getOrder(id: string) {
 
     const items = await OrdeRepository.findItemsByOrderId(order.id);
     const statusHistory = await OrdeRepository.findStatusHistory(order.id);
+    const notes = await OrdeRepository.findOrderNotes(order.id);
     const customer = order.customerId
         ? await OrdeRepository.findCustomerForShipping(order.customerId)
         : null;
@@ -26,7 +27,33 @@ export async function getOrder(id: string) {
         customerCpf: customer?.cpf ?? '',
         items,
         statusHistory,
+        notes,
     }
+}
+
+// --- Observacoes internas ---
+
+export async function addNote(orderId: string, author: string, body: string) {
+    const text = body.trim();
+    if (!text) throw new Error('NOTE_REQUIRED');
+    const before = await OrdeRepository.findById(orderId);
+    if (!before) throw new Error('ORDER_NOT_FOUND');
+    await OrdeRepository.insertOrderNote({ orderId, author, body: text });
+    return OrdeRepository.findOrderNotes(orderId);
+}
+
+export function listNotes(orderId: string) {
+    return OrdeRepository.findOrderNotes(orderId);
+}
+
+// --- Impressao: carimbo de ja-impresso. NAO altera estoque nem situacao. ---
+
+export function markOrdersPrinted(ids: string[], printedBy: string) {
+    return OrdeRepository.markPrinted(ids, printedBy);
+}
+
+export function clearOrdersPrinted(ids: string[]) {
+    return OrdeRepository.clearPrinted(ids);
 }
 
 // Sobrescritas manuais permitidas (excecao operacional). null limpa o override

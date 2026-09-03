@@ -6,6 +6,7 @@ import { DashboardPage } from "@/pages/dashboard/ui/DashboardPage";
 import { ProductsPage } from "@/pages/product/ui/ProductsPage";
 import { OrdersPage } from "@/pages/orders/ui/OrdersPage";
 import { OrderDetailPage } from "@/pages/orders/ui/OrderDetailPage";
+import { PrintPage } from "@/pages/orders/ui/PrintPage";
 import { UnderConstructionPage } from "@/pages/UnderConstructionPage";
 import { CharacteristicsPage } from "./pages/characteristics/ui/CharacteristicsPage";
 import { CategoryBoard } from "./pages/categories/ui/CategoryBoard";
@@ -29,6 +30,9 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
 
         <Route element={<ProtectedRoute />}>
+          {/* Rota de impressao: pagina inteira, SEM menu/sidebar (fora do AdminLayout) */}
+          <Route path="/pedidos/print" element={<PrintPage />} />
+
           <Route element={<AdminLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
