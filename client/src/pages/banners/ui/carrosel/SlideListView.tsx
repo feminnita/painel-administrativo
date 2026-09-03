@@ -1,9 +1,10 @@
 import type { useSlidesAdmin } from "@/pages/banners/useSlidesAdmin";
 import {
+  ChevronDown,
+  ChevronUp,
   Edit,
   Eye,
   EyeOff,
-  GripVertical,
   Image as ImageIcon,
   Trash2,
   Video,
@@ -14,7 +15,7 @@ export function SlideListView({
 }: {
   vm: ReturnType<typeof useSlidesAdmin>;
 }) {
-  const { slides, loading, openEdit, handleDelete, toggleActive } = vm;
+  const { slides, loading, openEdit, handleDelete, toggleActive, move } = vm;
 
   if (loading) {
     return (
@@ -38,19 +39,36 @@ export function SlideListView({
 
   return (
     <div className="space-y-3">
-      {slides.map((slide) => (
+      {slides.map((slide, index) => (
         <div
           key={slide.id}
           className={`flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm ${
             slide.active ? "border-gray-100" : "border-gray-200 opacity-60"
           }`}
         >
-          <GripVertical size={18} className="shrink-0 text-gray-300" />
+          <div className="flex shrink-0 flex-col">
+            <button
+              onClick={() => move(index, -1)}
+              disabled={index === 0}
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 disabled:opacity-30"
+              title="Mover para cima"
+            >
+              <ChevronUp size={16} />
+            </button>
+            <button
+              onClick={() => move(index, 1)}
+              disabled={index === slides.length - 1}
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 disabled:opacity-30"
+              title="Mover para baixo"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
 
           <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-            {slide.type === "image" && slide.src ? (
+            {slide.type === "image" && (slide.src || slide.src_mobile) ? (
               <img
-                src={slide.src}
+                src={slide.src || slide.src_mobile || ""}
                 alt={slide.alt || ""}
                 className="h-full w-full object-cover"
               />

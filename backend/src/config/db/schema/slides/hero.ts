@@ -6,6 +6,7 @@ export const heroSlides = pgTable('hero_slides', {
     id: uuid('id').defaultRandom().primaryKey(),
     type: heroSlidesTypeEnum('type').notNull(),
     src: text('src').notNull(),
+    srcMobile: text('src_mobile'),
     alt: text('alt').notNull(),
     poster: text('poster'),
     ctaText: text('cta_text'),

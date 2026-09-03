@@ -8,6 +8,7 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
     saving,
     uploading,
     uploadMedia,
+    uploadMobile,
     uploadPoster,
     handleSave,
   } = vm;
@@ -62,71 +63,187 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {editing.type === "image" ? "Imagem" : "Vídeo"} do slide *
-            </label>
+          {editing.type === "video" ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Vídeo do slide *
+              </label>
 
-            {editing.src && (
-              <div className="mb-2 h-28 w-full overflow-hidden rounded-lg bg-gray-100">
-                {editing.type === "image" ? (
-                  <img
-                    src={editing.src}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
+              {editing.src && (
+                <div className="mb-2 h-28 w-full overflow-hidden rounded-lg bg-gray-100">
                   <video
                     src={editing.src}
                     className="h-full w-full object-cover"
                     muted
                   />
-                )}
+                </div>
+              )}
+
+              <label
+                className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-5 transition-colors ${
+                  uploading
+                    ? "border-gray-200 bg-gray-50"
+                    : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadMedia(file);
+                  }}
+                />
+                <Upload
+                  size={18}
+                  className={
+                    uploading ? "animate-pulse text-gray-400" : "text-gray-500"
+                  }
+                />
+                <span className="text-sm text-gray-500">
+                  {uploading ? "Enviando..." : "Clique para enviar"}
+                </span>
+              </label>
+
+              <div className="my-3 flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-xs text-gray-400">ou cole a URL</span>
+                <div className="h-px flex-1 bg-gray-200" />
               </div>
-            )}
 
-            <label
-              className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-5 transition-colors ${
-                uploading
-                  ? "border-gray-200 bg-gray-50"
-                  : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
-              }`}
-            >
               <input
-                type="file"
-                accept={editing.type === "image" ? "image/*" : "video/*"}
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) uploadMedia(file);
-                }}
+                type="text"
+                value={editing.src}
+                onChange={(e) => setEditing({ ...editing, src: e.target.value })}
+                className="w-full rounded-lg border px-4 py-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+                placeholder="ID do YouTube (11 caracteres)"
               />
-              <Upload
-                size={18}
-                className={
-                  uploading ? "animate-pulse text-gray-400" : "text-gray-500"
-                }
-              />
-              <span className="text-sm text-gray-500">
-                {uploading ? "Enviando..." : "Clique para enviar"}
-              </span>
-            </label>
-
-            <div className="my-3 flex items-center gap-3">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="text-xs text-gray-400">ou cole a URL</span>
-              <div className="h-px flex-1 bg-gray-200" />
             </div>
+          ) : (
+            <>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Imagem mobile (4:5, ex. 1080×1350) *
+                </label>
 
-            <input
-              type="text"
-              value={editing.src}
-              onChange={(e) => setEditing({ ...editing, src: e.target.value })}
-              className="w-full rounded-lg border px-4 py-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
-              placeholder="https://..."
-            />
-          </div>
+                {editing.src_mobile && (
+                  <div className="mb-2 h-28 w-full overflow-hidden rounded-lg bg-gray-100">
+                    <img
+                      src={editing.src_mobile}
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                )}
+
+                <label
+                  className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-5 transition-colors ${
+                    uploading
+                      ? "border-gray-200 bg-gray-50"
+                      : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadMobile(file);
+                    }}
+                  />
+                  <Upload
+                    size={18}
+                    className={
+                      uploading ? "animate-pulse text-gray-400" : "text-gray-500"
+                    }
+                  />
+                  <span className="text-sm text-gray-500">
+                    {uploading ? "Enviando..." : "Clique para enviar (obrigatório)"}
+                  </span>
+                </label>
+
+                <div className="my-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-xs text-gray-400">ou cole a URL</span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+
+                <input
+                  type="text"
+                  value={editing.src_mobile || ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, src_mobile: e.target.value })
+                  }
+                  className="w-full rounded-lg border px-4 py-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Imagem desktop (16:9, ex. 1920×1080) — opcional
+                </label>
+
+                {editing.src && (
+                  <div className="mb-2 h-28 w-full overflow-hidden rounded-lg bg-gray-100">
+                    <img
+                      src={editing.src}
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                )}
+
+                <label
+                  className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-5 transition-colors ${
+                    uploading
+                      ? "border-gray-200 bg-gray-50"
+                      : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadMedia(file);
+                    }}
+                  />
+                  <Upload
+                    size={18}
+                    className={
+                      uploading ? "animate-pulse text-gray-400" : "text-gray-500"
+                    }
+                  />
+                  <span className="text-sm text-gray-500">
+                    {uploading ? "Enviando..." : "Clique para enviar (opcional)"}
+                  </span>
+                </label>
+
+                <div className="my-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-xs text-gray-400">ou cole a URL</span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+
+                <input
+                  type="text"
+                  value={editing.src}
+                  onChange={(e) =>
+                    setEditing({ ...editing, src: e.target.value })
+                  }
+                  className="w-full rounded-lg border px-4 py-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+                  placeholder="https://..."
+                />
+              </div>
+            </>
+          )}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -251,7 +368,11 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
           <div className="flex gap-3 pt-2">
             <button
               onClick={handleSave}
-              disabled={saving || uploading || !editing.src}
+              disabled={
+                saving ||
+                uploading ||
+                (editing.type === "video" ? !editing.src : !editing.src_mobile)
+              }
               className="flex items-center gap-2 rounded-lg bg-[#8C2F39] px-6 py-2 font-semibold text-white hover:bg-[#7a2832] disabled:opacity-50"
             >
               <Save size={16} />

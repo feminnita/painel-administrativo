@@ -5,6 +5,7 @@ export function mapApiSlide(s: Record<string, any>): Slide {
     id: s.id,
     type: s.type,
     src: s.src,
+    src_mobile: s.srcMobile ?? null,
     alt: s.alt ?? "",
     poster: s.poster ?? null,
     cta_text: s.ctaText ?? null,
@@ -19,6 +20,7 @@ export function toApiSlide(input: SlideInput) {
   return {
     type: input.type,
     src: input.src,
+    srcMobile: input.src_mobile,
     alt: input.alt,
     poster: input.poster,
     ctaText: input.cta_text,
@@ -32,6 +34,7 @@ export function emptySlide(nextOrder: number): SlideInput {
   return {
     type: "image",
     src: "",
+    src_mobile: "",
     alt: "",
     poster: null,
     cta_text: "",
@@ -45,6 +48,7 @@ export function buildSlidePayload(input: SlideInput): SlideInput {
   return {
     type: input.type,
     src: input.src,
+    src_mobile: input.src_mobile || null,
     alt: input.alt || null,
     poster: input.poster || null,
     cta_text: input.cta_text || null,

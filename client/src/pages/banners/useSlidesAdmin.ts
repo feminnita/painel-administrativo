@@ -53,6 +53,18 @@ export function useSlidesAdmin() {
         }
     };
 
+    const uploadMobile = async (file: File) => {
+        setUploading(true);
+        try {
+            const url = await uploadTo(file, "Banners/Carrosel/Images");
+            setEditing((prev) => (prev ? { ...prev, src_mobile: url } : prev));
+        } catch (err) {
+            alert(err instanceof ApiError ? err.message : "Falha no upload");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const uploadPoster = async (file: File) => {
         setUploading(true);
         try {
@@ -66,7 +78,13 @@ export function useSlidesAdmin() {
     };
 
     const handleSave = async () => {
-        if (!editing || !editing.src) return;
+        if (!editing) return;
+        if (editing.type === "video") {
+            if (!editing.src) return;
+        } else if (!editing.src_mobile) {
+            alert("A imagem mobile é obrigatória.");
+            return;
+        }
         setSaving(true);
         try {
             const payload = toApiSlide(buildSlidePayload(editing));
@@ -94,6 +112,23 @@ export function useSlidesAdmin() {
         load();
     };
 
+    const move = async (index: number, dir: -1 | 1) => {
+        const target = index + dir;
+        if (target < 0 || target >= slides.length) return;
+        const reordered = [...slides];
+        const [item] = reordered.splice(index, 1);
+        reordered.splice(target, 0, item);
+        setSlides(reordered);
+        try {
+            await api.put("/api/admin/hero-slides/reorder", {
+                ids: reordered.map((s) => s.id),
+            });
+        } catch (err) {
+            alert(err instanceof ApiError ? err.message : "Erro ao reordenar");
+        }
+        load();
+    };
+
     const toggleActive = async (slide: Slide) => {
         try {
             await api.put(`/api/admin/hero-slides/${slide.id}`, { active: !slide.active });
@@ -113,9 +148,11 @@ export function useSlidesAdmin() {
         saving,
         uploading,
         uploadMedia,
+        uploadMobile,
         uploadPoster,
         handleSave,
         handleDelete,
         toggleActive,
+        move,
     };
 }
