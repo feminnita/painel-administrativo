@@ -24,13 +24,27 @@ export function saveFullProduct(
     const product = input.product ?? {};
     if (!product.name || typeof product.name !== 'string') throw new Error('NAME_REQUIRED');
 
+    const toPrice = (v: unknown): string | null =>
+        v === null || v === undefined || v === '' ? null : Number(v).toFixed(2);
+    const toDate = (v: unknown): Date | null => {
+        if (v === null || v === undefined || v === '') return null;
+        const d = new Date(v as string);
+        return Number.isNaN(d.getTime()) ? null : d;
+    };
+    // stockQty NAO entra: o painel nunca grava estoque (fonte = StockHub).
     const skus = Array.isArray(input.skus)
         ? input.skus
-            .filter((s) => s && typeof s.size === 'string' && Number.isFinite(Number(s.stockQty)))
+            .filter((s) => s && typeof s.size === 'string')
             .map((s) => ({
                 size: s.size as string,
                 color: typeof s.color === 'string' && s.color ? (s.color as string) : null,
-                stockQty: Math.max(0, Math.round(Number(s.stockQty))),
+                price: toPrice(s.price),
+                salePrice: toPrice(s.salePrice),
+                saleStart: toDate(s.saleStart),
+                saleEnd: toDate(s.saleEnd),
+                reference: typeof s.reference === 'string' && s.reference ? (s.reference as string) : null,
+                minStock: Number.isFinite(Number(s.minStock)) ? Math.max(0, Math.round(Number(s.minStock))) : 0,
+                active: s.active === undefined ? true : Boolean(s.active),
             }))
         : [];
 
