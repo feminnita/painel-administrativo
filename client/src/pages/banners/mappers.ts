@@ -47,9 +47,10 @@ export function emptySlide(nextOrder: number): SlideInput {
 export function buildSlidePayload(input: SlideInput): SlideInput {
   return {
     type: input.type,
-    src: input.src,
+    src: input.src || "",
     src_mobile: input.src_mobile || null,
-    alt: input.alt || null,
+    // alt e src são NOT NULL no banco: manda "" (nunca null) para não quebrar o insert.
+    alt: input.alt?.trim() || "",
     poster: input.poster || null,
     cta_text: input.cta_text || null,
     cta_href: input.cta_href || null,

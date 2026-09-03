@@ -35,6 +35,11 @@ export function useSlidesAdmin() {
             `/api/admin/upload?folder=${encodeURIComponent(folder)}`,
             [file],
         );
+        if (!urls?.[0]) {
+            throw new Error(
+                "A imagem não subiu — o upload não retornou link. Confira o arquivo (JPEG, PNG, WebP ou AVIF; vídeo MP4/WebM; até 50 MB) e tente de novo.",
+            );
+        }
         return urls[0];
     };
 
@@ -80,9 +85,12 @@ export function useSlidesAdmin() {
     const handleSave = async () => {
         if (!editing) return;
         if (editing.type === "video") {
-            if (!editing.src) return;
+            if (!editing.src) {
+                alert("Envie o vídeo — o upload ainda não retornou o link. Aguarde a prévia aparecer e tente salvar de novo.");
+                return;
+            }
         } else if (!editing.src_mobile) {
-            alert("A imagem mobile é obrigatória.");
+            alert("A imagem mobile é obrigatória (1080×1350). Envie-a antes de salvar.");
             return;
         }
         setSaving(true);
