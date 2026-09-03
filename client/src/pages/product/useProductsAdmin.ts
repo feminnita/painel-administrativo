@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
 import { buildTree, findAncestor, listGrandchildCategories } from "@/lib/categories";
 import type { CategoryRow } from "@/lib/categories";
-import { buildProductPayload, emptyProduct, filterAndSortProducts, sizeRank } from "./domain";
+import { buildProductPayload, emptyProduct, filterAndSortProducts } from "./domain";
 import { mapApiCategory, mapApiColor, mapApiProduct, toApiProduct } from "./mappers";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import type { AdminProduct, Color, ColorImages, ProductInput, ProductSortKey, Sku } from "./types";
@@ -202,18 +202,9 @@ export function useProductsAdmin() {
     const colorNameById = new Map(productColors.map((c) => [c.id, c.name]));
     setSkus(
       skuRows.map((s) => ({
-        id: s.id,
         size: s.size,
         color: s.colorId ? (colorNameById.get(s.colorId) ?? "") : "",
         stock_qty: s.stockQty ?? 0,
-        price: s.price == null ? null : Number(s.price),
-        sale_price: s.salePrice == null ? null : Number(s.salePrice),
-        sale_start: s.saleStart ?? null,
-        sale_end: s.saleEnd ?? null,
-        reference: s.reference ?? null,
-        min_stock: s.minStock ?? 0,
-        active: s.active ?? true,
-        has_orders: s.hasOrders ?? false,
       })),
     );
     setColorImages(colorImageData);
@@ -234,121 +225,8 @@ export function useProductsAdmin() {
         next[idx] = { ...next[idx], stock_qty: qty };
         return next;
       }
-      return [
-        ...prev,
-        {
-          size,
-          color,
-          stock_qty: qty,
-          price: null,
-          sale_price: null,
-          sale_start: null,
-          sale_end: null,
-          reference: null,
-          min_stock: 0,
-          active: true,
-        },
-      ];
+      return [...prev, { size, color, stock_qty: qty }];
     });
-  };
-
-  // ── VARIAÇÕES (novo modelo: 1 variação = 1 SKU cor×tamanho) ──
-  const newSku = (color: string, size: string): Sku => ({
-    color,
-    size,
-    stock_qty: 0,
-    price: editing?.base_price ?? null,
-    sale_price: null,
-    sale_start: null,
-    sale_end: null,
-    reference: null,
-    min_stock: 0,
-    active: true,
-  });
-
-  const getVariations = (): Sku[] =>
-    [...skus].sort((a, b) =>
-      a.color === b.color
-        ? sizeRank(a.size) - sizeRank(b.size)
-        : a.color.localeCompare(b.color, "pt-BR"),
-    );
-
-  const updateVariation = (sku: Sku, patch: Partial<Sku>) => {
-    setSkus((prev) =>
-      prev.map((s) =>
-        s.color === sku.color && s.size === sku.size ? { ...s, ...patch } : s,
-      ),
-    );
-  };
-
-  // Gera todas as combinações cor × tamanho que ainda não existem.
-  const generateVariations = () => {
-    if (!editing) return;
-    const cols = editing.colors || [];
-    const szs = editing.sizes || [];
-    setSkus((prev) => {
-      const seen = new Set(prev.map((s) => `${s.color}__${s.size}`));
-      const next = [...prev];
-      for (const color of cols)
-        for (const size of szs) {
-          const key = `${color}__${size}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            next.push(newSku(color, size));
-          }
-        }
-      return next;
-    });
-  };
-
-  const addVariation = (color: string, size: string) => {
-    if (!color || !size) return;
-    setSkus((prev) =>
-      prev.some((s) => s.color === color && s.size === size)
-        ? prev
-        : [...prev, newSku(color, size)],
-    );
-  };
-
-  // Lixeira da variação: com pedido → desativa; sem pedido → apaga. Confirma antes.
-  const deleteVariation = async (sku: Sku) => {
-    const willDeactivate = Boolean(sku.id && sku.has_orders);
-    const ok = await confirm(
-      willDeactivate
-        ? {
-            title: "Desativar variação",
-            message: `A variação ${sku.color} ${sku.size} já tem pedidos. Ela será DESATIVADA (sai da loja e para de vender), mas o histórico é mantido.`,
-            confirmLabel: "Desativar",
-            danger: true,
-          }
-        : {
-            title: "Excluir variação",
-            message: `A variação ${sku.color} ${sku.size} será excluída permanentemente.`,
-            confirmLabel: "Excluir",
-            danger: true,
-          },
-    );
-    if (!ok) return;
-
-    if (sku.id && editing?.id) {
-      try {
-        const res = await api.delete<{ action: "deleted" | "deactivated" }>(
-          `/api/admin/products/${editing.id}/skus/${sku.id}`,
-        );
-        if (res?.action === "deactivated") {
-          setSkus((prev) =>
-            prev.map((s) => (s.id === sku.id ? { ...s, active: false } : s)),
-          );
-          return;
-        }
-      } catch (err) {
-        alert(err instanceof ApiError ? err.message : "Erro ao remover variação");
-        return;
-      }
-    }
-    setSkus((prev) =>
-      prev.filter((s) => !(s.color === sku.color && s.size === sku.size)),
-    );
   };
 
   const toggleSize = (size: string) => {
@@ -417,19 +295,12 @@ export function useProductsAdmin() {
 
       const body = {
         product: toApiProduct(payload),
-        // stockQty NAO e enviado: estoque e read-only (fonte StockHub).
         skus: skus
           .filter((s) => activeSizes.has(s.size) && activeColors.has(s.color))
           .map((s) => ({
             size: s.size,
             color: s.color || null,
-            price: s.price,
-            salePrice: s.sale_price,
-            saleStart: s.sale_start,
-            saleEnd: s.sale_end,
-            reference: s.reference,
-            minStock: s.min_stock,
-            active: s.active,
+            stockQty: s.stock_qty,
           })),
         colorImages: colorImages.filter((c) => activeColors.has(c.color)),
       };
@@ -506,11 +377,6 @@ export function useProductsAdmin() {
     getSizes,
     getSkuStock,
     setSkuStock,
-    getVariations,
-    updateVariation,
-    generateVariations,
-    addVariation,
-    deleteVariation,
     toggleSize,
     toggleColor,
     handleSave,

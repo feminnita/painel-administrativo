@@ -42,18 +42,6 @@ export function filterAndSortProducts(
     });
 }
 
-const LETTER_SIZE_ORDER = ["PP", "P", "M", "G", "GG", "XG", "XGG", "XXG", "XXGG"];
-
-/** Rank de tamanho de vestuario: letras (PP..XGG) primeiro, numericos crescentes depois. */
-export function sizeRank(raw: string): number {
-    const s = String(raw ?? "").trim().toUpperCase();
-    const idx = LETTER_SIZE_ORDER.indexOf(s);
-    if (idx !== -1) return idx;
-    const n = Number.parseInt(s, 10);
-    if (Number.isFinite(n)) return 1000 + n;
-    return 5000;
-}
-
 export function slugify(text: string): string {
     return text
         .toLowerCase()
@@ -70,18 +58,12 @@ export function emptyProduct(): ProductInput {
         slug: "",
         description: "",
         code: "",
-        reference: null,
-        brand: null,
         category_id: null,
         base_price: 0,
-        cost_price: null,
         pix_price: null,
         sale_price: null,
-        sale_start: null,
-        sale_end: null,
         stock: 0,
         active: true,
-        visible_in_store: true,
         featured: false,
         is_new: true,
         is_bestseller: false,
@@ -113,14 +95,9 @@ export function buildProductPayload(
         slug: form.slug || slugify(form.name),
         description: form.description || null,
         code: form.code || null,
-        reference: form.reference || null,
-        brand: form.brand || null,
         category_id: form.category_id || null,
-        cost_price: form.cost_price || null,
         pix_price: form.pix_price || null,
         sale_price: form.sale_price || null,
-        sale_start: form.sale_start || null,
-        sale_end: form.sale_end || null,
         images,
         video_url: form.video_url || null,
         colors: form.colors || [],

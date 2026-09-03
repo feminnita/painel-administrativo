@@ -1,24 +1,15 @@
-export const BRANDS = ["FNT", "Feminnita"] as const;
-export type Brand = (typeof BRANDS)[number];
-
 export type AdminProduct = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
   code: string | null;
-  reference: string | null;
-  brand: Brand | null;
   category_id: string | null;
   base_price: number;
-  cost_price: number | null;
   pix_price: number | null;
   sale_price: number | null;
-  sale_start: string | null;
-  sale_end: string | null;
   stock: number;
   active: boolean;
-  visible_in_store: boolean;
   featured: boolean;
   is_new: boolean;
   is_bestseller: boolean;
@@ -53,18 +44,9 @@ export type ProductFilters = {
 };
 
 export type Sku = {
-  id?: string;
   size: string;
   color: string;
-  stock_qty: number; // somente-leitura no painel (fonte: StockHub)
-  price: number | null;
-  sale_price: number | null;
-  sale_start: string | null;
-  sale_end: string | null;
-  reference: string | null;
-  min_stock: number | null;
-  active: boolean;
-  has_orders?: boolean;
+  stock_qty: number;
 };
 
 export type ColorImages = {
