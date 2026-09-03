@@ -27,8 +27,17 @@ function emptySections(): HomeSections {
     return { lancamentos: [], maisVendidos: [], outlet: [] };
 }
 
-function emptySectionCategories(): HomeSectionCategories {
-    return { lancamentos: "", maisVendidos: "", outlet: "" };
+// Defaults quando a chave home_section_categories está AUSENTE — MESMA regra do site
+// (bannersService.mapHomeSectionCategories): Lançamentos→lancamentos, Outlet→outlet,
+// Mais Vendidos→vazio (a cliente escolhe). Evita que salvar zere Lançamentos/Outlet.
+const HOME_SECTION_CATEGORIES_DEFAULT: HomeSectionCategories = {
+    lancamentos: "lancamentos",
+    maisVendidos: "",
+    outlet: "outlet",
+};
+
+function defaultSectionCategories(): HomeSectionCategories {
+    return { ...HOME_SECTION_CATEGORIES_DEFAULT };
 }
 
 export function useVitrineAdmin() {
@@ -36,7 +45,7 @@ export function useVitrineAdmin() {
     const [categories, setCategories] = useState<CategoryRow[]>([]);
     const [sections, setSections] = useState<HomeSections>(emptySections());
     const [sectionCategories, setSectionCategories] =
-        useState<HomeSectionCategories>(emptySectionCategories());
+        useState<HomeSectionCategories>(defaultSectionCategories());
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -62,13 +71,24 @@ export function useVitrineAdmin() {
             });
 
             const storedCats = rows.find((r) => r.key === CATEGORIES_SETTING_KEY)?.value;
-            setSectionCategories({
-                lancamentos:
-                    typeof storedCats?.lancamentos === "string" ? storedCats.lancamentos : "",
-                maisVendidos:
-                    typeof storedCats?.maisVendidos === "string" ? storedCats.maisVendidos : "",
-                outlet: typeof storedCats?.outlet === "string" ? storedCats.outlet : "",
-            });
+            // chave AUSENTE => defaults (site faz igual); PRESENTE => respeita cada campo
+            // (vazio = seção oculta, escolha deliberada da cliente).
+            setSectionCategories(
+                storedCats && typeof storedCats === "object"
+                    ? {
+                          lancamentos:
+                              typeof storedCats.lancamentos === "string"
+                                  ? storedCats.lancamentos
+                                  : "",
+                          maisVendidos:
+                              typeof storedCats.maisVendidos === "string"
+                                  ? storedCats.maisVendidos
+                                  : "",
+                          outlet:
+                              typeof storedCats.outlet === "string" ? storedCats.outlet : "",
+                      }
+                    : defaultSectionCategories(),
+            );
         } catch (err) {
             console.error("Erro ao carregar vitrine:", err);
         } finally {
