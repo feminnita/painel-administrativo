@@ -76,6 +76,45 @@ export function IntermediateHomeBannerSection({
 
             <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Título (sobre a imagem)
+                </label>
+                <input
+                    type="text"
+                    value={banner.title}
+                    onChange={(e) => setIntermediateBanner({ title: e.target.value })}
+                    className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+                    placeholder="BLUSAS FEMININAS"
+                />
+            </div>
+
+            <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Subtítulo
+                </label>
+                <input
+                    type="text"
+                    value={banner.subtitle}
+                    onChange={(e) => setIntermediateBanner({ subtitle: e.target.value })}
+                    className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+                    placeholder="Atacado direto da fábrica · pedido mínimo R$ 199"
+                />
+            </div>
+
+            <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Texto do botão
+                </label>
+                <input
+                    type="text"
+                    value={banner.ctaText}
+                    onChange={(e) => setIntermediateBanner({ ctaText: e.target.value })}
+                    className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+                    placeholder="VER BLUSAS →"
+                />
+            </div>
+
+            <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                     Texto alternativo (acessibilidade)
                 </label>
                 <input
@@ -89,15 +128,18 @@ export function IntermediateHomeBannerSection({
 
             <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Link ao clicar (opcional)
+                    Link ao clicar
                 </label>
                 <input
                     type="text"
                     value={banner.href}
                     onChange={(e) => setIntermediateBanner({ href: e.target.value })}
                     className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
-                    placeholder="/produtos"
+                    placeholder="/categoria/blusas"
                 />
+                <p className="mt-1 text-xs text-gray-400">
+                    Vazio = abre a categoria Blusas (/categoria/blusas)
+                </p>
             </div>
         </div>
     );

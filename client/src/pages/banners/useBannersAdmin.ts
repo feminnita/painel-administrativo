@@ -28,10 +28,14 @@ export function useHomeBannersAdmin() {
             });
 
             setSettings({
-                intermediateBanner: map[KEYS.intermediateBanner] ?? {
+                intermediateBanner: {
                     src: "",
                     alt: "",
                     href: "",
+                    title: "",
+                    subtitle: "",
+                    ctaText: "",
+                    ...(map[KEYS.intermediateBanner] ?? {}),
                 },
                 videoSection: map[KEYS.videoSection] ?? { title: "", videoId: "" },
                 imageGrid: Array.isArray(map[KEYS.imageGrid]?.images)
@@ -96,6 +100,15 @@ export function useHomeBannersAdmin() {
             },
         }));
 
+    const moveGridImage = (index: number, dir: -1 | 1) =>
+        setSettings((prev) => {
+            const target = index + dir;
+            if (target < 0 || target >= prev.imageGrid.images.length) return prev;
+            const images = [...prev.imageGrid.images];
+            [images[index], images[target]] = [images[target], images[index]];
+            return { ...prev, imageGrid: { images } };
+        });
+
     const uploadTo = async (file: File, folder: string) => {
         const { urls } = await api.upload(
             `/api/admin/upload?folder=${encodeURIComponent(folder)}`,
@@ -155,6 +168,7 @@ export function useHomeBannersAdmin() {
         addGridImage,
         updateGridImage,
         removeGridImage,
+        moveGridImage,
         uploadIntermediateBanner,
         uploadGridImage,
         handleSave,
