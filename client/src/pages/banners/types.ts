@@ -7,6 +7,10 @@ export type Slide = {
   poster: string | null;
   cta_text: string | null;
   cta_href: string | null;
+  title: string | null;
+  subtitle: string | null;
+  text_position: string;
+  focal: string;
   order_index: number;
   active: boolean;
   created_at: string;
@@ -20,6 +24,10 @@ export type SlideInput = {
   poster: string | null;
   cta_text: string | null;
   cta_href: string | null;
+  title: string | null;
+  subtitle: string | null;
+  text_position: string;
+  focal: string;
   order_index: number;
   active: boolean;
 };

@@ -6,4 +6,8 @@ export type HeroSlideInput = {
     poster: string;
     ctaText?: string;
     ctaHref?: string;
+    title?: string | null;
+    subtitle?: string | null;
+    textPosition?: string | null;
+    focal?: string | null;
 }
