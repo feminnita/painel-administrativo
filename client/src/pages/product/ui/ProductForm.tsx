@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     ChevronLeft,
+    ChevronDown,
     Tag,
     Weight,
     Ruler,
@@ -8,22 +9,28 @@ import {
     Upload,
     Globe,
     Save,
-    Eye,
+    EyeOff,
     Star,
     Sparkles,
     TrendingUp,
     Images,
     Hash,
     Package,
-    CircleDollarSign,
+    ShoppingBag,
     Search,
     X,
     Plus,
+    Trash2,
+    Wand2,
+    Percent,
+    AlertTriangle,
 } from "lucide-react";
 import { slugify } from "../domain";
+import { BRANDS } from "../types";
+import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
 
-const DEFAULT_SIZES = ["P", "M", "G", "GG", "48", "50", "52"];
+const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"];
 
 const MEASURE_KEYS = ["busto", "cintura", "quadril"];
 
@@ -32,6 +39,26 @@ const COLOR_LIST_LIMIT = 30;
 type ProductsVM = ReturnType<typeof useProductsAdmin>;
 
 type PickerKind = "cor" | "tamanho" | null;
+
+/** ISO string -> valor de <input type="datetime-local"> (YYYY-MM-DDTHH:mm). */
+function toLocalInput(iso: string | null): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(value: string): string | null {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function discountPct(base: number, sale: number | null): number | null {
+    if (sale == null || !base || sale >= base) return null;
+    return Math.round((1 - sale / base) * 100);
+}
 
 function ToggleSwitch({
     checked,
@@ -72,8 +99,11 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         uploading,
         uploadImages,
         getSizes,
-        getSkuStock,
-        setSkuStock,
+        getVariations,
+        updateVariation,
+        generateVariations,
+        addVariation,
+        deleteVariation,
         toggleSize,
         toggleColor,
         getColorImages,
@@ -83,12 +113,26 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
     const [picker, setPicker] = useState<PickerKind>(null);
     const [pickerSearch, setPickerSearch] = useState("");
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
+    const [addColor, setAddColor] = useState("");
+    const [addSize, setAddSize] = useState("");
+
+    // Aviso ao sair com o formulário aberto (fechar/atualizar a aba).
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, []);
 
     if (editing === null) return null;
 
     const pixPreview = editing.pix_price ?? +(editing.base_price * 0.95).toFixed(2);
     const sizes = getSizes();
     const colors = editing.colors || [];
+    const variations = getVariations();
 
     const colorByName = new Map(productColors.map((c) => [c.name, c]));
     const colorMatches = pickerSearch.trim()
@@ -110,14 +154,18 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         setPickerSearch("");
     };
 
-    const gradeTotal =
-        sizes.length > 0 && colors.length > 0
-            ? colors.reduce(
-                (sum, c) =>
-                    sum + sizes.reduce((s2, sz) => s2 + (getSkuStock(sz, c) || 0), 0),
-                0,
-            )
+    const cancel = () => {
+        if (window.confirm("Descartar alterações não salvas?")) setEditing(null);
+    };
+
+    // Estoque atual = soma das variações (fonte StockHub); fallback ao estoque geral.
+    const stockTotal =
+        variations.length > 0
+            ? variations.reduce((sum, s) => sum + (s.stock_qty || 0), 0)
             : editing.stock;
+
+    const salePct = discountPct(editing.base_price, editing.sale_price);
+    const promoOn = editing.sale_price != null;
 
     const badges = [
         { key: "featured", label: "Selo destaque", desc: "Aumenta a visibilidade na página inicial.", icon: Star },
@@ -125,12 +173,25 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         { key: "is_bestseller", label: "Selo mais vendido", desc: "Destaca o produto como campeão de vendas.", icon: TrendingUp },
     ] as const;
 
+    const varKey = (s: Sku) => `${s.color}__${s.size}`;
+
+    const expandAll = () =>
+        setExpanded(new Set(variations.map(varKey)));
+    const collapseAll = () => setExpanded(new Set());
+    const toggleExpand = (key: string) =>
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+
     return (
         <div className="p-6">
             {/* ── HEADER ── */}
             <div className="mb-4">
                 <button
-                    onClick={() => setEditing(null)}
+                    onClick={cancel}
                     className="mb-1 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
                 >
                     <ChevronLeft size={13} /> Produtos / Lista de produtos /{" "}
@@ -144,7 +205,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                     </h2>
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setEditing(null)}
+                            onClick={cancel}
                             className="rounded-lg border px-5 py-2 text-sm font-medium hover:bg-gray-50"
                         >
                             Cancelar
@@ -161,21 +222,12 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                 </div>
             </div>
 
-            {/* ── HIGHLIGHTS ── */}
+            {/* ── CARTÕES DE LEITURA ── */}
             <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
                     { icon: Hash, title: "Código do produto", value: editing.code || "—" },
-                    { icon: Package, title: "Estoque atual", value: String(gradeTotal) },
-                    {
-                        icon: CircleDollarSign,
-                        title: "Preço de venda",
-                        value: `R$ ${(editing.sale_price ?? editing.base_price).toFixed(2)}`,
-                    },
-                    {
-                        icon: Eye,
-                        title: "Status",
-                        value: editing.active ? "Ativo" : "Inativo",
-                    },
+                    { icon: Package, title: "Estoque atual", value: String(stockTotal) },
+                    { icon: TrendingUp, title: "Quantidade vendida", value: "—" },
                 ].map(({ icon: Icon, title, value }) => (
                     <div
                         key={title}
@@ -192,12 +244,29 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         </div>
                     </div>
                 ))}
+                {/* Últimos pedidos */}
+                <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-[#8C2F39]">
+                        <ShoppingBag size={16} />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="truncate text-[11px] uppercase tracking-wide text-gray-400">
+                            Últimos 10 pedidos
+                        </p>
+                        <a
+                            href={editing.id ? `/pedidos?produto=${editing.id}` : "/pedidos"}
+                            className="truncate text-sm font-bold text-[#8C2F39] hover:underline"
+                        >
+                            Ver pedidos
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* ════════ COLUNA PRINCIPAL ════════ */}
                 <div className="space-y-6 lg:col-span-2">
-                    {/* ── NOME ── */}
+                    {/* ── NOME + DADOS BÁSICOS ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                         <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
                             <Tag size={16} /> Nome do produto
@@ -205,6 +274,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         <input
                             type="text"
                             value={editing.name}
+                            maxLength={200}
                             onChange={(e) =>
                                 setEditing({
                                     ...editing,
@@ -219,17 +289,55 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             <span>Dê ao seu produto um nome curto e claro.</span>
                             <span>{(editing.name || "").length} / 200</span>
                         </div>
-                        <div className="mt-4">
-                            <label className="label">Código / Referência</label>
-                            <input
-                                type="text"
-                                value={editing.code || ""}
-                                onChange={(e) =>
-                                    setEditing({ ...editing, code: e.target.value })
-                                }
-                                className="input"
-                                placeholder="FEM-001"
-                            />
+
+                        <div className="mt-4 grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label className="label">Código</label>
+                                <input
+                                    type="text"
+                                    value={editing.code || ""}
+                                    onChange={(e) =>
+                                        setEditing({ ...editing, code: e.target.value })
+                                    }
+                                    className="input"
+                                    placeholder="FEM-001"
+                                />
+                            </div>
+                            <div>
+                                <label className="label">Referência</label>
+                                <input
+                                    type="text"
+                                    value={editing.reference || ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            reference: e.target.value || null,
+                                        })
+                                    }
+                                    className="input"
+                                    placeholder="Ex: 62000"
+                                />
+                            </div>
+                            <div>
+                                <label className="label">Marca</label>
+                                <select
+                                    value={editing.brand || ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            brand: (e.target.value || null) as typeof editing.brand,
+                                        })
+                                    }
+                                    className="input"
+                                >
+                                    <option value="">— Selecione —</option>
+                                    {BRANDS.map((b) => (
+                                        <option key={b} value={b}>
+                                            {b}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </section>
 
@@ -239,7 +347,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             <Images size={16} /> Imagens e vídeo
                         </h3>
                         <p className="mb-3 text-xs text-gray-400">
-                            *Primeira = frente · Segunda = costas · demais = detalhes
+                            *Primeira = Principal · demais = detalhes · arraste as URLs para
+                            reordenar
                         </p>
 
                         <label
@@ -260,7 +369,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 }
                             />
                             <span className="text-sm text-gray-500">
-                                {uploading ? "Enviando..." : "Clique para enviar fotos"}
+                                {uploading ? "Enviando..." : "+ Adicionar imagem"}
                             </span>
                         </label>
 
@@ -284,58 +393,80 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 {imagesInput
                                     .split("\n")
                                     .filter(Boolean)
-                                    .map((url, i) => (
-                                        <div
-                                            key={i}
-                                            className="group relative h-24 w-20 overflow-hidden rounded-lg bg-gray-100"
-                                        >
-                                            <img
-                                                src={url.trim()}
-                                                alt=""
-                                                className="absolute inset-0 h-full w-full object-cover"
-                                            />
-                                            <span className="absolute bottom-0 left-0 right-0 bg-black/50 py-0.5 text-center text-[9px] text-white">
-                                                {i === 0
-                                                    ? "Principal"
-                                                    : i === 1
-                                                        ? "Costas"
-                                                        : `Foto ${i + 1}`}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setImagesInput(
-                                                        imagesInput
-                                                            .split("\n")
-                                                            .filter((_, idx) => idx !== i)
-                                                            .join("\n"),
-                                                    )
+                                    .map((url, i, lines) => {
+                                        return (
+                                            <div
+                                                key={i}
+                                                draggable
+                                                onDragStart={(e) =>
+                                                    e.dataTransfer.setData("text/plain", String(i))
                                                 }
-                                                className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    const from = Number(
+                                                        e.dataTransfer.getData("text/plain"),
+                                                    );
+                                                    if (Number.isFinite(from) && from !== i) {
+                                                        const next = [...lines];
+                                                        const [x] = next.splice(from, 1);
+                                                        next.splice(i, 0, x);
+                                                        setImagesInput(next.join("\n"));
+                                                    }
+                                                }}
+                                                className="group relative h-24 w-20 cursor-move overflow-hidden rounded-lg bg-gray-100"
                                             >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
+                                                <img
+                                                    src={url.trim()}
+                                                    alt=""
+                                                    className="absolute inset-0 h-full w-full object-cover"
+                                                />
+                                                <span
+                                                    className={`absolute bottom-0 left-0 right-0 py-0.5 text-center text-[9px] text-white ${i === 0 ? "bg-[#8C2F39]" : "bg-black/50"}`}
+                                                >
+                                                    {i === 0 ? "Principal" : `Foto ${i + 1}`}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setImagesInput(
+                                                            lines.filter((_, idx) => idx !== i).join("\n"),
+                                                        )
+                                                    }
+                                                    className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         )}
+
                         <div className="mt-4 border-t pt-4">
-                            <label className="label">Vídeo do produto (YouTube)</label>
-                            <input
-                                type="text"
-                                value={editing.video_url || ""}
-                                onChange={(e) =>
-                                    setEditing({
-                                        ...editing,
-                                        video_url: e.target.value || null,
-                                    })
-                                }
-                                className="input"
-                                placeholder="https://www.youtube.com/watch?v=... (aceita youtu.be e shorts)"
-                            />
-                            <p className="mt-1 text-xs text-gray-400">
-                                Aparece como miniatura com play na galeria do produto no site
-                            </p>
+                            <div className="mb-2 flex items-center justify-between">
+                                <label className="label mb-0">Vídeo do produto</label>
+                                <ToggleSwitch
+                                    checked={editing.video_url != null}
+                                    onChange={() =>
+                                        setEditing({
+                                            ...editing,
+                                            video_url: editing.video_url == null ? "" : null,
+                                        })
+                                    }
+                                />
+                            </div>
+                            {editing.video_url != null && (
+                                <input
+                                    type="text"
+                                    value={editing.video_url || ""}
+                                    onChange={(e) =>
+                                        setEditing({ ...editing, video_url: e.target.value })
+                                    }
+                                    className="input"
+                                    placeholder="https://www.youtube.com/watch?v=... (aceita youtu.be e shorts)"
+                                />
+                            )}
                         </div>
                     </section>
 
@@ -355,12 +486,12 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         />
                     </section>
 
-                    {/* ── PREÇO ── */}
+                    {/* ── PREÇO DO PAI ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                         <h3 className="mb-4 font-semibold text-gray-700">Preço</h3>
                         <div className="grid gap-4 md:grid-cols-3">
                             <div>
-                                <label className="label">Preço cheio (R$) *</label>
+                                <label className="label">Preço de venda (R$) *</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -374,9 +505,23 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     }
                                     className="input"
                                 />
-                                <p className="mt-1 text-xs text-gray-400">
-                                    Aparece riscado quando há desconto
-                                </p>
+                            </div>
+                            <div>
+                                <label className="label">Preço de custo (R$)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={editing.cost_price ?? ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            cost_price: Number.parseFloat(e.target.value) || null,
+                                        })
+                                    }
+                                    className="input"
+                                    placeholder="Custo interno"
+                                />
                             </div>
                             <div>
                                 <label className="label">Preço PIX (R$)</label>
@@ -395,29 +540,106 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     placeholder={`${pixPreview.toFixed(2)} (5% off padrão)`}
                                 />
                             </div>
-                            <div>
-                                <label className="label">Preço promocional (R$)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={editing.sale_price ?? ""}
-                                    onChange={(e) =>
+                        </div>
+
+                        {/* Promoção */}
+                        <div className="mt-4 rounded-lg border border-gray-100 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Percent size={15} className="text-gray-400" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            Preço em promoção
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Preço riscado + preço promocional por período.
+                                        </p>
+                                    </div>
+                                </div>
+                                <ToggleSwitch
+                                    checked={promoOn}
+                                    onChange={() =>
                                         setEditing({
                                             ...editing,
-                                            sale_price: Number.parseFloat(e.target.value) || null,
+                                            sale_price: promoOn ? null : editing.base_price,
+                                            sale_start: promoOn ? null : editing.sale_start,
+                                            sale_end: promoOn ? null : editing.sale_end,
                                         })
                                     }
-                                    className="input"
-                                    placeholder="Deixe vazio se não há"
                                 />
                             </div>
+                            {promoOn && (
+                                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                                    <div>
+                                        <label className="label">Preço promocional (R$)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={editing.sale_price ?? ""}
+                                            onChange={(e) =>
+                                                setEditing({
+                                                    ...editing,
+                                                    sale_price:
+                                                        Number.parseFloat(e.target.value) || null,
+                                                })
+                                            }
+                                            className="input"
+                                        />
+                                        {salePct != null && (
+                                            <p className="mt-1 text-xs font-semibold text-green-600">
+                                                {salePct}% de desconto
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="label">Data inicial</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={toLocalInput(editing.sale_start)}
+                                            onChange={(e) =>
+                                                setEditing({
+                                                    ...editing,
+                                                    sale_start: fromLocalInput(e.target.value),
+                                                })
+                                            }
+                                            className="input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label">Data final</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={toLocalInput(editing.sale_end)}
+                                            onChange={(e) =>
+                                                setEditing({
+                                                    ...editing,
+                                                    sale_end: fromLocalInput(e.target.value),
+                                                })
+                                            }
+                                            className="input"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </section>
 
-                    {/* ── VARIAÇÕES (agrupado: Cor + Tamanho) ── */}
+                    {/* ── DEFINIÇÃO DE VARIAÇÕES (Cor + Tamanho) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 font-semibold text-gray-700">Variações</h3>
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <h3 className="font-semibold text-gray-700">
+                                Definição de variações
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={generateVariations}
+                                disabled={colors.length === 0 || sizes.length === 0}
+                                className="flex items-center gap-1.5 rounded-lg bg-[#8C2F39] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7a2832] disabled:opacity-40"
+                            >
+                                <Wand2 size={14} /> GERAR VARIAÇÕES
+                            </button>
+                        </div>
 
                         {/* característica primária: cor */}
                         <div className="rounded-lg border border-gray-100 p-4">
@@ -606,132 +828,367 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         )}
                     </section>
 
-                    {/* ── GRADE DE ESTOQUE ── */}
-                    {sizes.length > 0 && colors.length > 0 && (
+                    {/* ── LISTA DE VARIAÇÕES ── */}
+                    {variations.length > 0 && (
                         <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <h3 className="mb-4 font-semibold text-gray-700">
-                                Grade de estoque (Tamanho × Cor)
-                            </h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                    <thead>
-                                        <tr className="bg-gray-50">
-                                            <th className="border border-gray-200 px-3 py-2 text-left text-gray-500">
-                                                Cor \ Tam
-                                            </th>
-                                            {sizes.map((s) => (
-                                                <th
-                                                    key={s}
-                                                    className="border border-gray-200 px-3 py-2 text-center font-semibold"
-                                                >
-                                                    {s}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {colors.map((color) => (
-                                            <tr key={color}>
-                                                <td className="whitespace-nowrap border border-gray-200 px-3 py-2 font-medium text-gray-600">
-                                                    {color}
-                                                </td>
-                                                {sizes.map((size) => (
-                                                    <td key={size} className="border border-gray-200 p-1">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={getSkuStock(size, color)}
-                                                            onChange={(e) =>
-                                                                setSkuStock(
-                                                                    size,
-                                                                    color,
-                                                                    Number.parseInt(e.target.value) || 0,
-                                                                )
-                                                            }
-                                                            className="w-14 rounded border px-1 py-1.5 text-center text-xs focus:border-[#8C2F39] focus:ring-1 focus:ring-[#8C2F39]"
-                                                        />
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="font-semibold text-gray-700">
+                                    Variações ({variations.length})
+                                </h3>
+                                <div className="flex gap-3 text-xs">
+                                    <button
+                                        type="button"
+                                        onClick={expandAll}
+                                        className="font-medium text-[#8C2F39] hover:underline"
+                                    >
+                                        Expandir todos
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={collapseAll}
+                                        className="font-medium text-gray-500 hover:underline"
+                                    >
+                                        Ocultar todos
+                                    </button>
+                                </div>
                             </div>
-                        </section>
-                    )}
 
-                    {/* ── FOTOS POR COR ── */}
-                    {colors.length > 0 && (
-                        <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
-                                <Images size={16} /> Fotos por cor
-                            </h3>
-                            <div className="space-y-5">
-                                {colors.map((color) => {
-                                    const colorImgs = getColorImages(color);
+                            <div className="space-y-2">
+                                {variations.map((sku) => {
+                                    const key = varKey(sku);
+                                    const isOpen = expanded.has(key);
+                                    const c = colorByName.get(sku.color);
+                                    const imgs = getColorImages(sku.color);
+                                    const noImage = imgs.length === 0;
+                                    const skuPct = discountPct(
+                                        sku.price ?? editing.base_price,
+                                        sku.sale_price,
+                                    );
+                                    const varPromoOn = sku.sale_price != null;
                                     return (
                                         <div
-                                            key={color}
-                                            className="rounded-lg border border-gray-100 p-4"
+                                            key={key}
+                                            className={`rounded-lg border ${sku.active === false ? "border-gray-200 bg-gray-50 opacity-70" : "border-gray-100"}`}
                                         >
-                                            <p className="mb-2 text-sm font-medium">{color}</p>
+                                            {/* linha recolhida */}
+                                            <div className="flex items-center gap-3 px-3 py-2.5">
+                                                <span className="w-24 shrink-0 truncate text-xs font-mono text-gray-500">
+                                                    {sku.reference || "—"}
+                                                </span>
+                                                <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full border bg-gray-100">
+                                                    {c?.image_url && (
+                                                        <img
+                                                            src={c.image_url}
+                                                            alt=""
+                                                            loading="lazy"
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    )}
+                                                </span>
+                                                <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
+                                                    {sku.color}
+                                                </span>
+                                                <span className="w-14 shrink-0 text-center text-sm font-medium text-gray-700">
+                                                    {sku.size}
+                                                </span>
+                                                {noImage && (
+                                                    <span
+                                                        title="Sem imagem: não aparece na loja"
+                                                        className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+                                                    >
+                                                        <AlertTriangle size={11} /> sem foto
+                                                    </span>
+                                                )}
+                                                {sku.active === false && (
+                                                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                                                        <EyeOff size={11} /> inativa
+                                                    </span>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteVariation(sku)}
+                                                    className="shrink-0 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                                    title="Remover variação"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleExpand(key)}
+                                                    className="shrink-0 rounded p-1.5 text-gray-400 hover:bg-gray-100"
+                                                >
+                                                    <ChevronDown
+                                                        size={16}
+                                                        className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+                                                    />
+                                                </button>
+                                            </div>
 
-                                            {colorImgs.length > 0 && (
-                                                <div className="mb-3 flex flex-wrap gap-2">
-                                                    {colorImgs.map((url, i) => (
-                                                        <div
-                                                            key={i}
-                                                            className="group relative h-20 w-16 overflow-hidden rounded-lg bg-gray-100"
-                                                        >
-                                                            <img
-                                                                src={url}
-                                                                alt=""
-                                                                className="h-full w-full object-cover"
+                                            {/* conteúdo expandido */}
+                                            {isOpen && (
+                                                <div className="space-y-4 border-t border-gray-100 px-4 py-4">
+                                                    {/* imagens da variação (por cor) */}
+                                                    <div>
+                                                        <p className="mb-2 text-xs font-medium text-gray-500">
+                                                            Imagens da variação{" "}
+                                                            <span className="text-gray-400">
+                                                                (por cor — compartilhadas entre tamanhos)
+                                                            </span>
+                                                        </p>
+                                                        {imgs.length > 0 && (
+                                                            <div className="mb-2 flex flex-wrap gap-2">
+                                                                {imgs.map((url, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className="group relative h-20 w-16 overflow-hidden rounded-lg bg-gray-100"
+                                                                    >
+                                                                        <img
+                                                                            src={url}
+                                                                            alt=""
+                                                                            className="h-full w-full object-cover"
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                removeColorImage(sku.color, url)
+                                                                            }
+                                                                            className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                                                        >
+                                                                            ✕
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm text-gray-500 hover:border-[#8C2F39] hover:bg-red-50/30">
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                multiple
+                                                                className="hidden"
+                                                                disabled={uploading}
+                                                                onChange={(e) =>
+                                                                    e.target.files &&
+                                                                    uploadColorImages(sku.color, e.target.files)
+                                                                }
                                                             />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeColorImage(color, url)}
-                                                                className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                                                            >
-                                                                ✕
-                                                            </button>
+                                                            <Upload size={15} />
+                                                            {uploading
+                                                                ? "Enviando..."
+                                                                : `Enviar fotos de ${sku.color}`}
+                                                        </label>
+                                                    </div>
+
+                                                    <div className="grid gap-4 md:grid-cols-3">
+                                                        <div>
+                                                            <label className="label">
+                                                                Preço de venda (R$)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                value={sku.price ?? ""}
+                                                                onChange={(e) =>
+                                                                    updateVariation(sku, {
+                                                                        price:
+                                                                            Number.parseFloat(e.target.value) ||
+                                                                            null,
+                                                                    })
+                                                                }
+                                                                className="input"
+                                                                placeholder={String(
+                                                                    editing.base_price.toFixed(2),
+                                                                )}
+                                                            />
                                                         </div>
-                                                    ))}
+                                                        <div>
+                                                            <label className="label">Referência (SKU)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={sku.reference ?? ""}
+                                                                onChange={(e) =>
+                                                                    updateVariation(sku, {
+                                                                        reference: e.target.value || null,
+                                                                    })
+                                                                }
+                                                                className="input"
+                                                                placeholder="Ex: 62000PRG"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="label">Estoque mínimo</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                value={sku.min_stock ?? 0}
+                                                                onChange={(e) =>
+                                                                    updateVariation(sku, {
+                                                                        min_stock:
+                                                                            Number.parseInt(e.target.value) || 0,
+                                                                    })
+                                                                }
+                                                                className="input"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* estoque somente-leitura */}
+                                                    <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
+                                                        <div>
+                                                            <p className="text-xs font-medium text-gray-500">
+                                                                Estoque
+                                                            </p>
+                                                            <p className="text-[11px] text-gray-400">
+                                                                Somente leitura · fonte: StockHub
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-lg font-bold text-gray-700">
+                                                            {sku.stock_qty}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* promoção da variação */}
+                                                    <div className="rounded-lg border border-gray-100 p-3">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <Percent
+                                                                    size={14}
+                                                                    className="text-gray-400"
+                                                                />
+                                                                <p className="text-sm font-medium text-gray-700">
+                                                                    Preço em promoção
+                                                                </p>
+                                                            </div>
+                                                            <ToggleSwitch
+                                                                checked={varPromoOn}
+                                                                onChange={() =>
+                                                                    updateVariation(sku, {
+                                                                        sale_price: varPromoOn
+                                                                            ? null
+                                                                            : sku.price ?? editing.base_price,
+                                                                    })
+                                                                }
+                                                            />
+                                                        </div>
+                                                        {varPromoOn && (
+                                                            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                                                <div>
+                                                                    <label className="label">
+                                                                        Preço promocional (R$)
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        value={sku.sale_price ?? ""}
+                                                                        onChange={(e) =>
+                                                                            updateVariation(sku, {
+                                                                                sale_price:
+                                                                                    Number.parseFloat(
+                                                                                        e.target.value,
+                                                                                    ) || null,
+                                                                            })
+                                                                        }
+                                                                        className="input"
+                                                                    />
+                                                                    {skuPct != null && (
+                                                                        <p className="mt-1 text-xs font-semibold text-green-600">
+                                                                            {skuPct}% off
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <label className="label">
+                                                                        Data inicial
+                                                                    </label>
+                                                                    <input
+                                                                        type="datetime-local"
+                                                                        value={toLocalInput(sku.sale_start)}
+                                                                        onChange={(e) =>
+                                                                            updateVariation(sku, {
+                                                                                sale_start: fromLocalInput(
+                                                                                    e.target.value,
+                                                                                ),
+                                                                            })
+                                                                        }
+                                                                        className="input"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="label">Data final</label>
+                                                                    <input
+                                                                        type="datetime-local"
+                                                                        value={toLocalInput(sku.sale_end)}
+                                                                        onChange={(e) =>
+                                                                            updateVariation(sku, {
+                                                                                sale_end: fromLocalInput(
+                                                                                    e.target.value,
+                                                                                ),
+                                                                            })
+                                                                        }
+                                                                        className="input"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )}
-
-                                            <label
-                                                className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 transition-colors ${uploading
-                                                    ? "border-gray-200 bg-gray-50"
-                                                    : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
-                                                    }`}
-                                            >
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    className="hidden"
-                                                    disabled={uploading}
-                                                    onChange={(e) =>
-                                                        e.target.files &&
-                                                        uploadColorImages(color, e.target.files)
-                                                    }
-                                                />
-                                                <Upload size={16} className="text-gray-500" />
-                                                <span className="text-sm text-gray-500">
-                                                    {uploading
-                                                        ? "Enviando..."
-                                                        : `Enviar fotos de ${color}`}
-                                                </span>
-                                            </label>
                                         </div>
                                     );
                                 })}
                             </div>
+
+                            {/* adicionar variação avulsa */}
+                            <div className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4">
+                                <div>
+                                    <label className="label">Cor</label>
+                                    <select
+                                        value={addColor}
+                                        onChange={(e) => setAddColor(e.target.value)}
+                                        className="input"
+                                    >
+                                        <option value="">— Cor —</option>
+                                        {colors.map((c) => (
+                                            <option key={c} value={c}>
+                                                {c}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label">Tamanho</label>
+                                    <select
+                                        value={addSize}
+                                        onChange={(e) => setAddSize(e.target.value)}
+                                        className="input"
+                                    >
+                                        <option value="">— Tam —</option>
+                                        {sizes.map((s) => (
+                                            <option key={s} value={s}>
+                                                {s}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        addVariation(addColor, addSize);
+                                        setAddColor("");
+                                        setAddSize("");
+                                    }}
+                                    disabled={!addColor || !addSize}
+                                    className="flex items-center gap-1.5 rounded-lg border border-[#8C2F39] px-4 py-2 text-sm font-medium text-[#8C2F39] hover:bg-red-50/40 disabled:opacity-40"
+                                >
+                                    <Plus size={15} /> Adicionar variação
+                                </button>
+                            </div>
                         </section>
                     )}
 
-                    {/* ── PESO E DIMENSÕES ── */}
+                    {/* ── PESO E DIMENSÕES (só no pai) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                         <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
                             <Weight size={16} /> Peso e dimensões
@@ -758,20 +1215,20 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 />
                             </div>
                             <div>
-                                <label className="label">Comprimento (cm)</label>
+                                <label className="label">Altura (cm)</label>
                                 <input
                                     type="number"
                                     step="0.1"
                                     min="0"
-                                    value={editing.pkg_length_cm ?? ""}
+                                    value={editing.pkg_height_cm ?? ""}
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            pkg_length_cm: Number.parseFloat(e.target.value) || 0,
+                                            pkg_height_cm: Number.parseFloat(e.target.value) || 0,
                                         })
                                     }
                                     className="input"
-                                    placeholder="20"
+                                    placeholder="5"
                                 />
                             </div>
                             <div>
@@ -792,20 +1249,20 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 />
                             </div>
                             <div>
-                                <label className="label">Altura (cm)</label>
+                                <label className="label">Comprimento (cm)</label>
                                 <input
                                     type="number"
                                     step="0.1"
                                     min="0"
-                                    value={editing.pkg_height_cm ?? ""}
+                                    value={editing.pkg_length_cm ?? ""}
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            pkg_height_cm: Number.parseFloat(e.target.value) || 0,
+                                            pkg_length_cm: Number.parseFloat(e.target.value) || 0,
                                         })
                                     }
                                     className="input"
-                                    placeholder="5"
+                                    placeholder="20"
                                 />
                             </div>
                         </div>
@@ -822,7 +1279,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     Produto ativo
                                 </p>
                                 <p className="text-xs text-gray-400">
-                                    Disponível para venda na loja virtual.
+                                    Desativado = fora do catálogo por completo.
                                 </p>
                             </div>
                             <ToggleSwitch
@@ -832,23 +1289,24 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 }
                             />
                         </div>
-                        <div className="mt-4 border-t pt-4">
-                            <label className="label">Estoque geral (sem grade)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={editing.stock}
-                                onChange={(e) =>
+                        <div className="mt-4 flex items-center justify-between gap-3 border-t pt-4">
+                            <div>
+                                <p className="text-sm font-semibold text-gray-700">
+                                    Exibir na loja virtual
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                    Esgotou? Tire da loja sem desativar o produto.
+                                </p>
+                            </div>
+                            <ToggleSwitch
+                                checked={editing.visible_in_store}
+                                onChange={() =>
                                     setEditing({
                                         ...editing,
-                                        stock: Number.parseInt(e.target.value) || 0,
+                                        visible_in_store: !editing.visible_in_store,
                                     })
                                 }
-                                className="input"
                             />
-                            <p className="mt-1 text-xs text-gray-400">
-                                Use a grade se tiver variações
-                            </p>
                         </div>
                     </section>
 
@@ -1044,7 +1502,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
             {/* ── FOOTER ACTIONS ── */}
             <div className="mt-6 flex justify-end gap-3 pb-8">
                 <button
-                    onClick={() => setEditing(null)}
+                    onClick={cancel}
                     className="rounded-lg border px-6 py-3 hover:bg-gray-50"
                 >
                     Cancelar
