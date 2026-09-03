@@ -11,6 +11,10 @@ const KEYS = {
     categoryBanners: "home_category_banners",
 } as const;
 
+// Faixa (grade de imagens da home): o site suporta de 1 a 5 blocos
+// (com 5 → md:grid-cols-5). Limite máximo de imagens na faixa.
+export const MAX_GRID_IMAGES = 5;
+
 // Banner de categoria: só JPG/WebP e no máximo 600 KB (checado antes de subir).
 const CATEGORY_BANNER_MAX_BYTES = 600 * 1024;
 const CATEGORY_BANNER_TYPES = ["image/jpeg", "image/webp"];
@@ -113,15 +117,18 @@ export function useHomeBannersAdmin() {
         }));
 
     const addGridImage = () =>
-        setSettings((prev) => ({
-            ...prev,
-            imageGrid: {
-                images: [
-                    ...prev.imageGrid.images,
-                    { src: "", alt: "", title: "", href: "", active: true },
-                ],
-            },
-        }));
+        setSettings((prev) => {
+            if (prev.imageGrid.images.length >= MAX_GRID_IMAGES) return prev;
+            return {
+                ...prev,
+                imageGrid: {
+                    images: [
+                        ...prev.imageGrid.images,
+                        { src: "", alt: "", title: "", href: "", active: true },
+                    ],
+                },
+            };
+        });
 
     const moveGridImage = (index: number, dir: -1 | 1) =>
         setSettings((prev) => {
