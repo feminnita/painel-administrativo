@@ -22,8 +22,8 @@ export async function productCounts(req: Request, res: Response) {
 export async function create(req: Request, res: Response) {
 
     try {
-        const { name, slug, description, imageUrl, parentId, orderIndex } = req.body;
-        const category = await CategoryService.createCategory({ name, slug, description, imageUrl, parentId, orderIndex });
+        const { name, slug, description, imageUrl, parentId, orderIndex, pickOrder } = req.body;
+        const category = await CategoryService.createCategory({ name, slug, description, imageUrl, parentId, orderIndex, pickOrder });
         console.log(category);
         res.status(201).json(category);
 

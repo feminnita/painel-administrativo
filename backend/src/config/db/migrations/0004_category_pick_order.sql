@@ -1,0 +1,1 @@
+ALTER TABLE "categories" ADD COLUMN IF NOT EXISTS "pick_order" integer DEFAULT 0;

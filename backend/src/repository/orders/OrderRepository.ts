@@ -1,6 +1,6 @@
 import { desc, eq, sql, and, inArray, isNull, ne, gte, lte, ilike, or, type SQL } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { orders, orderItems, productsSkus, coupons, customers, products, orderStatusHistory, orderNotes } from '../../config/db/schema';
+import { orders, orderItems, productsSkus, coupons, customers, products, categories, orderStatusHistory, orderNotes } from '../../config/db/schema';
 
 // Colunas do item + codigo interno do produto (join). Reutilizado na lista e no
 // detalhe para o romaneio ter "Codigo" e montar a Ref.
@@ -17,6 +17,9 @@ const orderItemSelect = {
     unitPrice: orderItems.unitPrice,
     totalPrice: orderItems.totalPrice,
     productCode: products.code,
+    // Ordem de separacao (fila do estoque) da categoria do produto. Usada no
+    // romaneio para ordenar os itens na sequencia das prateleiras.
+    categoryPickOrder: categories.pickOrder,
 } as const;
 
 export type OrderListFilters = {
@@ -41,6 +44,7 @@ export function findItemsByOrderId(orderId: string) {
         .select(orderItemSelect)
         .from(orderItems)
         .leftJoin(products, eq(orderItems.productId, products.id))
+        .leftJoin(categories, eq(products.categoryId, categories.id))
         .where(eq(orderItems.orderId, orderId));
 }
 
@@ -293,6 +297,7 @@ export async function findAllWithRelations(filters: OrderListFilters = {}) {
               .select(orderItemSelect)
               .from(orderItems)
               .leftJoin(products, eq(orderItems.productId, products.id))
+              .leftJoin(categories, eq(products.categoryId, categories.id))
               .where(inArray(orderItems.orderId, orderIds))
         : [];
 

@@ -234,8 +234,32 @@ export function fmtDateLong(v: string | null | undefined): string {
 
 export type ConsolidatedItem = OrderItem & { quantity: number };
 
+// FILA DE SEPARACAO: a categoria do item tem uma "ordem de separacao" (pick_order)
+// definida pelo Iury no painel. O romaneio sai NA SEQUENCIA DAS PRATELEIRAS, nao
+// na ordem de cadastro. pick_order 1,2,3...; 0/nulo = sem fila -> vai pro fim.
+export function pickRank(item: OrderItem): number {
+  const p = item.category_pick_order;
+  return p && p > 0 ? p : Number.POSITIVE_INFINITY;
+}
+
+// Compara dois itens pela fila de separacao; empate desempata por codigo interno.
+function comparePicking(a: OrderItem, b: OrderItem): number {
+  const ra = pickRank(a);
+  const rb = pickRank(b);
+  if (ra !== rb) return ra - rb;
+  return String(a.product_code ?? "").localeCompare(String(b.product_code ?? ""), "pt-BR", {
+    numeric: true,
+  });
+}
+
+// Ordena os itens de UM pedido na sequencia das filas do estoque (nao muta o array).
+export function sortItemsForPicking<T extends OrderItem>(items: T[]): T[] {
+  return [...items].sort(comparePicking);
+}
+
 // PRODUTOS VENDIDOS: soma todos os itens dos pedidos selecionados por SKU
-// (codigo|cor|tamanho) e ORDENA POR CODIGO. Nao movimenta estoque - so' lista.
+// (codigo|cor|tamanho) e ORDENA PELA FILA DE SEPARACAO (empate = codigo).
+// Nao movimenta estoque - so' lista.
 export function consolidateItems(orders: { items: OrderItem[] }[]): ConsolidatedItem[] {
   const map = new Map<string, ConsolidatedItem>();
   for (const o of orders) {
@@ -246,9 +270,5 @@ export function consolidateItems(orders: { items: OrderItem[] }[]): Consolidated
       else map.set(key, { ...it, quantity: it.quantity });
     }
   }
-  return Array.from(map.values()).sort((a, b) =>
-    String(a.product_code ?? "").localeCompare(String(b.product_code ?? ""), "pt-BR", {
-      numeric: true,
-    }),
-  );
+  return Array.from(map.values()).sort(comparePicking);
 }

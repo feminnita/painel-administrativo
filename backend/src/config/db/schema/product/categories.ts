@@ -9,5 +9,8 @@ export const categories = pgTable("categories", {
     parentId: uuid('parent_id').references((): AnyPgColumn => categories.id),
     active: boolean('active').default(true),
     orderIndex: integer('order_index').default(0),
+    // Ordem de SEPARACAO (fila do estoque). Diferente de orderIndex (ordem de
+    // exibicao no site). Iury define a sequencia: 1,2,3... 0/nulo = vai pro fim.
+    pickOrder: integer('pick_order').default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });

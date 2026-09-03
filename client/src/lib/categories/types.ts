@@ -7,6 +7,8 @@ export type CategoryRow = {
   parent_id: string | null;
   active: boolean;
   order_index: number;
+  // Ordem de separacao (fila do estoque): 1,2,3... 0 = sem fila (vai pro fim).
+  pick_order: number;
   created_at: string;
 };
 

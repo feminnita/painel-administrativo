@@ -92,8 +92,16 @@ export function CategoryAccordionList({
               </button>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-lg font-medium text-gray-900">
+                <p className="flex items-center gap-2 truncate text-lg font-medium text-gray-900">
                   {item.name}
+                  {item.pick_order > 0 && (
+                    <span
+                      className="shrink-0 rounded-full bg-[#8C2F39]/10 px-2 py-0.5 text-xs font-semibold text-[#8C2F39]"
+                      title="Ordem de separação (fila do estoque)"
+                    >
+                      Fila {item.pick_order}
+                    </span>
+                  )}
                 </p>
                 <p className="text-sm text-gray-400">
                   {item.level === 3

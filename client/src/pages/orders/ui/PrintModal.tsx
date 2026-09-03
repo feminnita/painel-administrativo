@@ -101,7 +101,7 @@ export function PrintModal({
           <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
             <input type="checkbox" checked={types.pedidos} onChange={() => toggle("pedidos")} className="mt-0.5" />
             <span className="flex-1">
-              <span className="font-medium">PEDIDOS</span> — romaneio (uma folha por pedido)
+              <span className="font-medium">PEDIDOS</span> — romaneio, uma folha por pedido (separação um a um)
               <label className="mt-1.5 flex items-center gap-2 text-xs text-gray-500">
                 <input type="checkbox" checked={foto} onChange={() => setFoto((v) => !v)} />
                 Imprimir imagem dos produtos
@@ -131,7 +131,8 @@ export function PrintModal({
           <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
             <input type="checkbox" checked={types.produtos} onChange={() => toggle("produtos")} className="mt-0.5" />
             <span className="flex-1">
-              <span className="font-medium">PRODUTOS VENDIDOS</span> — lista consolidada por SKU (separação)
+              <span className="font-medium">PRODUTOS VENDIDOS</span> — lista consolidada por SKU
+              <span className="ml-1 text-xs text-gray-400">(opção secundária — some tudo num apanhado só)</span>
             </span>
           </label>
         </div>

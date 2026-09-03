@@ -22,6 +22,7 @@ function mapApiOrderItem(i: Record<string, any>): OrderItem {
     quantity: i.quantity ?? 0,
     unit_price: Number(i.unitPrice) || 0,
     total_price: Number(i.totalPrice) || 0,
+    category_pick_order: i.categoryPickOrder ?? null,
   };
 }
 

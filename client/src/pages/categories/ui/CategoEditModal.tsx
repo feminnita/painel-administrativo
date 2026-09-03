@@ -114,6 +114,25 @@ export function CategoryEditModal({
                         )}
                     </div>
 
+                    <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">
+                            Ordem de separação (fila do estoque)
+                        </label>
+                        <input
+                            type="number"
+                            min={0}
+                            value={values.pick_order}
+                            onChange={(e) =>
+                                onChange({ pick_order: Number(e.target.value) || 0 })
+                            }
+                            className="w-32 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-[#8C2F39] focus:outline-none"
+                            placeholder="0"
+                        />
+                        <p className="mt-1 text-xs text-gray-400">
+                            Sequência das prateleiras: 1, 2, 3… O romaneio sai nessa ordem. 0 = sem fila (vai pro fim).
+                        </p>
+                    </div>
+
                     <label className="flex cursor-pointer items-center gap-2">
                         <input
                             type="checkbox"

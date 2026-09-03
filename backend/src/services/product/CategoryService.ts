@@ -17,6 +17,7 @@ export function createCategory(input: {
     imageUrl?: string;
     parentId?: string;
     orderIndex?: number;
+    pickOrder?: number;
 }) {
     return CategoryRepository.insert(input);
 }

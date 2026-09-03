@@ -73,6 +73,7 @@ export function mapApiCategory(c: Record<string, any>): CategoryRow {
     parent_id: c.parentId ?? null,
     active: c.active ?? true,
     order_index: c.orderIndex ?? 0,
+    pick_order: c.pickOrder ?? 0,
     created_at: c.createdAt ?? "",
   };
 }

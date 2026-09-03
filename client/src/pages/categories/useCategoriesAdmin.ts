@@ -12,6 +12,7 @@ const emptyValues = (): CategoryInput => ({
     parent_id: null,
     active: true,
     order_index: 0,
+    pick_order: 0,
 });
 
 function slugify(text: string): string {
@@ -106,6 +107,7 @@ export function useCategoriesAdmin() {
                 parent_id: row.parent_id,
                 active: row.active,
                 order_index: row.order_index,
+                pick_order: row.pick_order,
             },
         });
     };

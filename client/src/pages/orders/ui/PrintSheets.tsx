@@ -8,8 +8,19 @@ import {
   itemRef,
   normalizeBrand,
   orderPieceCount,
+  sortItemsForPicking,
   PAYMENT_LABELS,
 } from "../domain";
+
+// Quadradinho de conferencia (checkbox vazio impresso): o Iury risca 1 a 1
+// conferindo cada item separado. So visual — nao guarda estado.
+function CheckCell() {
+  return (
+    <td style={{ padding: "8px 4px", width: 24, verticalAlign: "top" }}>
+      <div style={{ width: 16, height: 16, border: "2px solid #000", marginTop: 2 }} />
+    </td>
+  );
+}
 
 // Portal pra fora do #root. Fica display:none na tela (ver index.css) e so'
 // aparece em @media print, com layout limpo, sem menu nem sidebar.
@@ -37,6 +48,7 @@ function RomaneioItemLine({
 }) {
   return (
     <tr style={{ borderBottom: "1px solid #999", verticalAlign: "top" }}>
+      <CheckCell />
       <td style={{ padding: "8px 4px" }}>
         <div style={{ display: "flex", gap: 8 }}>
           {showPhoto &&
@@ -168,21 +180,36 @@ export function RomaneioSheet({ order, showPhoto = true }: { order: Order; showP
         <AddressBlock order={order} title="Endereço de cobrança" />
       </div>
 
-      {/* Tabela de produtos */}
+      {/* Tabela de produtos — na ordem das filas do estoque (pick_order) */}
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: "2px solid #000", textAlign: "left" }}>
+            <th style={{ padding: "6px 4px", width: 24 }}>✓</th>
             <th style={{ padding: "6px 4px" }}>Produto</th>
             <th style={{ padding: "6px 4px", textAlign: "right" }}>Qtd.</th>
             <th style={{ padding: "6px 4px", textAlign: "right" }}>Total</th>
           </tr>
         </thead>
         <tbody>
-          {order.items.map((it) => (
+          {sortItemsForPicking(order.items).map((it) => (
             <RomaneioItemLine key={it.id} item={it} quantity={it.quantity} showPhoto={showPhoto} showTotal />
           ))}
         </tbody>
       </table>
+
+      {/* Total de pecas em DESTAQUE — conferencia final da separacao */}
+      <div
+        style={{
+          marginTop: 12,
+          border: "2px solid #000",
+          padding: "8px 12px",
+          fontSize: 20,
+          fontWeight: 800,
+          textAlign: "center",
+        }}
+      >
+        Total de peças a separar: {pieces}
+      </div>
 
       {/* Rodape de totais */}
       <div style={{ marginLeft: "auto", width: 300, marginTop: 12, fontSize: 13 }}>
@@ -215,12 +242,13 @@ export function ConsolidatedPickingSheet({
       <div style={{ borderBottom: "3px solid #000", paddingBottom: 8, marginBottom: 12 }}>
         <div style={{ fontSize: 18, fontWeight: 800 }}>Produtos vendidos — lista de separação</div>
         <div style={{ fontSize: 12 }}>
-          Consolidado de {orders.length} pedido{orders.length === 1 ? "" : "s"} • somado por SKU • ordenado por código
+          Consolidado de {orders.length} pedido{orders.length === 1 ? "" : "s"} • somado por SKU • na ordem das filas do estoque
         </div>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: "2px solid #000", textAlign: "left" }}>
+            <th style={{ padding: "6px 4px", width: 24 }}>✓</th>
             <th style={{ padding: "6px 4px" }}>Produto</th>
             <th style={{ padding: "6px 4px", textAlign: "right" }}>Qtd.</th>
           </tr>
@@ -237,9 +265,21 @@ export function ConsolidatedPickingSheet({
           ))}
         </tbody>
       </table>
-      <div style={{ marginTop: 12, borderTop: "2px solid #000", paddingTop: 6, fontWeight: 700 }}>
-        {items.length} SKU{items.length === 1 ? "" : "s"} distinto{items.length === 1 ? "" : "s"} • {totalPieces}{" "}
-        {totalPieces === 1 ? "peça" : "peças"} no total
+      <div style={{ marginTop: 6, fontWeight: 700, fontSize: 12 }}>
+        {items.length} SKU{items.length === 1 ? "" : "s"} distinto{items.length === 1 ? "" : "s"}
+      </div>
+      {/* Total de pecas em DESTAQUE — conferencia final */}
+      <div
+        style={{
+          marginTop: 10,
+          border: "2px solid #000",
+          padding: "8px 12px",
+          fontSize: 20,
+          fontWeight: 800,
+          textAlign: "center",
+        }}
+      >
+        Total de peças a separar: {totalPieces}
       </div>
     </section>
   );

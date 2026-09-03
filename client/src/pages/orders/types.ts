@@ -9,6 +9,8 @@ export type OrderItem = {
     quantity: number;
     unit_price: number;
     total_price: number;
+    // Ordem de separacao (fila do estoque) da categoria do produto. 0/null = sem fila.
+    category_pick_order: number | null;
 };
 
 export type ShippingAddress = {
