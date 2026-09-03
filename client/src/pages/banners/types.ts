@@ -49,8 +49,19 @@ export type ImageGridInput = {
   images: ImageGridItemInput[];
 };
 
+export type CategoryBannerInput = {
+  categorySlug: string;
+  desktopSrc: string;
+  mobileSrc: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  active: boolean;
+};
+
 export type HomeBannersSettings = {
   intermediateBanner: IntermediateBannerInput;
   videoSection: VideoSectionInput;
   imageGrid: ImageGridInput;
+  categoryBanners: CategoryBannerInput[];
 };

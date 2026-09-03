@@ -8,6 +8,7 @@ import { SlideListView } from "../ui/carrosel/SlideListView";
 import { IntermediateHomeBannerSection } from "../ui/home/IntermediateBannerSection";
 import { VideoSectionForm } from "../ui/home/VideoSectionForm";
 import { ImageGridSection } from "../ui/home/ImageGridSeciton";
+import { CategoryBannerSection } from "../ui/home/CategoryBannerSection";
 import { Plus, RefreshCw, Save } from "lucide-react";
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { key: "intermediate", label: "Banner Intermediário" },
   { key: "video", label: "Vídeo" },
   { key: "grid", label: "Grid de Imagens" },
+  { key: "category", label: "Banners de categoria" },
 ] as const;
 
 export function BannersPage() {
@@ -85,6 +87,7 @@ export function BannersPage() {
       )}
       {tab === "video" && <VideoSectionForm vm={bannersVm} />}
       {tab === "grid" && <ImageGridSection vm={bannersVm} />}
+      {tab === "category" && <CategoryBannerSection vm={bannersVm} />}
     </div>
   );
 }
