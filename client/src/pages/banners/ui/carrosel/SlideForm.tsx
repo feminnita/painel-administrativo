@@ -391,6 +391,21 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
+                Cor do texto
+              </label>
+              <select
+                value={editing.text_theme || "light"}
+                onChange={(e) =>
+                  setEditing({ ...editing, text_theme: e.target.value })
+                }
+                className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              >
+                <option value="light">Claro — texto branco (fundo escurece)</option>
+                <option value="dark">Escuro — texto preto (fundo clareia)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 Ponto focal
               </label>
               <select

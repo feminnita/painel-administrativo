@@ -9,5 +9,6 @@ export type HeroSlideInput = {
     title?: string | null;
     subtitle?: string | null;
     textPosition?: string | null;
+    textTheme?: string | null;
     focal?: string | null;
 }
