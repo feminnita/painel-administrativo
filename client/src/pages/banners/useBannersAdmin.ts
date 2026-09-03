@@ -97,12 +97,33 @@ export function useHomeBannersAdmin() {
     const addGridImage = () =>
         setSettings((prev) => ({
             ...prev,
-            imageGrid: { images: [...prev.imageGrid.images, { src: "", alt: "" }] },
+            imageGrid: {
+                images: [
+                    ...prev.imageGrid.images,
+                    { src: "", alt: "", title: "", href: "", active: true },
+                ],
+            },
         }));
+
+    const moveGridImage = (index: number, dir: -1 | 1) =>
+        setSettings((prev) => {
+            const target = index + dir;
+            if (target < 0 || target >= prev.imageGrid.images.length) return prev;
+            const images = [...prev.imageGrid.images];
+            const [item] = images.splice(index, 1);
+            images.splice(target, 0, item);
+            return { ...prev, imageGrid: { images } };
+        });
 
     const updateGridImage = (
         index: number,
-        patch: Partial<{ src: string; alt: string }>,
+        patch: Partial<{
+            src: string;
+            alt: string;
+            title: string;
+            href: string;
+            active: boolean;
+        }>,
     ) =>
         setSettings((prev) => ({
             ...prev,
@@ -158,7 +179,12 @@ export function useHomeBannersAdmin() {
         try {
             await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, settings.intermediateBanner);
             await api.put(`/api/admin/settings/${KEYS.videoSection}`, settings.videoSection);
-            await api.put(`/api/admin/settings/${KEYS.imageGrid}`, settings.imageGrid);
+            await api.put(`/api/admin/settings/${KEYS.imageGrid}`, {
+                images: settings.imageGrid.images.map((img, i) => ({
+                    ...img,
+                    order: i,
+                })),
+            });
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
@@ -179,6 +205,7 @@ export function useHomeBannersAdmin() {
         uploadVitrineVideo,
         clearVitrineVideo,
         addGridImage,
+        moveGridImage,
         updateGridImage,
         removeGridImage,
         uploadIntermediateBanner,
