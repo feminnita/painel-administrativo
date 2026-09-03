@@ -60,6 +60,9 @@ export function emptyHomeBanners(): HomeBannersSettings {
       src: "",
       alt: "",
       href: "",
+      title: "",
+      subtitle: "",
+      ctaText: "",
     },
     videoSection: {
       title: "",

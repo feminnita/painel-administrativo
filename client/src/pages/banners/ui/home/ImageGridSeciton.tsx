@@ -1,5 +1,5 @@
 import type { useHomeBannersAdmin } from "@/pages/banners/useBannersAdmin";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Upload } from "lucide-react";
 
 export function ImageGridSection({
   vm,
@@ -12,11 +12,18 @@ export function ImageGridSection({
     addGridImage,
     updateGridImage,
     removeGridImage,
+    moveGridImage,
     uploadGridImage,
   } = vm;
 
+  const total = settings.imageGrid.images?.length ?? 0;
+
   return (
     <div className="max-w-3xl space-y-4">
+      <p className="text-xs text-gray-400">
+        A faixa usa quantas imagens você adicionar (até 6 no desktop). Proporção
+        recomendada: 1200×1600 (3:4).
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {settings.imageGrid.images?.map((img, i) => (
           <div
@@ -51,7 +58,9 @@ export function ImageGridSection({
                 }}
               />
               <Upload size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-500">Enviar imagem</span>
+              <span className="text-sm text-gray-500">
+                Enviar imagem · 1200×1600 (3:4)
+              </span>
             </label>
 
             <input
@@ -62,13 +71,31 @@ export function ImageGridSection({
               placeholder="Texto alternativo"
             />
 
-            <button
-              onClick={() => removeGridImage(i)}
-              className="flex items-center gap-1 text-sm text-red-500 hover:underline"
-            >
-              <Trash2 size={14} />
-              Remover
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => moveGridImage(i, -1)}
+                disabled={i === 0}
+                title="Mover para cima"
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#8C2F39] disabled:opacity-30"
+              >
+                <ChevronUp size={16} />
+              </button>
+              <button
+                onClick={() => moveGridImage(i, 1)}
+                disabled={i === total - 1}
+                title="Mover para baixo"
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#8C2F39] disabled:opacity-30"
+              >
+                <ChevronDown size={16} />
+              </button>
+              <button
+                onClick={() => removeGridImage(i)}
+                className="ml-auto flex items-center gap-1 text-sm text-red-500 hover:underline"
+              >
+                <Trash2 size={14} />
+                Remover
+              </button>
+            </div>
           </div>
         ))}
       </div>
