@@ -56,7 +56,7 @@ export const api = {
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
-  delete: <T = void>(path: string) => request<T>(path, { method: "DELETE" }),
+  delete: (path: string) => request<void>(path, { method: "DELETE" }),
   upload: async (path: string, files: FileList | File[]): Promise<{ urls: string[] }> => {
     const formData = new FormData();
     for (const file of Array.from(files)) formData.append("files", file);

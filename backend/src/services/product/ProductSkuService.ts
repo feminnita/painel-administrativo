@@ -1,7 +1,7 @@
 import * as ProductsSkuRepository from '../../repository/product/ProductSkuRepository';
 
 export function listSkusByProduct(productId: string) {
-    return ProductsSkuRepository.findByProductIdWithOrders(productId);
+    return ProductsSkuRepository.findByProductId(productId);
 }
 
 export function createSku(input: {
@@ -21,19 +21,8 @@ export async function updateSku(id: string, input: Record<string, unknown>) {
     return sku;
 }
 
-/**
- * Lixeira da variacao (nao apaga cego):
- * - variacao COM pedido -> DESATIVA (active=false); historico intacto.
- * - variacao SEM pedido -> apaga de verdade.
- * Retorna qual acao ocorreu para o painel confirmar.
- */
-export async function deleteSku(id: string): Promise<{ action: 'deleted' | 'deactivated' }> {
-    if (await ProductsSkuRepository.hasOrders(id)) {
-        const sku = await ProductsSkuRepository.deactivate(id);
-        if (!sku) throw new Error('SKU_NOT_FOUND');
-        return { action: 'deactivated' };
-    }
+export async function deleteSku(id: string) {
     const sku = await ProductsSkuRepository.remove(id);
     if (!sku) throw new Error('SKU_NOT_FOUND');
-    return { action: 'deleted' };
-}
+    return sku;
+} 
