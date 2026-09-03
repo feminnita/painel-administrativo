@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { blingSyncLog, categories, products, productsColors, productsSkus } from '../../config/db/schema';
+import { blingSyncLog, categories, productCategories, products, productsColors, productsSkus } from '../../config/db/schema';
 import * as BlingApi from './BlingApi';
 import * as BlingDomain from './BlingDomain';
 import * as TokenService from './TokenService';
@@ -44,6 +44,28 @@ async function ensureBlingCategory(): Promise<string> {
     }
 
     return lastId;
+}
+
+// TRAVA ADITIVA DE CATEGORIA:
+// A categoria gravada pelo painel é DEFINITIVA. O sync do Bling só pode ADICIONAR
+// categoria a produto que ainda não tem NENHUMA ligação em product_categories, e
+// NUNCA remove uma ligação. Se o produto já tem qualquer categoria (manual ou de
+// backfill), o sync não mexe na categoria dele.
+async function ensureProductCategoryLink(
+    productId: string,
+    categoryId?: string,
+): Promise<void> {
+    const existing = await db.query.productCategories.findFirst({
+        where: eq(productCategories.productId, productId),
+    });
+    if (existing) return; // já tem categoria: fonte de verdade é o painel, não tocar.
+
+    const catId = categoryId ?? (await ensureBlingCategory());
+
+    await db
+        .insert(productCategories)
+        .values({ productId, categoryId: catId })
+        .onConflictDoNothing();
 }
 
 async function resolveColorId(name: string): Promise<string> {
@@ -190,6 +212,7 @@ async function upsertProductFromBling(
             .set({ ...BlingDomain.buildUpdateValues(buildInput), updatedAt: new Date() })
             .where(eq(products.id, byBlingId.id));
         await syncSkuGrid(byBlingId.id, skus, parsed.skus.length > 0);
+        await ensureProductCategoryLink(byBlingId.id);
         return 'updated';
     }
 
@@ -206,6 +229,7 @@ async function upsertProductFromBling(
                 .set({ ...BlingDomain.buildUpdateValues(buildInput), updatedAt: new Date() })
                 .where(eq(products.id, byCode.id));
             await syncSkuGrid(byCode.id, skus, parsed.skus.length > 0);
+            await ensureProductCategoryLink(byCode.id);
             return 'updated';
         }
     }
@@ -218,6 +242,7 @@ async function upsertProductFromBling(
         .returning({ id: products.id });
 
     await syncSkuGrid(created.id, skus, parsed.skus.length > 0);
+    await ensureProductCategoryLink(created.id, buildInput.categoryId);
     return 'created';
 }
 

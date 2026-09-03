@@ -1,5 +1,6 @@
 export * from './product/products';
 export * from './product/categories';
+export * from './product/product-categories';
 export * from './product/product-color-image';
 export * from './product/product-colors';
 export * from './product/product-skus';
