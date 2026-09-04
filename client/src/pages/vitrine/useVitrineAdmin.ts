@@ -32,7 +32,7 @@ function emptySections(): HomeSections {
 // Mais Vendidos→vazio (a cliente escolhe). Evita que salvar zere Lançamentos/Outlet.
 const HOME_SECTION_CATEGORIES_DEFAULT: HomeSectionCategories = {
     lancamentos: "lancamentos",
-    maisVendidos: "",
+    maisVendidos: "mais-vendidos",
     outlet: "outlet",
 };
 
