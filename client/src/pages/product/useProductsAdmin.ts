@@ -380,20 +380,43 @@ export function useProductsAdmin() {
     setUploading(true);
     try {
       const { urls } = await api.upload("/api/admin/upload", files);
+      // UMA foto por cor: o novo envio substitui a foto anterior (mesmo
+      // armazenamento — product_color_images). Guardamos só a última URL.
+      const url = urls[urls.length - 1];
+      if (!url) return;
       setColorImages((prev) => {
         const idx = prev.findIndex((c) => c.color === color);
         if (idx > -1) {
           const next = [...prev];
-          next[idx] = { ...next[idx], images: [...next[idx].images, ...urls] };
+          next[idx] = { ...next[idx], images: [url] };
           return next;
         }
-        return [...prev, { color, images: urls }];
+        return [...prev, { color, images: [url] }];
       });
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Falha no upload");
     } finally {
       setUploading(false);
     }
+  };
+
+  // Zera SÓ as imagens do produto em edição: as fotos de capa (imagesInput) e
+  // as fotos por cor (colorImages). NÃO toca em SKUs/variações, cores/tamanhos,
+  // vínculo com o Bling nem exclui o produto — tudo isso persiste no próximo
+  // salvar. A limpeza vira definitiva quando o usuário salvar.
+  const clearAllImages = async () => {
+    if (
+      !(await confirm({
+        title: "Remover todas as imagens",
+        message:
+          "Remover todas as imagens deste produto? As variações, o vínculo com o Bling e o produto continuam.",
+        confirmLabel: "Remover todas",
+        danger: true,
+      }))
+    )
+      return;
+    setImagesInput("");
+    setColorImages([]);
   };
 
   const removeColorImage = (color: string, url: string) => {
@@ -519,5 +542,6 @@ export function useProductsAdmin() {
     getColorImages,
     uploadColorImages,
     removeColorImage,
+    clearAllImages,
   };
 }

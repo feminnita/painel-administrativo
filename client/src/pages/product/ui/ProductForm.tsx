@@ -109,6 +109,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         getColorImages,
         uploadColorImages,
         removeColorImage,
+        clearAllImages,
     } = vm;
 
     const [picker, setPicker] = useState<PickerKind>(null);
@@ -369,9 +370,21 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
                     {/* ── IMAGENS E VÍDEO ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
-                            <Images size={16} /> Imagens e vídeo
-                        </h3>
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <h3 className="flex items-center gap-2 font-semibold text-gray-700">
+                                <Images size={16} /> Imagens e vídeo
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={clearAllImages}
+                                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                                <Trash2 size={13} /> Remover todas as imagens
+                            </button>
+                        </div>
+                        <p className="mb-1 text-xs font-medium text-gray-500">
+                            Fotos de capa do produto (até 5)
+                        </p>
                         <p className="mb-3 text-xs text-gray-400">
                             *Primeira = Principal · demais = detalhes · arraste as URLs para
                             reordenar
@@ -927,56 +940,73 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             {/* conteúdo expandido */}
                                             {isOpen && (
                                                 <div className="space-y-4 border-t border-gray-100 px-4 py-4">
-                                                    {/* imagens da cor (compartilhadas entre tamanhos) */}
+                                                    {/* foto da cor: UMA foto, opcional — não trava o salvar */}
                                                     <div>
                                                         <p className="mb-2 text-xs font-medium text-gray-500">
-                                                            Imagens da variação{" "}
-                                                            <span className="text-gray-400">
-                                                                (por cor — compartilhadas entre tamanhos)
+                                                            Foto da cor{" "}
+                                                            <span className="font-normal text-gray-400">
+                                                                (uma foto, opcional — não é obrigatória para
+                                                                salvar)
                                                             </span>
                                                         </p>
-                                                        {imgs.length > 0 && (
-                                                            <div className="mb-2 flex flex-wrap gap-2">
-                                                                {imgs.map((url, i) => (
-                                                                    <div
-                                                                        key={i}
-                                                                        className="group relative h-20 w-16 overflow-hidden rounded-lg bg-gray-100"
-                                                                    >
-                                                                        <img
-                                                                            src={url}
-                                                                            alt=""
-                                                                            className="h-full w-full object-cover"
-                                                                        />
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() =>
-                                                                                removeColorImage(color, url)
+                                                        {imgs.length > 0 ? (
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                                                    <img
+                                                                        src={imgs[0]}
+                                                                        alt=""
+                                                                        className="h-full w-full object-cover"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#8C2F39] px-3 py-1.5 text-xs font-medium text-[#8C2F39] hover:bg-red-50/40">
+                                                                        <input
+                                                                            type="file"
+                                                                            accept="image/*"
+                                                                            className="hidden"
+                                                                            disabled={uploading}
+                                                                            onChange={(e) =>
+                                                                                e.target.files &&
+                                                                                uploadColorImages(
+                                                                                    color,
+                                                                                    e.target.files,
+                                                                                )
                                                                             }
-                                                                            className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                                                                        >
-                                                                            ✕
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
+                                                                        />
+                                                                        <Upload size={13} />
+                                                                        {uploading
+                                                                            ? "Enviando..."
+                                                                            : "Trocar foto"}
+                                                                    </label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            removeColorImage(color, imgs[0])
+                                                                        }
+                                                                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                                                                    >
+                                                                        Remover foto
+                                                                    </button>
+                                                                </div>
                                                             </div>
+                                                        ) : (
+                                                            <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm text-gray-500 hover:border-[#8C2F39] hover:bg-red-50/30">
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="hidden"
+                                                                    disabled={uploading}
+                                                                    onChange={(e) =>
+                                                                        e.target.files &&
+                                                                        uploadColorImages(color, e.target.files)
+                                                                    }
+                                                                />
+                                                                <Upload size={15} />
+                                                                {uploading
+                                                                    ? "Enviando..."
+                                                                    : `Adicionar foto de ${color} (opcional)`}
+                                                            </label>
                                                         )}
-                                                        <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm text-gray-500 hover:border-[#8C2F39] hover:bg-red-50/30">
-                                                            <input
-                                                                type="file"
-                                                                accept="image/*"
-                                                                multiple
-                                                                className="hidden"
-                                                                disabled={uploading}
-                                                                onChange={(e) =>
-                                                                    e.target.files &&
-                                                                    uploadColorImages(color, e.target.files)
-                                                                }
-                                                            />
-                                                            <Upload size={15} />
-                                                            {uploading
-                                                                ? "Enviando..."
-                                                                : `Enviar fotos de ${color}`}
-                                                        </label>
                                                     </div>
 
                                                     {/* um bloco por tamanho */}
