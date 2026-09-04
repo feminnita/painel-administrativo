@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
@@ -84,7 +84,7 @@ export async function saveProductWithRelations(
         const removedSkus = await tx.query.productsSkus.findMany({
             where: and(
                 eq(productsSkus.productId, savedId),
-                keptSkuIds.length ? sql`${productsSkus.id} NOT IN ${keptSkuIds}` : undefined,
+                keptSkuIds.length ? notInArray(productsSkus.id, keptSkuIds) : undefined,
             ),
         });
         for (const orphan of removedSkus) {
@@ -116,7 +116,7 @@ export async function saveProductWithRelations(
         await tx.delete(productColorImages).where(
             and(
                 eq(productColorImages.productId, savedId),
-                keptColorIds.length ? sql`${productColorImages.colorId} NOT IN ${keptColorIds}` : undefined,
+                keptColorIds.length ? notInArray(productColorImages.colorId, keptColorIds) : undefined,
             ),
         );
 
