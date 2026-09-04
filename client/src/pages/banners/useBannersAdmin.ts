@@ -322,58 +322,47 @@ export function useHomeBannersAdmin() {
     };
 
     const handleSave = async () => {
-        // Banner de categoria SEM imagem não pode ser salvo em silêncio (a cliente
-        // salvou achando que a arte tinha subido, mas o upload não anexou).
-        const semImagem = settings.categoryBanners.filter(
-            (b) => !b.desktopSrc && !b.mobileSrc,
+        // Salva o que está COMPLETO e AVISA (visível) o que foi pulado — NUNCA
+        // bloqueia o save inteiro por causa de um item incompleto (isso travava
+        // até o que já estava pronto: um 5º bloco vazio impedia salvar o mobile
+        // do intermediário). Item sem imagem simplesmente não é persistido vazio.
+        const avisos: string[] = [];
+
+        const faixaCompleta = settings.imageGrid.images.filter((img) => img.src);
+        const faixaPulada = settings.imageGrid.images.length - faixaCompleta.length;
+        if (faixaPulada > 0)
+            avisos.push(`${faixaPulada} bloco(s) da faixa sem imagem`);
+
+        const catCompleta = settings.categoryBanners.filter(
+            (b) => b.desktopSrc || b.mobileSrc,
         );
-        if (semImagem.length > 0) {
-            const nomes = semImagem
-                .map((b) => b.categorySlug || "(sem categoria)")
-                .join(", ");
-            toast.error(
-                `Banner de categoria sem imagem: ${nomes}. Suba a imagem (desktop e/ou mobile) ou remova esse banner antes de salvar.`,
-            );
-            return;
-        }
+        const catPulada = settings.categoryBanners.length - catCompleta.length;
+        if (catPulada > 0)
+            avisos.push(`${catPulada} banner(s) de categoria sem imagem`);
 
-        // Banner intermediário: se tem qualquer conteúdo mas a imagem desktop está
-        // vazia, não salvar em silêncio (mobile é opcional; desktop é obrigatório).
         const inter = settings.intermediateBanner;
-        const interComConteudo =
-            !!inter.alt || !!inter.href || !!inter.srcMobile;
-        if (interComConteudo && !inter.src) {
-            toast.error(
-                "Banner intermediário sem imagem desktop. Suba a imagem desktop ou limpe os campos antes de salvar.",
-            );
-            return;
-        }
-
-        // Faixa: nenhum bloco pode ficar sem imagem desktop (mobile é opcional).
-        const faixaSemImagem = settings.imageGrid.images.filter((img) => !img.src);
-        if (faixaSemImagem.length > 0) {
-            const nomes = faixaSemImagem
-                .map((img) => img.title || img.alt || "(sem título)")
-                .join(", ");
-            toast.error(
-                `Bloco da faixa sem imagem desktop: ${nomes}. Suba a imagem desktop ou remova o bloco antes de salvar.`,
-            );
-            return;
-        }
+        const salvarInter = !!inter.src;
+        if (!salvarInter && (inter.alt || inter.href || inter.srcMobile))
+            avisos.push("banner intermediário sem imagem desktop");
 
         setSaving(true);
         try {
-            await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, settings.intermediateBanner);
+            if (salvarInter) {
+                await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, inter);
+            }
             await api.put(`/api/admin/settings/${KEYS.videoSection}`, settings.videoSection);
-            await api.put(`/api/admin/settings/${KEYS.imageGrid}`, {
-                images: settings.imageGrid.images.map((img, i) => ({
-                    ...img,
-                    order: i,
-                })),
-            });
-            await api.put(`/api/admin/settings/${KEYS.categoryBanners}`, settings.categoryBanners);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
+            const faixaPayload = faixaCompleta.map((img, i) => ({ ...img, order: i }));
+            await api.put(`/api/admin/settings/${KEYS.imageGrid}`, { images: faixaPayload });
+            await api.put(`/api/admin/settings/${KEYS.categoryBanners}`, catCompleta);
+
+            if (avisos.length > 0) {
+                toast.warning(
+                    `Salvo. NÃO salvos (suba a imagem e salve de novo): ${avisos.join(" · ")}.`,
+                );
+            } else {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            }
         } catch (err) {
             alert(err instanceof ApiError ? err.message : "Erro ao salvar");
         } finally {
