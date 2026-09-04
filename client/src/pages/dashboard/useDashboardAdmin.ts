@@ -15,8 +15,8 @@ export function useDashboardAdmin() {
         try {
             const [sales, orders, abandonedCarts] = await Promise.all([
                 api.get<SalesReport>("/api/admin/reports/sales?days=30"),
-                api.get<Record<string, any>[]>("api/admin/orders"),
-                api.get<AbandonedCart[]>("api/admin/carts").catch(() => []),
+                api.get<Record<string, any>[]>("/api/admin/orders"),
+                api.get<AbandonedCart[]>("/api/admin/carts").catch(() => []),
             ]);
 
             setReport(sales);
