@@ -95,7 +95,7 @@ export function CategoryBannerSection({
                     >
                       <input
                         type="file"
-                        accept="image/jpeg,image/webp"
+                        accept="image/jpeg,image/png,image/webp"
                         className="hidden"
                         disabled={uploading}
                         onChange={(e) => {

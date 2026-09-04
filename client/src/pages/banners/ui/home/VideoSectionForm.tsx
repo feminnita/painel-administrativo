@@ -71,7 +71,7 @@ export function VideoSectionForm({
                     >
                         <input
                             type="file"
-                            accept="video/mp4,video/webm"
+                            accept="video/mp4,video/webm,video/quicktime"
                             className="hidden"
                             disabled={uploading}
                             onChange={(e) => {
