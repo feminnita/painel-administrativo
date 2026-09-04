@@ -22,7 +22,6 @@ import {
     Trash2,
     Wand2,
     Percent,
-    AlertTriangle,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { SizeChartPreview } from "./SizeChartPreview";
@@ -135,6 +134,24 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const colors = editing.colors || [];
     const variations = getVariations();
 
+    // Agrupamento por COR: uma linha por cor (accordion), com os tamanhos
+    // dentro ao expandir. Apenas reorganização visual — o modelo de dados
+    // (um Sku por cor×tamanho) segue intacto.
+    const variationsByColor: Array<[string, Sku[]]> = (() => {
+        const map = new Map<string, Sku[]>();
+        for (const sku of variations) {
+            const arr = map.get(sku.color);
+            if (arr) arr.push(sku);
+            else map.set(sku.color, [sku]);
+        }
+        return Array.from(map.entries());
+    })();
+    // Contador do topo: pares sem foto (mesma regra do antigo selo por linha —
+    // a cor não tem imagem cadastrada).
+    const pairsWithoutPhoto = variations.filter(
+        (s) => getColorImages(s.color).length === 0,
+    ).length;
+
     // Slugs das categorias marcadas (pai → filho → específica), p/ resolver a
     // tabela de medidas herdada.
     const catPai = categoryTree.find((p) => p.id === selectedCategoryPaiId);
@@ -184,10 +201,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         // levava a fileira vazia sem ninguém saber por quê.
     ] as const;
 
-    const varKey = (s: Sku) => `${s.color}__${s.size}`;
-
     const expandAll = () =>
-        setExpanded(new Set(variations.map(varKey)));
+        setExpanded(new Set(variationsByColor.map(([color]) => color)));
     const collapseAll = () => setExpanded(new Set());
     const toggleExpand = (key: string) =>
         setExpanded((prev) => {
@@ -841,9 +856,14 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                     {variations.length > 0 && (
                         <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="font-semibold text-gray-700">
-                                    Variações ({variations.length})
-                                </h3>
+                                <div>
+                                    <h3 className="font-semibold text-gray-700">
+                                        Variações
+                                    </h3>
+                                    <p className="mt-0.5 text-xs text-gray-400">
+                                        {variations.length} variações · {pairsWithoutPhoto} sem foto
+                                    </p>
+                                </div>
                                 <div className="flex gap-3 text-xs">
                                     <button
                                         type="button"
@@ -863,80 +883,51 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </div>
 
                             <div className="space-y-2">
-                                {variations.map((sku) => {
-                                    const key = varKey(sku);
-                                    const isOpen = expanded.has(key);
-                                    const c = colorByName.get(sku.color);
-                                    const imgs = getColorImages(sku.color);
-                                    const noImage = imgs.length === 0;
-                                    const skuPct = discountPct(
-                                        sku.price ?? editing.base_price,
-                                        sku.sale_price,
-                                    );
-                                    const varPromoOn = sku.sale_price != null;
+                                {variationsByColor.map(([color, skus]) => {
+                                    const isOpen = expanded.has(color);
+                                    const c = colorByName.get(color);
+                                    const imgs = getColorImages(color);
+                                    // Imagem da linha da cor: prioriza a foto real da
+                                    // cor (product_color_images); cai pro swatch da
+                                    // paleta. Bolinha vazia = cor sem imagem (não é erro).
+                                    const rowImg = imgs[0] ?? c?.image_url;
                                     return (
                                         <div
-                                            key={key}
-                                            className={`rounded-lg border ${sku.active === false ? "border-gray-200 bg-gray-50 opacity-70" : "border-gray-100"}`}
+                                            key={color}
+                                            className="rounded-lg border border-gray-100"
                                         >
-                                            {/* linha recolhida */}
-                                            <div className="flex items-center gap-3 px-3 py-2.5">
-                                                <span className="w-24 shrink-0 truncate text-xs font-mono text-gray-500">
-                                                    {sku.reference || "—"}
-                                                </span>
-                                                <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full border bg-gray-100">
-                                                    {c?.image_url && (
+                                            {/* linha da cor (recolhida) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleExpand(color)}
+                                                className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+                                            >
+                                                <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-gray-100">
+                                                    {rowImg && (
                                                         <img
-                                                            src={c.image_url}
+                                                            src={rowImg}
                                                             alt=""
                                                             loading="lazy"
                                                             className="h-full w-full object-cover"
                                                         />
                                                     )}
                                                 </span>
-                                                <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
-                                                    {sku.color}
+                                                <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
+                                                    {color}
                                                 </span>
-                                                <span className="w-14 shrink-0 text-center text-sm font-medium text-gray-700">
-                                                    {sku.size}
+                                                <span className="shrink-0 text-xs text-gray-400">
+                                                    {skus.length} tamanho{skus.length > 1 ? "s" : ""}
                                                 </span>
-                                                {noImage && (
-                                                    <span
-                                                        title="Sem imagem: não aparece na loja"
-                                                        className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
-                                                    >
-                                                        <AlertTriangle size={11} /> sem foto
-                                                    </span>
-                                                )}
-                                                {sku.active === false && (
-                                                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                                                        <EyeOff size={11} /> inativa
-                                                    </span>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => deleteVariation(sku)}
-                                                    className="shrink-0 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                                                    title="Remover variação"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleExpand(key)}
-                                                    className="shrink-0 rounded p-1.5 text-gray-400 hover:bg-gray-100"
-                                                >
-                                                    <ChevronDown
-                                                        size={16}
-                                                        className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-                                                    />
-                                                </button>
-                                            </div>
+                                                <ChevronDown
+                                                    size={16}
+                                                    className={`shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                                                />
+                                            </button>
 
                                             {/* conteúdo expandido */}
                                             {isOpen && (
                                                 <div className="space-y-4 border-t border-gray-100 px-4 py-4">
-                                                    {/* imagens da variação (por cor) */}
+                                                    {/* imagens da cor (compartilhadas entre tamanhos) */}
                                                     <div>
                                                         <p className="mb-2 text-xs font-medium text-gray-500">
                                                             Imagens da variação{" "}
@@ -959,7 +950,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() =>
-                                                                                removeColorImage(sku.color, url)
+                                                                                removeColorImage(color, url)
                                                                             }
                                                                             className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                                                                         >
@@ -978,170 +969,204 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                 disabled={uploading}
                                                                 onChange={(e) =>
                                                                     e.target.files &&
-                                                                    uploadColorImages(sku.color, e.target.files)
+                                                                    uploadColorImages(color, e.target.files)
                                                                 }
                                                             />
                                                             <Upload size={15} />
                                                             {uploading
                                                                 ? "Enviando..."
-                                                                : `Enviar fotos de ${sku.color}`}
+                                                                : `Enviar fotos de ${color}`}
                                                         </label>
                                                     </div>
 
-                                                    <div className="grid gap-4 md:grid-cols-3">
-                                                        <div>
-                                                            <label className="label">
-                                                                Preço de venda (R$)
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                min="0"
-                                                                value={sku.price ?? ""}
-                                                                onChange={(e) =>
-                                                                    updateVariation(sku, {
-                                                                        price:
-                                                                            Number.parseFloat(e.target.value) ||
-                                                                            null,
-                                                                    })
-                                                                }
-                                                                className="input"
-                                                                placeholder={String(
-                                                                    editing.base_price.toFixed(2),
-                                                                )}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="label">Referência (SKU)</label>
-                                                            <input
-                                                                type="text"
-                                                                value={sku.reference ?? ""}
-                                                                onChange={(e) =>
-                                                                    updateVariation(sku, {
-                                                                        reference: e.target.value || null,
-                                                                    })
-                                                                }
-                                                                className="input"
-                                                                placeholder="Ex: 62000PRG"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="label">Estoque mínimo</label>
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                value={sku.min_stock ?? 0}
-                                                                onChange={(e) =>
-                                                                    updateVariation(sku, {
-                                                                        min_stock:
-                                                                            Number.parseInt(e.target.value) || 0,
-                                                                    })
-                                                                }
-                                                                className="input"
-                                                            />
-                                                        </div>
-                                                    </div>
+                                                    {/* um bloco por tamanho */}
+                                                    {skus.map((sku) => {
+                                                        const skuPct = discountPct(
+                                                            sku.price ?? editing.base_price,
+                                                            sku.sale_price,
+                                                        );
+                                                        const varPromoOn = sku.sale_price != null;
+                                                        return (
+                                                            <div
+                                                                key={sku.size}
+                                                                className={`space-y-4 rounded-lg border p-3 ${sku.active === false ? "border-gray-200 bg-gray-50 opacity-70" : "border-gray-100"}`}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="rounded bg-gray-100 px-2 py-0.5 text-sm font-semibold text-gray-700">
+                                                                        {sku.size}
+                                                                    </span>
+                                                                    {sku.active === false && (
+                                                                        <span className="flex shrink-0 items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                                                                            <EyeOff size={11} /> inativa
+                                                                        </span>
+                                                                    )}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => deleteVariation(sku)}
+                                                                        className="ml-auto shrink-0 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                                                        title="Remover variação"
+                                                                    >
+                                                                        <Trash2 size={15} />
+                                                                    </button>
+                                                                </div>
 
-                                                    {/* estoque somente-leitura */}
-                                                    <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-500">
-                                                                Estoque
-                                                            </p>
-                                                            <p className="text-[11px] text-gray-400">
-                                                                Somente leitura · fonte: StockHub
-                                                            </p>
-                                                        </div>
-                                                        <span className="text-lg font-bold text-gray-700">
-                                                            {sku.stock_qty}
-                                                        </span>
-                                                    </div>
+                                                                <div className="grid gap-4 md:grid-cols-3">
+                                                                    <div>
+                                                                        <label className="label">
+                                                                            Preço de venda (R$)
+                                                                        </label>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            min="0"
+                                                                            value={sku.price ?? ""}
+                                                                            onChange={(e) =>
+                                                                                updateVariation(sku, {
+                                                                                    price:
+                                                                                        Number.parseFloat(e.target.value) ||
+                                                                                        null,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                            placeholder={String(
+                                                                                editing.base_price.toFixed(2),
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">Referência (SKU)</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={sku.reference ?? ""}
+                                                                            onChange={(e) =>
+                                                                                updateVariation(sku, {
+                                                                                    reference: e.target.value || null,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                            placeholder="Ex: 62000PRG"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="label">Estoque mínimo</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={sku.min_stock ?? 0}
+                                                                            onChange={(e) =>
+                                                                                updateVariation(sku, {
+                                                                                    min_stock:
+                                                                                        Number.parseInt(e.target.value) || 0,
+                                                                                })
+                                                                            }
+                                                                            className="input"
+                                                                        />
+                                                                    </div>
+                                                                </div>
 
-                                                    {/* promoção da variação */}
-                                                    <div className="rounded-lg border border-gray-100 p-3">
-                                                        <div className="flex items-center justify-between gap-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <Percent
-                                                                    size={14}
-                                                                    className="text-gray-400"
-                                                                />
-                                                                <p className="text-sm font-medium text-gray-700">
-                                                                    Preço em promoção
-                                                                </p>
-                                                            </div>
-                                                            <ToggleSwitch
-                                                                checked={varPromoOn}
-                                                                onChange={() =>
-                                                                    updateVariation(sku, {
-                                                                        sale_price: varPromoOn
-                                                                            ? null
-                                                                            : sku.price ?? editing.base_price,
-                                                                    })
-                                                                }
-                                                            />
-                                                        </div>
-                                                        {varPromoOn && (
-                                                            <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                                                <div>
-                                                                    <label className="label">
-                                                                        Preço promocional (R$)
-                                                                    </label>
-                                                                    <input
-                                                                        type="number"
-                                                                        step="0.01"
-                                                                        min="0"
-                                                                        value={sku.sale_price ?? ""}
-                                                                        onChange={(e) =>
-                                                                            updateVariation(sku, {
-                                                                                sale_price:
-                                                                                    Number.parseFloat(
-                                                                                        e.target.value,
-                                                                                    ) || null,
-                                                                            })
-                                                                        }
-                                                                        className="input"
-                                                                    />
-                                                                    {skuPct != null && (
-                                                                        <p className="mt-1 text-xs font-semibold text-green-600">
-                                                                            {skuPct}% off
+                                                                {/* estoque somente-leitura */}
+                                                                <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
+                                                                    <div>
+                                                                        <p className="text-xs font-medium text-gray-500">
+                                                                            Estoque
                                                                         </p>
+                                                                        <p className="text-[11px] text-gray-400">
+                                                                            Somente leitura · fonte: StockHub
+                                                                        </p>
+                                                                    </div>
+                                                                    <span className="text-lg font-bold text-gray-700">
+                                                                        {sku.stock_qty}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* promoção da variação */}
+                                                                <div className="rounded-lg border border-gray-100 p-3">
+                                                                    <div className="flex items-center justify-between gap-3">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Percent
+                                                                                size={14}
+                                                                                className="text-gray-400"
+                                                                            />
+                                                                            <p className="text-sm font-medium text-gray-700">
+                                                                                Preço em promoção
+                                                                            </p>
+                                                                        </div>
+                                                                        <ToggleSwitch
+                                                                            checked={varPromoOn}
+                                                                            onChange={() =>
+                                                                                updateVariation(sku, {
+                                                                                    sale_price: varPromoOn
+                                                                                        ? null
+                                                                                        : sku.price ?? editing.base_price,
+                                                                                })
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    {varPromoOn && (
+                                                                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                                                            <div>
+                                                                                <label className="label">
+                                                                                    Preço promocional (R$)
+                                                                                </label>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    step="0.01"
+                                                                                    min="0"
+                                                                                    value={sku.sale_price ?? ""}
+                                                                                    onChange={(e) =>
+                                                                                        updateVariation(sku, {
+                                                                                            sale_price:
+                                                                                                Number.parseFloat(
+                                                                                                    e.target.value,
+                                                                                                ) || null,
+                                                                                        })
+                                                                                    }
+                                                                                    className="input"
+                                                                                />
+                                                                                {skuPct != null && (
+                                                                                    <p className="mt-1 text-xs font-semibold text-green-600">
+                                                                                        {skuPct}% off
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="label">
+                                                                                    Data inicial
+                                                                                </label>
+                                                                                <input
+                                                                                    type="datetime-local"
+                                                                                    value={toLocalInput(sku.sale_start)}
+                                                                                    onChange={(e) =>
+                                                                                        updateVariation(sku, {
+                                                                                            sale_start: fromLocalInput(
+                                                                                                e.target.value,
+                                                                                            ),
+                                                                                        })
+                                                                                    }
+                                                                                    className="input"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="label">Data final</label>
+                                                                                <input
+                                                                                    type="datetime-local"
+                                                                                    value={toLocalInput(sku.sale_end)}
+                                                                                    onChange={(e) =>
+                                                                                        updateVariation(sku, {
+                                                                                            sale_end: fromLocalInput(
+                                                                                                e.target.value,
+                                                                                            ),
+                                                                                        })
+                                                                                    }
+                                                                                    className="input"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                                <div>
-                                                                    <label className="label">
-                                                                        Data inicial
-                                                                    </label>
-                                                                    <input
-                                                                        type="datetime-local"
-                                                                        value={toLocalInput(sku.sale_start)}
-                                                                        onChange={(e) =>
-                                                                            updateVariation(sku, {
-                                                                                sale_start: fromLocalInput(
-                                                                                    e.target.value,
-                                                                                ),
-                                                                            })
-                                                                        }
-                                                                        className="input"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="label">Data final</label>
-                                                                    <input
-                                                                        type="datetime-local"
-                                                                        value={toLocalInput(sku.sale_end)}
-                                                                        onChange={(e) =>
-                                                                            updateVariation(sku, {
-                                                                                sale_end: fromLocalInput(
-                                                                                    e.target.value,
-                                                                                ),
-                                                                            })
-                                                                        }
-                                                                        className="input"
-                                                                    />
-                                                                </div>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
