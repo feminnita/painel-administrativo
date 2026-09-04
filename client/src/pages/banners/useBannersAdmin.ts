@@ -15,17 +15,17 @@ const KEYS = {
 // (com 5 → md:grid-cols-5). Limite máximo de imagens na faixa.
 export const MAX_GRID_IMAGES = 5;
 
-// Banner de categoria: JPG/PNG/WebP, até 4 MB. Regra Cloudinary — subir o original,
-// a otimização é na entrega; o limite antigo de 600 KB/só-JPG barrava a arte real.
-const CATEGORY_BANNER_MAX_BYTES = 4 * 1024 * 1024;
-const CATEGORY_BANNER_TYPES = ["image/jpeg", "image/png", "image/webp"];
+// Banner (categoria/intermediário/faixa): JPG/PNG/WebP, até 4 MB. Regra Cloudinary —
+// subir o original, a otimização é na entrega; o limite antigo de 600 KB/só-JPG barrava a arte real.
+const BANNER_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+const BANNER_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-function validateCategoryBannerFile(file: File): string | null {
-    if (!CATEGORY_BANNER_TYPES.includes(file.type)) {
-        return "Formato inválido — use JPG, PNG ou WebP (banner de categoria).";
+function validateBannerImageFile(file: File): string | null {
+    if (!BANNER_IMAGE_TYPES.includes(file.type)) {
+        return "Formato inválido — use JPG, PNG ou WebP.";
     }
-    if (file.size > CATEGORY_BANNER_MAX_BYTES) {
-        return "Imagem acima de 4 MB — comprima antes de subir (banner de categoria: máx 4 MB).";
+    if (file.size > BANNER_IMAGE_MAX_BYTES) {
+        return "Imagem acima de 4 MB — comprima antes de subir (máx 4 MB).";
     }
     return null;
 }
@@ -51,10 +51,12 @@ export function useHomeBannersAdmin() {
             const storedVideo = map[KEYS.videoSection];
 
             setSettings({
-                intermediateBanner: map[KEYS.intermediateBanner] ?? {
+                intermediateBanner: {
                     src: "",
+                    srcMobile: "",
                     alt: "",
                     href: "",
+                    ...(map[KEYS.intermediateBanner] ?? {}),
                 },
                 videoSection: {
                     desktopUrl: storedVideo?.desktopUrl ?? "",
@@ -125,7 +127,7 @@ export function useHomeBannersAdmin() {
                 imageGrid: {
                     images: [
                         ...prev.imageGrid.images,
-                        { src: "", alt: "", title: "", href: "", active: true },
+                        { src: "", srcMobile: "", alt: "", title: "", href: "", active: true },
                     ],
                 },
             };
@@ -145,6 +147,7 @@ export function useHomeBannersAdmin() {
         index: number,
         patch: Partial<{
             src: string;
+            srcMobile: string;
             alt: string;
             title: string;
             href: string;
@@ -177,6 +180,11 @@ export function useHomeBannersAdmin() {
     };
 
     const uploadIntermediateBanner = async (file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadTo(file, "Banners/Banner Inter");
@@ -188,11 +196,50 @@ export function useHomeBannersAdmin() {
         }
     };
 
+    const uploadIntermediateBannerMobile = async (file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
+        setUploading(true);
+        try {
+            const url = await uploadTo(file, "Banners/Banner Inter");
+            setIntermediateBanner({ srcMobile: url });
+        } catch (err) {
+            toast.error(err instanceof ApiError ? err.message : "Falha no upload");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const uploadGridImage = async (index: number, file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadTo(file, "Banners/Grid Images");
             updateGridImage(index, { src: url });
+        } catch (err) {
+            toast.error(err instanceof ApiError ? err.message : "Falha no upload");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const uploadGridImageMobile = async (index: number, file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
+        setUploading(true);
+        try {
+            const url = await uploadTo(file, "Banners/Grid Images");
+            updateGridImage(index, { srcMobile: url });
         } catch (err) {
             toast.error(err instanceof ApiError ? err.message : "Falha no upload");
         } finally {
@@ -239,7 +286,7 @@ export function useHomeBannersAdmin() {
         kind: "desktopSrc" | "mobileSrc",
         file: File,
     ) => {
-        const error = validateCategoryBannerFile(file);
+        const error = validateBannerImageFile(file);
         if (error) {
             toast.error(error);
             return;
@@ -270,6 +317,31 @@ export function useHomeBannersAdmin() {
             );
             return;
         }
+
+        // Banner intermediário: se tem qualquer conteúdo mas a imagem desktop está
+        // vazia, não salvar em silêncio (mobile é opcional; desktop é obrigatório).
+        const inter = settings.intermediateBanner;
+        const interComConteudo =
+            !!inter.alt || !!inter.href || !!inter.srcMobile;
+        if (interComConteudo && !inter.src) {
+            toast.error(
+                "Banner intermediário sem imagem desktop. Suba a imagem desktop ou limpe os campos antes de salvar.",
+            );
+            return;
+        }
+
+        // Faixa: nenhum bloco pode ficar sem imagem desktop (mobile é opcional).
+        const faixaSemImagem = settings.imageGrid.images.filter((img) => !img.src);
+        if (faixaSemImagem.length > 0) {
+            const nomes = faixaSemImagem
+                .map((img) => img.title || img.alt || "(sem título)")
+                .join(", ");
+            toast.error(
+                `Bloco da faixa sem imagem desktop: ${nomes}. Suba a imagem desktop ou remova o bloco antes de salvar.`,
+            );
+            return;
+        }
+
         setSaving(true);
         try {
             await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, settings.intermediateBanner);
@@ -305,7 +377,9 @@ export function useHomeBannersAdmin() {
         updateGridImage,
         removeGridImage,
         uploadIntermediateBanner,
+        uploadIntermediateBannerMobile,
         uploadGridImage,
+        uploadGridImageMobile,
         addCategoryBanner,
         updateCategoryBanner,
         removeCategoryBanner,

@@ -40,6 +40,7 @@ export type SlideInput = {
 
 export type IntermediateBannerInput = {
   src: string;
+  srcMobile: string;
   alt: string;
   href: string;
 };
@@ -52,6 +53,7 @@ export type VideoSectionInput = {
 
 export type ImageGridItemInput = {
   src: string;
+  srcMobile?: string;
   alt: string;
   title?: string;
   href?: string;

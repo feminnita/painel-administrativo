@@ -17,6 +17,7 @@ export function ImageGridSection({
     updateGridImage,
     removeGridImage,
     uploadGridImage,
+    uploadGridImageMobile,
   } = vm;
 
   return (
@@ -55,9 +56,42 @@ export function ImageGridSection({
                 }}
               />
               <Upload size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-500">Enviar imagem</span>
+              <span className="text-sm text-gray-500">Enviar imagem (desktop)</span>
             </label>
             <p className="mb-2 text-xs text-gray-400">3:4 · 1200×1600</p>
+
+            {img.srcMobile && (
+              <div className="mb-2 aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
+                <img
+                  src={img.srcMobile}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+
+            <label
+              className={`mb-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 transition-colors ${
+                uploading
+                  ? "border-gray-200 bg-gray-50"
+                  : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
+              }`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadGridImageMobile(i, file);
+                }}
+              />
+              <Upload size={16} className="text-gray-500" />
+              <span className="text-sm text-gray-500">
+                Enviar imagem (mobile · opcional)
+              </span>
+            </label>
 
             <input
               type="text"
