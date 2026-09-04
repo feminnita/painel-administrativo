@@ -25,6 +25,7 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
+import { SizeChartPreview } from "./SizeChartPreview";
 import { slugify } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
@@ -133,6 +134,15 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const sizes = getSizes();
     const colors = editing.colors || [];
     const variations = getVariations();
+
+    // Slugs das categorias marcadas (pai → filho → específica), p/ resolver a
+    // tabela de medidas herdada.
+    const catPai = categoryTree.find((p) => p.id === selectedCategoryPaiId);
+    const catFilho = catPai?.children.find((f) => f.id === selectedCategoryFilhoId);
+    const catNeto = catFilho?.children.find((n) => n.id === editing.category_id);
+    const categorySlugs = [catPai?.slug, catFilho?.slug, catNeto?.slug].filter(
+        (s): s is string => Boolean(s),
+    );
 
     const colorByName = new Map(productColors.map((c) => [c.name, c]));
     const colorMatches = pickerSearch.trim()
@@ -1377,6 +1387,13 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </select>
                         </div>
                     </section>
+
+                    {/* ── TABELA DE MEDIDAS HERDADA (só leitura) ── */}
+                    <SizeChartPreview
+                        categorySlugs={categorySlugs}
+                        sizes={sizes}
+                        ownChart={editing.size_chart}
+                    />
 
                     {/* ── APRESENTAÇÃO (SELOS) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
