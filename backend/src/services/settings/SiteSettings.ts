@@ -8,6 +8,7 @@ export const ALLOWED_KEYS = [
     'home_sections',
     'home_section_categories',
     'shipping_config',
+    'size_charts',
 ] as const;
 
 export function listSettings() {
