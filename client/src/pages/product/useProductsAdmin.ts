@@ -452,6 +452,12 @@ export function useProductsAdmin() {
 
   const handleSave = async () => {
     if (!editing || !editing.name) return;
+    // Preco de venda e obrigatorio (NOT NULL / > 0 no backend). Bloqueia aqui com
+    // aviso claro em vez de mandar null/0 e tomar 500 (pg 23502).
+    if (editing.base_price == null || !(editing.base_price > 0)) {
+      alert("Informe o preço de venda (maior que zero).");
+      return;
+    }
     setSaving(true);
 
     try {

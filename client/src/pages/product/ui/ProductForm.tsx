@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { SizeChartPreview } from "./SizeChartPreview";
-import { slugify, normColor } from "../domain";
+import { slugify, normColor, parseDecimal } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
@@ -572,11 +572,13 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={editing.base_price}
+                                    value={editing.base_price ?? ""}
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            base_price: Number.parseFloat(e.target.value) || 0,
+                                            // Obrigatorio: nao grava 0 no meio da digitacao.
+                                            // Fica null enquanto vazio; o save bloqueia se null/<=0.
+                                            base_price: parseDecimal(e.target.value) as number,
                                         })
                                     }
                                     className="input"
@@ -592,7 +594,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            cost_price: Number.parseFloat(e.target.value) || null,
+                                            cost_price: parseDecimal(e.target.value),
                                         })
                                     }
                                     className="input"
@@ -609,7 +611,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            pix_price: Number.parseFloat(e.target.value) || null,
+                                            pix_price: parseDecimal(e.target.value),
                                         })
                                     }
                                     className="input"
@@ -656,8 +658,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             onChange={(e) =>
                                                 setEditing({
                                                     ...editing,
-                                                    sale_price:
-                                                        Number.parseFloat(e.target.value) || null,
+                                                    sale_price: parseDecimal(e.target.value),
                                                 })
                                             }
                                             className="input"
@@ -1152,14 +1153,12 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                             value={sku.price ?? ""}
                                                                             onChange={(e) =>
                                                                                 updateVariation(sku, {
-                                                                                    price:
-                                                                                        Number.parseFloat(e.target.value) ||
-                                                                                        null,
+                                                                                    price: parseDecimal(e.target.value),
                                                                                 })
                                                                             }
                                                                             className="input"
                                                                             placeholder={String(
-                                                                                editing.base_price.toFixed(2),
+                                                                                (editing.base_price ?? 0).toFixed(2),
                                                                             )}
                                                                         />
                                                                     </div>
@@ -1185,8 +1184,10 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                             value={sku.min_stock ?? 0}
                                                                             onChange={(e) =>
                                                                                 updateVariation(sku, {
-                                                                                    min_stock:
-                                                                                        Number.parseInt(e.target.value) || 0,
+                                                                                    // Inteiro: normaliza (trata virgula) e arredonda.
+                                                                                    min_stock: Math.round(
+                                                                                        parseDecimal(e.target.value) ?? 0,
+                                                                                    ),
                                                                                 })
                                                                             }
                                                                             className="input"
@@ -1245,10 +1246,9 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                                     value={sku.sale_price ?? ""}
                                                                                     onChange={(e) =>
                                                                                         updateVariation(sku, {
-                                                                                            sale_price:
-                                                                                                Number.parseFloat(
-                                                                                                    e.target.value,
-                                                                                                ) || null,
+                                                                                            sale_price: parseDecimal(
+                                                                                                e.target.value,
+                                                                                            ),
                                                                                         })
                                                                                     }
                                                                                     className="input"
@@ -1371,7 +1371,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            weight_kg: Number.parseFloat(e.target.value) || 0,
+                                            weight_kg: parseDecimal(e.target.value),
                                         })
                                     }
                                     className="input"
@@ -1388,7 +1388,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            pkg_height_cm: Number.parseFloat(e.target.value) || 0,
+                                            pkg_height_cm: parseDecimal(e.target.value),
                                         })
                                     }
                                     className="input"
@@ -1405,7 +1405,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            pkg_width_cm: Number.parseFloat(e.target.value) || 0,
+                                            pkg_width_cm: parseDecimal(e.target.value),
                                         })
                                     }
                                     className="input"
@@ -1422,7 +1422,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     onChange={(e) =>
                                         setEditing({
                                             ...editing,
-                                            pkg_length_cm: Number.parseFloat(e.target.value) || 0,
+                                            pkg_length_cm: parseDecimal(e.target.value),
                                         })
                                     }
                                     className="input"
