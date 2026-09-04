@@ -24,6 +24,7 @@ import {
     Percent,
     AlertTriangle,
 } from "lucide-react";
+import { RichTextEditor } from "./RichTextEditor";
 import { slugify } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
@@ -475,13 +476,11 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         <h3 className="mb-4 font-semibold text-gray-700">
                             Descrição do produto
                         </h3>
-                        <textarea
-                            value={editing.description || ""}
-                            onChange={(e) =>
-                                setEditing({ ...editing, description: e.target.value })
+                        <RichTextEditor
+                            value={editing.description}
+                            onChange={(html) =>
+                                setEditing({ ...editing, description: html })
                             }
-                            rows={6}
-                            className="input"
                             placeholder="Descreva o produto..."
                         />
                     </section>
