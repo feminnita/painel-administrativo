@@ -66,6 +66,20 @@ export async function pushOrder(orderId: string): Promise<{ blingOrderId: number
     if (!items.length) throw new Error('ORDER_WITHOUT_ITEMS');
     if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
 
+    // TRAVA: todo item precisa de bling_id válido (skuBlingId ou productBlingId).
+    // Sem ele, o Bling casaria por código/descrição e CRIARIA um cadastro novo em
+    // vez de recusar. Falhar alto: o pedido NÃO é empurrado e o erro fica visível
+    // no painel (bling_push_status='error' + bling_push_error), nunca cria cadastro.
+    const semBling = items.filter((it) => !(it.skuBlingId ?? it.productBlingId));
+    if (semBling.length) {
+        const refs = semBling
+            .map((it) => it.productCode || it.productName || '?')
+            .join(', ');
+        throw new Error(
+            `MISSING_BLING_ID: itens sem vínculo no Bling (${refs}). Pedido não empurrado para não criar cadastro novo — vincule no Bling e reenvie.`,
+        );
+    }
+
     const addr = (order.shippingAddress ?? {}) as Record<string, string>;
     const contactId = await ensureBlingContact(token, customer, addr);
 
