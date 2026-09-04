@@ -1,11 +1,26 @@
-import { eq } from 'drizzle-orm';
+import { eq, asc, desc, countDistinct } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { productsColors } from '../../config/db/schema';
+import { productsColors, productsSkus } from '../../config/db/schema';
 
 type ProductColorInsert = typeof productsColors.$inferInsert;
 
 export function findAll() {
     return db.query.productsColors.findMany();
+}
+
+export function findAllWithUsage() {
+    const usage = countDistinct(productsSkus.productId);
+    return db
+        .select({
+            id: productsColors.id,
+            name: productsColors.name,
+            imageUrl: productsColors.imageUrl,
+            usage,
+        })
+        .from(productsColors)
+        .leftJoin(productsSkus, eq(productsSkus.colorId, productsColors.id))
+        .groupBy(productsColors.id, productsColors.name, productsColors.imageUrl)
+        .orderBy(desc(usage), asc(productsColors.name));
 }
 
 export function findById(id: string) {
