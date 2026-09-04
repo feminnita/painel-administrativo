@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
-import { mapApiProduct } from "../product/mappers";
-import type { AdminProduct } from "../product/types";
 import { mapApiCategory } from "../categories/mappers";
 import type { CategoryRow } from "../categories/types";
 
 // Seções da home do site (client/src/app/page.tsx): Lançamentos, Mais Vendidos e
-// Outlet. As chaves batem com o contrato de dados salvo em settings.home_sections.
+// Outlet. Cada seção tem uma CATEGORIA DE ORIGEM (settings.home_section_categories).
 export const SECTIONS = [
     { key: "lancamentos", label: "Lançamentos" },
     { key: "maisVendidos", label: "Mais Vendidos" },
@@ -14,18 +12,10 @@ export const SECTIONS = [
 ] as const;
 
 export type SectionKey = (typeof SECTIONS)[number]["key"];
-export type HomeSections = Record<SectionKey, string[]>;
 // Categoria de ORIGEM por seção da home: valor = SLUG da categoria; "" = não configurada.
 export type HomeSectionCategories = Record<SectionKey, string>;
 
-const SETTING_KEY = "home_sections";
 const CATEGORIES_SETTING_KEY = "home_section_categories";
-// Quantos produtos aparecem por seção na home.
-export const SECTION_LIMIT = 8;
-
-function emptySections(): HomeSections {
-    return { lancamentos: [], maisVendidos: [], outlet: [] };
-}
 
 // Defaults quando a chave home_section_categories está AUSENTE — MESMA regra do site
 // (bannersService.mapHomeSectionCategories): Lançamentos→lancamentos, Outlet→outlet,
@@ -41,9 +31,7 @@ function defaultSectionCategories(): HomeSectionCategories {
 }
 
 export function useVitrineAdmin() {
-    const [products, setProducts] = useState<AdminProduct[]>([]);
     const [categories, setCategories] = useState<CategoryRow[]>([]);
-    const [sections, setSections] = useState<HomeSections>(emptySections());
     const [sectionCategories, setSectionCategories] =
         useState<HomeSectionCategories>(defaultSectionCategories());
     const [loading, setLoading] = useState(true);
@@ -53,22 +41,11 @@ export function useVitrineAdmin() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [prods, cats, rows] = await Promise.all([
-                api.get<Record<string, any>[]>("/api/admin/products"),
+            const [cats, rows] = await Promise.all([
                 api.get<Record<string, any>[]>("/api/admin/categories"),
                 api.get<{ key: string; value: any }[]>("/api/admin/settings"),
             ]);
-            setProducts(prods.map(mapApiProduct));
             setCategories(cats.map(mapApiCategory));
-
-            const stored = rows.find((r) => r.key === SETTING_KEY)?.value;
-            setSections({
-                lancamentos: Array.isArray(stored?.lancamentos) ? stored.lancamentos : [],
-                maisVendidos: Array.isArray(stored?.maisVendidos)
-                    ? stored.maisVendidos
-                    : [],
-                outlet: Array.isArray(stored?.outlet) ? stored.outlet : [],
-            });
 
             const storedCats = rows.find((r) => r.key === CATEGORIES_SETTING_KEY)?.value;
             // chave AUSENTE => defaults (site faz igual); PRESENTE => respeita cada campo
@@ -100,45 +77,6 @@ export function useVitrineAdmin() {
         load();
     }, [load]);
 
-    const productById = useCallback(
-        (id: string) => products.find((p) => p.id === id),
-        [products],
-    );
-
-    const addProduct = (section: SectionKey, id: string) =>
-        setSections((prev) => {
-            if (prev[section].includes(id)) return prev;
-            if (prev[section].length >= SECTION_LIMIT) return prev;
-            return { ...prev, [section]: [...prev[section], id] };
-        });
-
-    const removeProduct = (section: SectionKey, id: string) =>
-        setSections((prev) => ({
-            ...prev,
-            [section]: prev[section].filter((x) => x !== id),
-        }));
-
-    // ordem na tela = ordem no site
-    const reorder = (section: SectionKey, from: number, to: number) =>
-        setSections((prev) => {
-            const list = [...prev[section]];
-            if (
-                from === to ||
-                from < 0 ||
-                from >= list.length ||
-                to < 0 ||
-                to >= list.length
-            )
-                return prev;
-            const [item] = list.splice(from, 1);
-            list.splice(to, 0, item);
-            return { ...prev, [section]: list };
-        });
-
-    // "Voltar ao automático": limpa a lista curada da seção.
-    const clearSection = (section: SectionKey) =>
-        setSections((prev) => ({ ...prev, [section]: [] }));
-
     // Categoria de origem da seção (valor = slug; "" = não configurada).
     const setSectionCategory = (section: SectionKey, slug: string) =>
         setSectionCategories((prev) => ({ ...prev, [section]: slug }));
@@ -146,7 +84,6 @@ export function useVitrineAdmin() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await api.put(`/api/admin/settings/${SETTING_KEY}`, sections);
             await api.put(
                 `/api/admin/settings/${CATEGORIES_SETTING_KEY}`,
                 sectionCategories,
@@ -161,18 +98,11 @@ export function useVitrineAdmin() {
     };
 
     return {
-        products,
         categories,
-        sections,
         sectionCategories,
         loading,
         saving,
         saved,
-        productById,
-        addProduct,
-        removeProduct,
-        reorder,
-        clearSection,
         setSectionCategory,
         handleSave,
     };
