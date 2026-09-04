@@ -42,6 +42,14 @@ export function ResaleTermPage() {
                 </div>
             </div>
 
+            {!term.content?.trim() && (
+                <div className="mb-6 max-w-3xl rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <strong>Termo sem conteúdo — o aceite está desativado na loja.</strong>{" "}
+                    Enquanto este campo estiver vazio, a loja não pede aceite, não mostra a
+                    página do termo e não bloqueia compra. Cole o texto e salve para ativar.
+                </div>
+            )}
+
             <div className="max-w-3xl space-y-6">
                 <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                     <label className="mb-1 block text-sm font-semibold text-gray-700">
