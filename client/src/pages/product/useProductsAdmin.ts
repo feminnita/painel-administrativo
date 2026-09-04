@@ -487,7 +487,14 @@ export function useProductsAdmin() {
       setEditing(null);
       load();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Erro ao salvar produto");
+      // Nunca engolir o erro do servidor: mostra STATUS + mensagem da API na tela.
+      // Um 500 (exceção no backend) tem que aparecer como 500, não como texto genérico.
+      console.error("Falha ao salvar produto:", err);
+      if (err instanceof ApiError) {
+        alert(`Erro ${err.status} ao salvar: ${err.message}`);
+      } else {
+        alert(`Falha ao salvar: ${err instanceof Error ? err.message : String(err)}`);
+      }
     } finally {
       setSaving(false);
     }
