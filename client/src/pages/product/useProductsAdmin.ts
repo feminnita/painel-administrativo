@@ -362,6 +362,27 @@ export function useProductsAdmin() {
     });
   };
 
+  // Cria (ou reaproveita) uma cor no mestre a partir do nome digitado no próprio
+  // produto. O backend dedupa por normalizado e devolve a cor canônica; aqui só
+  // fazemos o upsert na lista local (por id) e devolvemos a cor pra vincular.
+  const createColor = async (name: string): Promise<Color | null> => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    try {
+      const created = await api.post<Record<string, any>>("/api/admin/colors", {
+        name: trimmed,
+      });
+      const color = mapApiColor(created);
+      setProductColors((prev) =>
+        prev.some((c) => c.id === color.id) ? prev : [...prev, color],
+      );
+      return color;
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Erro ao criar cor");
+      return null;
+    }
+  };
+
   const toggleColor = (name: string) => {
     if (!editing) return;
     const colors = editing.colors || [];
@@ -536,6 +557,7 @@ export function useProductsAdmin() {
     deleteVariation,
     toggleSize,
     toggleColor,
+    createColor,
     handleSave,
     handleDelete,
     toggleActive,

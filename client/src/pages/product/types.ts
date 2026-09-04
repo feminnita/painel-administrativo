@@ -40,6 +40,8 @@ export type Color = {
   id: string;
   name: string;
   image_url: string;
+  /** Nº de produtos que usam a cor — ordena as sugestões (mais usadas primeiro). */
+  usage?: number;
 };
 
 export type ProductSortKey = "created_at" | "name" | "base_price" | "stock";

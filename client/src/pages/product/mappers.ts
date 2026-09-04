@@ -90,5 +90,10 @@ export function mapApiCategory(c: Record<string, any>): CategoryRow {
 }
 
 export function mapApiColor(c: Record<string, any>): Color {
-  return { id: c.id, name: c.name, image_url: c.imageUrl };
+  return {
+    id: c.id,
+    name: c.name,
+    image_url: c.imageUrl,
+    usage: c.usage == null ? undefined : Number(c.usage),
+  };
 }

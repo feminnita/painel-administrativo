@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import {
     ChevronLeft,
     ChevronDown,
@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { SizeChartPreview } from "./SizeChartPreview";
-import { slugify } from "../domain";
+import { slugify, normColor } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
@@ -34,11 +34,14 @@ const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"]
 
 const MEASURE_KEYS = ["busto", "cintura", "quadril"];
 
-const COLOR_LIST_LIMIT = 30;
+// Sugestões de cor exibidas enquanto a cliente digita (não despeja o mestre inteiro).
+const COLOR_SUGGEST_LIMIT = 8;
 
 type ProductsVM = ReturnType<typeof useProductsAdmin>;
 
-type PickerKind = "cor" | "tamanho" | null;
+// O painel de "Adicionar opções" agora só serve TAMANHO — a cor virou campo
+// digita-e-cria dentro do próprio produto.
+type PickerKind = "tamanho" | null;
 
 /** ISO string -> valor de <input type="datetime-local"> (YYYY-MM-DDTHH:mm). */
 function toLocalInput(iso: string | null): string {
@@ -106,6 +109,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         deleteVariation,
         toggleSize,
         toggleColor,
+        createColor,
         getColorImages,
         uploadColorImages,
         removeColorImage,
@@ -114,6 +118,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
     const [picker, setPicker] = useState<PickerKind>(null);
     const [pickerSearch, setPickerSearch] = useState("");
+    const [colorQuery, setColorQuery] = useState("");
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [addColor, setAddColor] = useState("");
     const [addSize, setAddSize] = useState("");
@@ -163,13 +168,47 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     );
 
     const colorByName = new Map(productColors.map((c) => [c.name, c]));
-    const colorMatches = pickerSearch.trim()
-        ? productColors.filter((c) =>
-            c.name.toLowerCase().includes(pickerSearch.trim().toLowerCase()),
-        )
-        : productColors;
-    const colorList = colorMatches.slice(0, COLOR_LIST_LIMIT);
-    const colorHidden = colorMatches.length - colorList.length;
+
+    // ── CAMPO DIGITA-E-CRIA (cor) ──
+    // Ordena o mestre pelas mais usadas primeiro (usage); sem usage, por nome.
+    // Filtra pelo NORMALIZADO do que foi digitado e nunca despeja as 692.
+    const colorQ = colorQuery.trim();
+    const colorQn = normColor(colorQ);
+    const sortedColors = [...productColors].sort((a, b) => {
+        const ua = a.usage;
+        const ub = b.usage;
+        if (ua != null && ub != null && ua !== ub) return ub - ua;
+        if (ua != null && ub == null) return -1;
+        if (ua == null && ub != null) return 1;
+        return a.name.localeCompare(b.name, "pt-BR");
+    });
+    const colorSuggestions = (colorQn
+        ? sortedColors.filter((c) => normColor(c.name).includes(colorQn))
+        : sortedColors
+    )
+        .filter((c) => !colors.includes(c.name))
+        .slice(0, COLOR_SUGGEST_LIMIT);
+    // Match normalizado: se o digitado já existe no mestre, é essa a cor canônica.
+    const colorExact = colorQn
+        ? productColors.find((c) => normColor(c.name) === colorQn)
+        : undefined;
+    const canCreateColor = colorQ.length > 0 && !colorExact;
+
+    const selectColor = (name: string) => {
+        if (!colors.includes(name)) toggleColor(name);
+        setColorQuery("");
+    };
+    const handleCreateColor = async () => {
+        const created = await createColor(colorQ);
+        if (created) selectColor(created.name);
+    };
+    // Enter: casa exato → vincula à canônica; senão → cria na hora.
+    const onColorQueryKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        if (colorExact) selectColor(colorExact.name);
+        else if (canCreateColor) void handleCreateColor();
+    };
 
     const sizeList = pickerSearch.trim()
         ? DEFAULT_SIZES.filter((s) =>
@@ -697,27 +736,10 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                         </p>
                                     </div>
                                 </div>
-                                {productColors.length > 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setPicker("cor")}
-                                        className="flex shrink-0 items-center gap-1 text-sm font-medium text-[#8C2F39] hover:underline"
-                                    >
-                                        <Plus size={15} /> Adicionar opções
-                                    </button>
-                                )}
                             </div>
 
-                            {productColors.length === 0 ? (
-                                <p className="text-sm text-gray-400">
-                                    Nenhuma cor cadastrada ainda. Cadastre em Produtos →
-                                    Características.
-                                </p>
-                            ) : colors.length === 0 ? (
-                                <p className="text-sm text-gray-400">
-                                    Nenhuma cor neste produto ainda.
-                                </p>
-                            ) : (
+                            <div className="space-y-3">
+                                {colors.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
                                     {colors.map((name) => {
                                         const c = colorByName.get(name);
@@ -748,7 +770,85 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                         );
                                     })}
                                 </div>
-                            )}
+                                )}
+
+                                {/* Campo digita-e-cria: sugere as cores mais usadas,
+                                    casa pelo normalizado (vincula à canônica do mestre)
+                                    ou cria a cor na hora — sem sair da tela. */}
+                                <div>
+                                    <div className="relative">
+                                        <Search
+                                            size={15}
+                                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={colorQuery}
+                                            onChange={(e) => setColorQuery(e.target.value)}
+                                            onKeyDown={onColorQueryKeyDown}
+                                            className="input"
+                                            style={{ paddingLeft: "2.25rem" }}
+                                            placeholder="Digite o nome da cor (ex: Vermelho, Floral Azul)…"
+                                        />
+                                    </div>
+
+                                    {colorQ.length > 0 && (
+                                        <div className="mt-2 overflow-hidden rounded-lg border border-gray-100">
+                                            {colorSuggestions.map((c) => (
+                                                <button
+                                                    key={c.id}
+                                                    type="button"
+                                                    onClick={() => selectColor(c.name)}
+                                                    className="flex w-full items-center gap-3 border-b border-gray-50 px-3 py-2 text-left last:border-0 hover:bg-gray-50"
+                                                >
+                                                    <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full border bg-gray-100">
+                                                        {c.image_url && (
+                                                            <img
+                                                                src={c.image_url}
+                                                                alt=""
+                                                                loading="lazy"
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        )}
+                                                    </span>
+                                                    <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
+                                                        {c.name}
+                                                    </span>
+                                                    {c.usage != null && (
+                                                        <span className="shrink-0 text-xs text-gray-400">
+                                                            {c.usage} produto{c.usage === 1 ? "" : "s"}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            ))}
+
+                                            {canCreateColor && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCreateColor}
+                                                    className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2.5 text-left text-sm font-medium text-[#8C2F39] hover:bg-red-50/40"
+                                                >
+                                                    <Plus size={15} className="shrink-0" />
+                                                    Criar “{colorQ}”
+                                                </button>
+                                            )}
+
+                                            {colorSuggestions.length === 0 && !canCreateColor && (
+                                                <p className="px-3 py-2.5 text-sm text-gray-400">
+                                                    Essa cor já está neste produto.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {colors.length === 0 && colorQ.length === 0 && (
+                                        <p className="mt-2 text-xs text-gray-400">
+                                            Nenhuma cor neste produto ainda. Digite acima para
+                                            buscar ou criar.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {/* característica secundária: tamanho */}
@@ -1596,7 +1696,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         {/* header */}
                         <div className="flex items-center justify-between border-b px-5 py-4">
                             <h4 className="font-semibold text-gray-800">
-                                Adicionar: {picker === "cor" ? "Cor" : "Tamanho"}
+                                Adicionar: Tamanho
                             </h4>
                             <button
                                 type="button"
@@ -1624,70 +1724,12 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             autoFocus
                                             className="input"
                                             style={{ paddingLeft: "2.25rem" }}
-                                            placeholder={
-                                                picker === "cor"
-                                                    ? "Nome da cor"
-                                                    : "Nome do tamanho"
-                                            }
+                                            placeholder="Nome do tamanho"
                                         />
                                     </div>
                                 </div>
                                 <div className="flex-1 overflow-y-auto px-5 py-2">
-                                    {picker === "cor" ? (
-                                        colorList.length === 0 ? (
-                                            <p className="py-6 text-center text-sm text-gray-400">
-                                                Nenhuma cor encontrada.
-                                            </p>
-                                        ) : (
-                                            <>
-                                                {colorList.map((c) => {
-                                                    const isSelected = colors.includes(c.name);
-                                                    return (
-                                                        <div
-                                                            key={c.id}
-                                                            className="flex items-center justify-between gap-3 border-b border-gray-50 py-2.5"
-                                                        >
-                                                            <div className="flex min-w-0 items-center gap-3">
-                                                                <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-gray-100">
-                                                                    {c.image_url && (
-                                                                        <img
-                                                                            src={c.image_url}
-                                                                            alt=""
-                                                                            loading="lazy"
-                                                                            className="h-full w-full object-cover"
-                                                                        />
-                                                                    )}
-                                                                </span>
-                                                                <span className="truncate text-sm text-gray-700">
-                                                                    {c.name}
-                                                                </span>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleColor(c.name)}
-                                                                disabled={isSelected}
-                                                                className={`shrink-0 rounded-lg border px-4 py-1.5 text-xs font-medium transition-colors ${isSelected
-                                                                    ? "cursor-default border-gray-200 text-gray-300"
-                                                                    : "border-[#8C2F39] text-[#8C2F39] hover:bg-red-50/40"
-                                                                    }`}
-                                                            >
-                                                                {isSelected
-                                                                    ? "Selecionado"
-                                                                    : "Selecionar"}
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {colorHidden > 0 && (
-                                                    <p className="py-3 text-center text-xs text-gray-400">
-                                                        Mostrando {colorList.length} de{" "}
-                                                        {colorMatches.length} — digite para refinar
-                                                        a busca.
-                                                    </p>
-                                                )}
-                                            </>
-                                        )
-                                    ) : sizeList.length === 0 ? (
+                                    {sizeList.length === 0 ? (
                                         <p className="py-6 text-center text-sm text-gray-400">
                                             Nenhum tamanho encontrado.
                                         </p>
@@ -1733,46 +1775,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     </h5>
                                 </div>
                                 <div className="flex-1 overflow-y-auto px-5 py-2">
-                                    {picker === "cor" ? (
-                                        colors.length === 0 ? (
-                                            <p className="py-4 text-sm text-gray-400">
-                                                Nenhuma opção selecionada.
-                                            </p>
-                                        ) : (
-                                            colors.map((name) => {
-                                                const c = colorByName.get(name);
-                                                return (
-                                                    <div
-                                                        key={name}
-                                                        className="flex items-center justify-between gap-2 border-b border-gray-50 py-2"
-                                                    >
-                                                        <div className="flex min-w-0 items-center gap-2">
-                                                            <span className="h-6 w-6 shrink-0 overflow-hidden rounded-full border bg-gray-100">
-                                                                {c?.image_url && (
-                                                                    <img
-                                                                        src={c.image_url}
-                                                                        alt=""
-                                                                        loading="lazy"
-                                                                        className="h-full w-full object-cover"
-                                                                    />
-                                                                )}
-                                                            </span>
-                                                            <span className="truncate text-sm text-gray-700">
-                                                                {name}
-                                                            </span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleColor(name)}
-                                                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                                                        >
-                                                            <X size={13} />
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })
-                                        )
-                                    ) : sizes.length === 0 ? (
+                                    {sizes.length === 0 ? (
                                         <p className="py-4 text-sm text-gray-400">
                                             Nenhuma opção selecionada.
                                         </p>

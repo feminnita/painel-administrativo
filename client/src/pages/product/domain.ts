@@ -54,6 +54,18 @@ export function sizeRank(raw: string): number {
     return 5000;
 }
 
+/**
+ * NormalizaÃ§Ã£o de nome de cor â€” mesma norma da reconciliaÃ§Ã£o. Usada para casar
+ * o que a cliente digita com o mestre de cores (ignora acento, caixa e espaÃ§o).
+ */
+export function normColor(s: string): string {
+    return s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+}
+
 export function slugify(text: string): string {
     return text
         .toLowerCase()
