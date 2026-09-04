@@ -21,6 +21,7 @@ import { startMeTokenRefreshJob } from './integrations/melhorEnvio/RefreshJob';
 import { adminCartRoutes } from './routes/carts/CartRouter';
 import { adminReportRoutes } from './routes/reports/ReportRoutes';
 import { adminCustomerRoutes } from './routes/customers/CustomersRoutes';
+import { adminReconcileRoutes } from './routes/reconcile/ReconcileRoutes';
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use('/api/melhor-envio', melhorEnvioRoutes);
 app.use('/api/admin/carts', adminCartRoutes);
 app.use('/api/admin/reports', adminReportRoutes);
 app.use('/api/admin/customers', adminCustomerRoutes);
+app.use('/api/admin/reconcile', adminReconcileRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
