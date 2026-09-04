@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
     BarChart,
     BarChart2, BookOpen, Camera, ChevronRight, Image, LayoutDashboard,
-    LayoutGrid, LogOut, Mail, Megaphone, Menu, Package, Palette, Settings,
+    LayoutGrid, Link2, LogOut, Mail, Megaphone, Menu, Package, Palette, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, Users2, X, Zap,
 } from "lucide-react";
 
@@ -60,6 +60,7 @@ const navItems: NavEntry[] = [
         children: [
             { href: "/frete", label: "Frete", icon: Truck },
             { href: "/integracoes", label: "Integrações", icon: Zap },
+            { href: "/reconciliar-bling", label: "Reconciliar Bling", icon: Link2 },
         ],
     },
 ];
