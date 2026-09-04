@@ -458,12 +458,31 @@ export function useProductsAdmin() {
       alert("Informe o preço de venda (maior que zero).");
       return;
     }
+
+    const payload = buildProductPayload(editing, imagesInput);
+    const activeSizes = new Set(payload.sizes);
+    const activeColors = new Set(payload.colors);
+
+    // Save DESTRUTIVO: SKUs cuja cor/tamanho saíram da definição serão APAGADOS
+    // no backend. Confirmar antes — a cliente pode ter esvaziado a definição sem
+    // querer perder as variações (com pedido, viram inativas; sem, somem).
+    if (editing.id) {
+      const removidos = skus.filter(
+        (s) => !(activeSizes.has(s.size) && activeColors.has(s.color)),
+      ).length;
+      if (removidos > 0) {
+        const ok = await confirm({
+          title: "Remover variações?",
+          message: `Salvar assim vai remover ${removidos} variação(ões) que saíram da definição (cor/tamanho). Variações com pedido viram inativas; sem pedido são apagadas. Continuar?`,
+          confirmLabel: `Remover ${removidos} e salvar`,
+        });
+        if (!ok) return;
+      }
+    }
+
     setSaving(true);
 
     try {
-      const payload = buildProductPayload(editing, imagesInput);
-      const activeSizes = new Set(payload.sizes);
-      const activeColors = new Set(payload.colors);
 
       const body = {
         product: toApiProduct(payload),
