@@ -32,7 +32,7 @@ export function CategoryBannerSection({
     <div className="max-w-3xl space-y-4">
       <p className="text-sm text-gray-500">
         Banner exibido no topo da página de cada categoria. Desktop 3:1 ·
-        1920×640 e mobile 2:1 · 1080×540. Aceita apenas JPG ou WebP até 600 KB.
+        1920×640 e mobile 2:1 · 1080×540. JPG, PNG ou WebP · até 4 MB.
       </p>
 
       <div className="space-y-4">
@@ -109,8 +109,8 @@ export function CategoryBannerSection({
                         Enviar imagem
                       </span>
                     </label>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {dica} · JPG ou WebP · máx 600 KB
+                    <p className="mt-1 text-xs text-gray-500">
+                      {dica} · JPG, PNG ou WebP · até 4 MB
                     </p>
                   </div>
                 );

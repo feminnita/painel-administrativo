@@ -59,6 +59,9 @@ export function IntermediateHomeBannerSection({
                         {uploading ? "Enviando..." : "Clique para enviar"}
                     </span>
                 </label>
+                <p className="mt-1 text-xs text-gray-500">
+                    JPG, PNG ou WebP · até 4 MB
+                </p>
 
                 <div className="my-3 flex items-center gap-3">
                     <div className="h-px flex-1 bg-gray-200" />
@@ -116,6 +119,9 @@ export function IntermediateHomeBannerSection({
                         {uploading ? "Enviando..." : "Clique para enviar"}
                     </span>
                 </label>
+                <p className="mt-1 text-xs text-gray-500">
+                    JPG, PNG ou WebP · até 4 MB
+                </p>
 
                 <div className="my-3 flex items-center gap-3">
                     <div className="h-px flex-1 bg-gray-200" />

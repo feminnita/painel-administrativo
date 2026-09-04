@@ -58,7 +58,9 @@ export function ImageGridSection({
               <Upload size={16} className="text-gray-500" />
               <span className="text-sm text-gray-500">Enviar imagem (desktop)</span>
             </label>
-            <p className="mb-2 text-xs text-gray-400">3:4 · 1200×1600</p>
+            <p className="mb-2 text-xs text-gray-500">
+              3:4 · 1200×1600 · JPG, PNG ou WebP · até 4 MB
+            </p>
 
             {img.srcMobile && (
               <div className="mb-2 aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
@@ -92,6 +94,9 @@ export function ImageGridSection({
                 Enviar imagem (mobile · opcional)
               </span>
             </label>
+            <p className="mt-1 mb-2 text-xs text-gray-500">
+              JPG, PNG ou WebP · até 4 MB
+            </p>
 
             <input
               type="text"

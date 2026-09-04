@@ -34,7 +34,7 @@ export function VideoSectionForm({
             <p className="text-sm text-gray-500">
                 A vitrine toca automaticamente na home, sem som e sem marca do
                 YouTube. Envie os dois formatos; a seção só aparece na loja com o
-                vídeo desktop preenchido. Máx. 50MB por arquivo (MP4 ou WebM).
+                vídeo desktop preenchido. MP4, WebM ou MOV · até 50 MB por arquivo.
             </p>
 
             {SLOTS.map(({ kind, label, hint, aspect }) => (
@@ -92,6 +92,9 @@ export function VideoSectionForm({
                                     : "Clique para enviar o vídeo"}
                         </span>
                     </label>
+                    <p className="mt-1 text-xs text-gray-500">
+                        MP4, WebM ou MOV · até 50 MB
+                    </p>
                 </div>
             ))}
 
