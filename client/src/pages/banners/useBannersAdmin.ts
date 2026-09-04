@@ -30,6 +30,20 @@ function validateBannerImageFile(file: File): string | null {
     return null;
 }
 
+// Vídeo da vitrine: MP4/WebM/MOV, até 50 MB (mesmo teto do multer no backend).
+const BANNER_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+const BANNER_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+function validateBannerVideoFile(file: File): string | null {
+    if (!BANNER_VIDEO_TYPES.includes(file.type)) {
+        return `Formato de vídeo inválido (${file.type || "desconhecido"}) — use MP4, WebM ou MOV.`;
+    }
+    if (file.size > BANNER_VIDEO_MAX_BYTES) {
+        return "Vídeo acima de 50 MB — comprima antes de subir (máx 50 MB).";
+    }
+    return null;
+}
+
 export function useHomeBannersAdmin() {
     const [settings, setSettings] =
         useState<HomeBannersSettings>(emptyHomeBanners());
@@ -99,6 +113,11 @@ export function useHomeBannersAdmin() {
         kind: "desktopUrl" | "mobileUrl",
         file: File,
     ) => {
+        const error = validateBannerVideoFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadTo(file, "Vitrine");
