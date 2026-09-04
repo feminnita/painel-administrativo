@@ -91,6 +91,7 @@ export function emptyHomeBanners(): HomeBannersSettings {
   return {
     intermediateBanner: {
       src: "",
+      srcMobile: "",
       alt: "",
       href: "",
     },
