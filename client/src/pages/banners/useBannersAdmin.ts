@@ -15,16 +15,17 @@ const KEYS = {
 // (com 5 → md:grid-cols-5). Limite máximo de imagens na faixa.
 export const MAX_GRID_IMAGES = 5;
 
-// Banner de categoria: só JPG/WebP e no máximo 600 KB (checado antes de subir).
-const CATEGORY_BANNER_MAX_BYTES = 600 * 1024;
-const CATEGORY_BANNER_TYPES = ["image/jpeg", "image/webp"];
+// Banner de categoria: JPG/PNG/WebP, até 4 MB. Regra Cloudinary — subir o original,
+// a otimização é na entrega; o limite antigo de 600 KB/só-JPG barrava a arte real.
+const CATEGORY_BANNER_MAX_BYTES = 4 * 1024 * 1024;
+const CATEGORY_BANNER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function validateCategoryBannerFile(file: File): string | null {
     if (!CATEGORY_BANNER_TYPES.includes(file.type)) {
-        return "Formato inválido — use apenas JPG ou WebP (banner de categoria).";
+        return "Formato inválido — use JPG, PNG ou WebP (banner de categoria).";
     }
     if (file.size > CATEGORY_BANNER_MAX_BYTES) {
-        return "Imagem acima de 600 KB — comprima antes de subir (banner de categoria: máx 600 KB, JPG ou WebP).";
+        return "Imagem acima de 4 MB — comprima antes de subir (banner de categoria: máx 4 MB).";
     }
     return null;
 }
@@ -255,6 +256,20 @@ export function useHomeBannersAdmin() {
     };
 
     const handleSave = async () => {
+        // Banner de categoria SEM imagem não pode ser salvo em silêncio (a cliente
+        // salvou achando que a arte tinha subido, mas o upload não anexou).
+        const semImagem = settings.categoryBanners.filter(
+            (b) => !b.desktopSrc && !b.mobileSrc,
+        );
+        if (semImagem.length > 0) {
+            const nomes = semImagem
+                .map((b) => b.categorySlug || "(sem categoria)")
+                .join(", ");
+            toast.error(
+                `Banner de categoria sem imagem: ${nomes}. Suba a imagem (desktop e/ou mobile) ou remova esse banner antes de salvar.`,
+            );
+            return;
+        }
         setSaving(true);
         try {
             await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, settings.intermediateBanner);
