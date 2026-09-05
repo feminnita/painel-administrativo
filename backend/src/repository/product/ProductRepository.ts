@@ -1,6 +1,6 @@
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { products, productsSkus, productsColors, productColorImages } from '../../config/db/schema';
+import { products, productsSkus, productsColors, productColorImages, productCategories, categories } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
 
 // Coerção defensiva: colunas timestamp do drizzle chamam value.toISOString() na
@@ -148,6 +148,32 @@ export async function saveProductWithRelations(
                 keptColorIds.length ? notInArray(productColorImages.colorId, keptColorIds) : undefined,
             ),
         );
+
+        // AUTOSSUFICIENTE: sincroniza product_categories = FOLHA + ANCESTRAIS a partir
+        // do category_id salvo (a loja filtra por essa M:N). O form grava a FOLHA em
+        // category_id; aqui montamos a cadeia até a raiz pra a página da folha E a do
+        // departamento mostrarem o produto — assim o recadastro reflete na loja e não
+        // deixa produto "solto no pai". Só quando category_id está setado: se vier null
+        // (edição incompleta), NÃO mexe nos vínculos (preserva a classificação).
+        const leafCategoryId = (safeProduct as ProductInsert).categoryId ?? null;
+        if (leafCategoryId) {
+            const chain: string[] = [];
+            const seen = new Set<string>();
+            let cur: string | null = leafCategoryId;
+            while (cur && !seen.has(cur)) {
+                seen.add(cur);
+                chain.push(cur);
+                const [parent] = await tx
+                    .select({ parentId: categories.parentId })
+                    .from(categories)
+                    .where(eq(categories.id, cur));
+                cur = parent?.parentId ?? null;
+            }
+            await tx.delete(productCategories).where(eq(productCategories.productId, savedId));
+            for (const categoryId of chain) {
+                await tx.insert(productCategories).values({ productId: savedId, categoryId });
+            }
+        }
 
         return savedId;
     });
