@@ -1107,7 +1107,11 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                             sku.price ?? editing.base_price,
                                                             sku.sale_price,
                                                         );
-                                                        const varPromoOn = sku.sale_price != null;
+                                                        // Promoção da variação HERDA a do produto: enquanto
+                                                        // sale_price da variação for null, vale o promo do pai
+                                                        // (preço + janela). Só vira override se a dona digitar
+                                                        // aqui — igual ao "preço de venda", que herda o base.
+                                                        const varOverride = sku.sale_price != null;
                                                         return (
                                                             <div
                                                                 key={sku.size}
@@ -1201,89 +1205,92 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                     </span>
                                                                 </div>
 
-                                                                {/* promoção da variação */}
+                                                                {/* promoção da variação — HERDA do produto.
+                                                                    Em branco = usa o promo do produto (preço +
+                                                                    janela). Digitou aqui = override só desta
+                                                                    variação (ex.: uma cor em queima). */}
                                                                 <div className="rounded-lg border border-gray-100 p-3">
-                                                                    <div className="flex items-center justify-between gap-3">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Percent
-                                                                                size={14}
-                                                                                className="text-gray-400"
-                                                                            />
-                                                                            <p className="text-sm font-medium text-gray-700">
-                                                                                Preço em promoção
-                                                                            </p>
-                                                                        </div>
-                                                                        <ToggleSwitch
-                                                                            checked={varPromoOn}
-                                                                            onChange={() =>
-                                                                                updateVariation(sku, {
-                                                                                    sale_price: varPromoOn
-                                                                                        ? null
-                                                                                        : sku.price ?? editing.base_price,
-                                                                                })
-                                                                            }
+                                                                    <div className="mb-2 flex items-center gap-2">
+                                                                        <Percent
+                                                                            size={14}
+                                                                            className="text-gray-400"
                                                                         />
+                                                                        <p className="text-sm font-medium text-gray-700">
+                                                                            Preço em promoção
+                                                                        </p>
+                                                                        {!varOverride && (
+                                                                            <span className="text-xs text-gray-400">
+                                                                                herda do produto
+                                                                            </span>
+                                                                        )}
                                                                     </div>
-                                                                    {varPromoOn && (
-                                                                        <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                                                            <div>
-                                                                                <label className="label">
-                                                                                    Preço promocional (R$)
-                                                                                </label>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    step="0.01"
-                                                                                    min="0"
-                                                                                    value={sku.sale_price ?? ""}
-                                                                                    onChange={(e) =>
-                                                                                        updateVariation(sku, {
-                                                                                            sale_price: parseDecimal(
-                                                                                                e.target.value,
-                                                                                            ),
-                                                                                        })
-                                                                                    }
-                                                                                    className="input"
-                                                                                />
-                                                                                {skuPct != null && (
-                                                                                    <p className="mt-1 text-xs font-semibold text-green-600">
-                                                                                        {skuPct}% off
-                                                                                    </p>
-                                                                                )}
-                                                                            </div>
-                                                                            <div>
-                                                                                <label className="label">
-                                                                                    Data inicial
-                                                                                </label>
-                                                                                <input
-                                                                                    type="datetime-local"
-                                                                                    value={toLocalInput(sku.sale_start)}
-                                                                                    onChange={(e) =>
-                                                                                        updateVariation(sku, {
-                                                                                            sale_start: fromLocalInput(
-                                                                                                e.target.value,
-                                                                                            ),
-                                                                                        })
-                                                                                    }
-                                                                                    className="input"
-                                                                                />
-                                                                            </div>
-                                                                            <div>
-                                                                                <label className="label">Data final</label>
-                                                                                <input
-                                                                                    type="datetime-local"
-                                                                                    value={toLocalInput(sku.sale_end)}
-                                                                                    onChange={(e) =>
-                                                                                        updateVariation(sku, {
-                                                                                            sale_end: fromLocalInput(
-                                                                                                e.target.value,
-                                                                                            ),
-                                                                                        })
-                                                                                    }
-                                                                                    className="input"
-                                                                                />
-                                                                            </div>
+                                                                    <div className="grid gap-3 md:grid-cols-3">
+                                                                        <div>
+                                                                            <label className="label">
+                                                                                Preço promocional (R$)
+                                                                            </label>
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                min="0"
+                                                                                value={sku.sale_price ?? ""}
+                                                                                onChange={(e) =>
+                                                                                    updateVariation(sku, {
+                                                                                        sale_price: parseDecimal(
+                                                                                            e.target.value,
+                                                                                        ),
+                                                                                    })
+                                                                                }
+                                                                                className="input"
+                                                                                placeholder={
+                                                                                    editing.sale_price != null
+                                                                                        ? editing.sale_price.toFixed(2)
+                                                                                        : "—"
+                                                                                }
+                                                                            />
+                                                                            {skuPct != null && (
+                                                                                <p className="mt-1 text-xs font-semibold text-green-600">
+                                                                                    {skuPct}% off
+                                                                                </p>
+                                                                            )}
                                                                         </div>
-                                                                    )}
+                                                                        {varOverride && (
+                                                                            <>
+                                                                                <div>
+                                                                                    <label className="label">
+                                                                                        Data inicial
+                                                                                    </label>
+                                                                                    <input
+                                                                                        type="datetime-local"
+                                                                                        value={toLocalInput(sku.sale_start)}
+                                                                                        onChange={(e) =>
+                                                                                            updateVariation(sku, {
+                                                                                                sale_start: fromLocalInput(
+                                                                                                    e.target.value,
+                                                                                                ),
+                                                                                            })
+                                                                                        }
+                                                                                        className="input"
+                                                                                    />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <label className="label">Data final</label>
+                                                                                    <input
+                                                                                        type="datetime-local"
+                                                                                        value={toLocalInput(sku.sale_end)}
+                                                                                        onChange={(e) =>
+                                                                                            updateVariation(sku, {
+                                                                                                sale_end: fromLocalInput(
+                                                                                                    e.target.value,
+                                                                                                ),
+                                                                                            })
+                                                                                        }
+                                                                                        className="input"
+                                                                                    />
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         );
