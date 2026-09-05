@@ -286,33 +286,34 @@ export function useProductsAdmin() {
     );
   };
 
-  // Gera todas as combinações cor × tamanho que ainda não existem.
-  // Dedupe CASE-INSENSITIVE: "Azul" (editing.colors, title-case) e "AZUL" (SKU
-  // legacy) são a MESMA variação — não recria duplicata (que geraria SKU dobrado
-  // e quebraria a reconciliação Bling). Retorna quantas foram criadas para a tela
-  // dar retorno (nunca no-op silencioso).
+  // GERAR = monta a GRADE COMPLETA cores × tamanhos. Determinístico: o resultado
+  // é SEMPRE exatamente (cores distintas) × (tamanhos distintos) — não depende do
+  // que carregou. Antes o generate "adicionava só o que faltava" em cima do estado
+  // atual; se os SKUs vinham parciais, a contagem saía imprevisível (ex.: 27 em vez
+  // de 42) e travava o recadastro. Reaproveita o SKU existente por match CASE-
+  // INSENSITIVE ("Azul" casa com o legacy "AZUL"), preservando id/preço/estoque e o
+  // vínculo Bling; só CRIA os combos que ainda não existem. O save é ADITIVO no
+  // backend, então SKUs fora da grade (ex.: cor com grafia divergente) não são
+  // apagados — a Chris consolida no recadastro.
   const generateVariations = (): number => {
     if (!editing) return 0;
-    const cols = editing.colors || [];
-    const szs = editing.sizes || [];
+    const cols = [...new Set(editing.colors || [])];
+    const szs = [...new Set(editing.sizes || [])];
     const norm = (s: string) =>
       (s || '')
         .toLowerCase()
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '')
         .replace(/[^a-z0-9]/g, '');
-    const seen = new Set(skus.map((s) => `${norm(s.color)}__${norm(s.size)}`));
-    const toAdd: Sku[] = [];
+    const existing = new Map(skus.map((s) => [`${norm(s.color)}__${norm(s.size)}`, s]));
+    const grid: Sku[] = [];
     for (const color of cols)
       for (const size of szs) {
-        const key = `${norm(color)}__${norm(size)}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          toAdd.push(newSku(color, size));
-        }
+        const found = existing.get(`${norm(color)}__${norm(size)}`);
+        grid.push(found ?? newSku(color, size));
       }
-    if (toAdd.length) setSkus((prev) => [...prev, ...toAdd]);
-    return toAdd.length;
+    setSkus(grid);
+    return grid.length;
   };
 
   const addVariation = (color: string, size: string) => {
