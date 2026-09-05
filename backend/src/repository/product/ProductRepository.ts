@@ -3,6 +3,17 @@ import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages, orderItems } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
 
+// Coerção defensiva: colunas timestamp do drizzle chamam value.toISOString() na
+// serialização — uma STRING de data crua estoura "value.toISOString is not a
+// function" e derruba TODO o save. Aqui garantimos Date-ou-null antes de gravar,
+// independentemente de o controller/service terem normalizado.
+function toDateOrNull(v: unknown): Date | null {
+    if (v === null || v === undefined || v === '') return null;
+    if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+    const d = new Date(v as string);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
 type ProductInsert = typeof products.$inferInsert;
 type SkuGridItem = {
     size: string;
@@ -44,19 +55,24 @@ export async function saveProductWithRelations(
     colorImages: ColorImagesItem[],
     productId?: string,
 ) {
+    // Datas do produto coagidas a Date|null (sem clobber de chave ausente).
+    const safeProduct: Record<string, unknown> = { ...productValues };
+    if ('saleStart' in safeProduct) safeProduct.saleStart = toDateOrNull(safeProduct.saleStart);
+    if ('saleEnd' in safeProduct) safeProduct.saleEnd = toDateOrNull(safeProduct.saleEnd);
+
     return db.transaction(async (tx) => {
 
         let savedId: string;
         if (productId) {
             const [updated] = await tx
                 .update(products)
-                .set({ ...productValues, updatedAt: new Date() })
+                .set({ ...(safeProduct as ProductInsert), updatedAt: new Date() })
                 .where(eq(products.id, productId))
                 .returning({ id: products.id });
             if (!updated) throw new Error('PRODUCT_NOT_FOUND');
             savedId = updated.id;
         } else {
-            const [created] = await tx.insert(products).values(productValues).returning({ id: products.id });
+            const [created] = await tx.insert(products).values(safeProduct as ProductInsert).returning({ id: products.id });
             savedId = created.id;
         }
 
@@ -86,8 +102,8 @@ export async function saveProductWithRelations(
                     colorId: item.color ? colorIdByName.get(item.color)! : null,
                     price: item.price ?? null,
                     salePrice: item.salePrice ?? null,
-                    saleStart: item.saleStart ?? null,
-                    saleEnd: item.saleEnd ?? null,
+                    saleStart: toDateOrNull(item.saleStart),
+                    saleEnd: toDateOrNull(item.saleEnd),
                     reference: item.reference ?? null,
                     minStock: item.minStock ?? 0,
                     active: item.active ?? true,
@@ -97,8 +113,8 @@ export async function saveProductWithRelations(
                     set: {
                         price: item.price ?? null,
                         salePrice: item.salePrice ?? null,
-                        saleStart: item.saleStart ?? null,
-                        saleEnd: item.saleEnd ?? null,
+                        saleStart: toDateOrNull(item.saleStart),
+                        saleEnd: toDateOrNull(item.saleEnd),
                         reference: item.reference ?? null,
                         minStock: item.minStock ?? 0,
                         active: item.active ?? true,
