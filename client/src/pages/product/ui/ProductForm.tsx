@@ -10,7 +10,6 @@ import {
     Globe,
     Save,
     EyeOff,
-    Star,
     Sparkles,
     TrendingUp,
     Images,
@@ -239,7 +238,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     // Lançamento/Mais Vendido/Outlet voltaram a ser MARCADORES (não mais
     // categorias homônimas, que foram desativadas).
     const badges = [
-        { key: "featured", label: "Selo destaque", desc: "Aumenta a visibilidade na página inicial.", icon: Star },
         { key: "is_new", label: "Lançamento", desc: "Exibe o produto na vitrine de Lançamentos.", icon: Sparkles },
         { key: "is_bestseller", label: "Mais Vendido", desc: "Exibe o produto na vitrine de Mais Vendidos.", icon: TrendingUp },
         { key: "is_outlet", label: "Outlet", desc: "Exibe o produto na vitrine de Outlet.", icon: Percent },
