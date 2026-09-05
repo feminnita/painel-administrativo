@@ -369,7 +369,7 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Posição do texto
+                Posição do texto (desktop)
               </label>
               <select
                 value={editing.text_position || "center-center"}
@@ -387,6 +387,60 @@ export function SlideForm({ vm }: { vm: ReturnType<typeof useSlidesAdmin> }) {
                 <option value="bottom-left">Base · Esquerda</option>
                 <option value="bottom-center">Base · Centro</option>
                 <option value="bottom-right">Base · Direita</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Cor do texto (desktop)
+              </label>
+              <select
+                value={editing.text_theme || "light"}
+                onChange={(e) =>
+                  setEditing({ ...editing, text_theme: e.target.value })
+                }
+                className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              >
+                <option value="light">Claro — texto branco (fundo escurece)</option>
+                <option value="dark">Escuro — texto preto (fundo clareia)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Posição do texto (mobile)
+              </label>
+              <select
+                value={editing.text_position_mobile || ""}
+                onChange={(e) =>
+                  setEditing({ ...editing, text_position_mobile: e.target.value })
+                }
+                className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              >
+                <option value="">Igual ao desktop</option>
+                <option value="top-left">Topo · Esquerda</option>
+                <option value="top-center">Topo · Centro</option>
+                <option value="top-right">Topo · Direita</option>
+                <option value="center-left">Meio · Esquerda</option>
+                <option value="center-center">Meio · Centro</option>
+                <option value="center-right">Meio · Direita</option>
+                <option value="bottom-left">Base · Esquerda</option>
+                <option value="bottom-center">Base · Centro</option>
+                <option value="bottom-right">Base · Direita</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Cor do texto (mobile)
+              </label>
+              <select
+                value={editing.text_theme_mobile || ""}
+                onChange={(e) =>
+                  setEditing({ ...editing, text_theme_mobile: e.target.value })
+                }
+                className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
+              >
+                <option value="">Igual ao desktop</option>
+                <option value="light">Claro — texto branco (fundo escurece)</option>
+                <option value="dark">Escuro — texto preto (fundo clareia)</option>
               </select>
             </div>
             <div>

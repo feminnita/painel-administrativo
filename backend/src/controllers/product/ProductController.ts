@@ -56,7 +56,22 @@ export async function saveFull(req: Request, res: Response) {
             return res.status(400).json({ error: `Cor não cadastrada em Características: ${message.split(':')[1]}` });
         }
         console.error(`Erro ao salvar produto ${id ?? '(novo)'}:`, err);
-        res.status(500).json({ error: 'Erro ao salvar produto' });
+        // Painel é admin-only: devolver a causa REAL (mensagem + código Postgres +
+        // coluna/constraint) em vez de texto genérico. Sem isso a cliente fica no
+        // escuro e depende de log do Render pra saber o motivo de um 500.
+        const e = err as { message?: string; code?: string; detail?: string; column?: string; constraint?: string };
+        const causa = [e?.message ?? String(err), e?.code && `[pg ${e.code}]`, e?.column && `coluna ${e.column}`, e?.constraint && `constraint ${e.constraint}`]
+            .filter(Boolean)
+            .join(' · ');
+        // A causa vai no próprio `error` pra aparecer na tela (o front mostra err.message).
+        res.status(500).json({
+            error: `Erro ao salvar produto: ${causa}`,
+            detail: e?.message ?? String(err),
+            code: e?.code,
+            column: e?.column,
+            constraint: e?.constraint,
+            pgDetail: e?.detail,
+        });
     }
 }
 

@@ -10,6 +10,9 @@ export type Slide = {
   title: string | null;
   subtitle: string | null;
   text_position: string;
+  text_theme: string;
+  text_position_mobile: string;
+  text_theme_mobile: string;
   focal: string;
   order_index: number;
   active: boolean;
@@ -27,6 +30,9 @@ export type SlideInput = {
   title: string | null;
   subtitle: string | null;
   text_position: string;
+  text_theme: string;
+  text_position_mobile: string;
+  text_theme_mobile: string;
   focal: string;
   order_index: number;
   active: boolean;
@@ -34,6 +40,7 @@ export type SlideInput = {
 
 export type IntermediateBannerInput = {
   src: string;
+  srcMobile: string;
   alt: string;
   href: string;
 };
@@ -46,6 +53,7 @@ export type VideoSectionInput = {
 
 export type ImageGridItemInput = {
   src: string;
+  srcMobile?: string;
   alt: string;
   title?: string;
   href?: string;

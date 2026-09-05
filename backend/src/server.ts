@@ -21,6 +21,7 @@ import { startMeTokenRefreshJob } from './integrations/melhorEnvio/RefreshJob';
 import { adminCartRoutes } from './routes/carts/CartRouter';
 import { adminReportRoutes } from './routes/reports/ReportRoutes';
 import { adminCustomerRoutes } from './routes/customers/CustomersRoutes';
+import { adminReconcileRoutes } from './routes/reconcile/ReconcileRoutes';
 
 const app = express();
 
@@ -32,9 +33,24 @@ const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
   : ['http://localhost:3001', 'http://localhost:5173'];
 
+// Domínios de PREVIEW da Vercel deste time (produção + branch previews) mudam a
+// cada branch — sem isto, todo preview barra o login no navegador por CORS
+// (curl passa porque ignora CORS). Regex restrito ao time, não abre pra qualquer origem.
+const vercelPreviewOrigin =
+  /^https:\/\/painel-administrat[a-z0-9-]*-christiane-piller-jesuss-projects\.vercel\.app$/;
+
+function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) return true; // sem Origin (curl, healthcheck, same-origin)
+  if (allowedOrigins.includes(origin)) return true;
+  return vercelPreviewOrigin.test(origin);
+}
+
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) return callback(null, true);
+      callback(new Error('Origin não permitida pelo CORS'));
+    },
     credentials: true,
   })
 );
@@ -55,6 +71,7 @@ app.use('/api/melhor-envio', melhorEnvioRoutes);
 app.use('/api/admin/carts', adminCartRoutes);
 app.use('/api/admin/reports', adminReportRoutes);
 app.use('/api/admin/customers', adminCustomerRoutes);
+app.use('/api/admin/reconcile', adminReconcileRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });

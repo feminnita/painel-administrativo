@@ -3,8 +3,9 @@ import { useState } from "react";
 import {
     BarChart,
     BarChart2, BookOpen, Camera, ChevronRight, Image, LayoutDashboard,
-    LogOut, Mail, Megaphone, Menu, Package, Palette, Settings,
+    LayoutGrid, Link2, LogOut, Mail, Megaphone, Menu, Package, Palette, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, Users2, X, Zap,
+    FileText,
 } from "lucide-react";
 
 type NavLeaf = { href: string; label: string; icon: typeof Package };
@@ -54,11 +55,14 @@ const navItems: NavEntry[] = [
         ],
     },
     { href: "/slides", label: "Carrossel Hero", icon: Image },
+    { href: "/vitrine", label: "Vitrine", icon: LayoutGrid },
     {
         label: "Configurações", icon: Settings,
         children: [
             { href: "/frete", label: "Frete", icon: Truck },
+            { href: "/termo-revenda", label: "Termo de Revenda", icon: FileText },
             { href: "/integracoes", label: "Integrações", icon: Zap },
+            { href: "/reconciliar-bling", label: "Reconciliar Bling", icon: Link2 },
         ],
     },
 ];

@@ -11,16 +11,35 @@ const KEYS = {
     categoryBanners: "home_category_banners",
 } as const;
 
-// Banner de categoria: só JPG/WebP e no máximo 600 KB (checado antes de subir).
-const CATEGORY_BANNER_MAX_BYTES = 600 * 1024;
-const CATEGORY_BANNER_TYPES = ["image/jpeg", "image/webp"];
+// Faixa (grade de imagens da home): o site suporta de 1 a 5 blocos
+// (com 5 → md:grid-cols-5). Limite máximo de imagens na faixa.
+export const MAX_GRID_IMAGES = 5;
 
-function validateCategoryBannerFile(file: File): string | null {
-    if (!CATEGORY_BANNER_TYPES.includes(file.type)) {
-        return "Formato inválido — use apenas JPG ou WebP (banner de categoria).";
+// Banner (categoria/intermediário/faixa): JPG/PNG/WebP, até 4 MB. Regra Cloudinary —
+// subir o original, a otimização é na entrega; o limite antigo de 600 KB/só-JPG barrava a arte real.
+const BANNER_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+const BANNER_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function validateBannerImageFile(file: File): string | null {
+    if (!BANNER_IMAGE_TYPES.includes(file.type)) {
+        return "Formato inválido — use JPG, PNG ou WebP.";
     }
-    if (file.size > CATEGORY_BANNER_MAX_BYTES) {
-        return "Imagem acima de 600 KB — comprima antes de subir (banner de categoria: máx 600 KB, JPG ou WebP).";
+    if (file.size > BANNER_IMAGE_MAX_BYTES) {
+        return "Imagem acima de 4 MB — comprima antes de subir (máx 4 MB).";
+    }
+    return null;
+}
+
+// Vídeo da vitrine: MP4/WebM/MOV, até 50 MB (mesmo teto do multer no backend).
+const BANNER_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+const BANNER_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+function validateBannerVideoFile(file: File): string | null {
+    if (!BANNER_VIDEO_TYPES.includes(file.type)) {
+        return `Formato de vídeo inválido (${file.type || "desconhecido"}) — use MP4, WebM ou MOV.`;
+    }
+    if (file.size > BANNER_VIDEO_MAX_BYTES) {
+        return "Vídeo acima de 50 MB — comprima antes de subir (máx 50 MB).";
     }
     return null;
 }
@@ -46,10 +65,12 @@ export function useHomeBannersAdmin() {
             const storedVideo = map[KEYS.videoSection];
 
             setSettings({
-                intermediateBanner: map[KEYS.intermediateBanner] ?? {
+                intermediateBanner: {
                     src: "",
+                    srcMobile: "",
                     alt: "",
                     href: "",
+                    ...(map[KEYS.intermediateBanner] ?? {}),
                 },
                 videoSection: {
                     desktopUrl: storedVideo?.desktopUrl ?? "",
@@ -92,6 +113,11 @@ export function useHomeBannersAdmin() {
         kind: "desktopUrl" | "mobileUrl",
         file: File,
     ) => {
+        const error = validateBannerVideoFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadTo(file, "Vitrine");
@@ -113,15 +139,18 @@ export function useHomeBannersAdmin() {
         }));
 
     const addGridImage = () =>
-        setSettings((prev) => ({
-            ...prev,
-            imageGrid: {
-                images: [
-                    ...prev.imageGrid.images,
-                    { src: "", alt: "", title: "", href: "", active: true },
-                ],
-            },
-        }));
+        setSettings((prev) => {
+            if (prev.imageGrid.images.length >= MAX_GRID_IMAGES) return prev;
+            return {
+                ...prev,
+                imageGrid: {
+                    images: [
+                        ...prev.imageGrid.images,
+                        { src: "", srcMobile: "", alt: "", title: "", href: "", active: true },
+                    ],
+                },
+            };
+        });
 
     const moveGridImage = (index: number, dir: -1 | 1) =>
         setSettings((prev) => {
@@ -137,6 +166,7 @@ export function useHomeBannersAdmin() {
         index: number,
         patch: Partial<{
             src: string;
+            srcMobile: string;
             alt: string;
             title: string;
             href: string;
@@ -169,6 +199,11 @@ export function useHomeBannersAdmin() {
     };
 
     const uploadIntermediateBanner = async (file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadTo(file, "Banners/Banner Inter");
@@ -180,11 +215,50 @@ export function useHomeBannersAdmin() {
         }
     };
 
+    const uploadIntermediateBannerMobile = async (file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
+        setUploading(true);
+        try {
+            const url = await uploadTo(file, "Banners/Banner Inter");
+            setIntermediateBanner({ srcMobile: url });
+        } catch (err) {
+            toast.error(err instanceof ApiError ? err.message : "Falha no upload");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const uploadGridImage = async (index: number, file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadTo(file, "Banners/Grid Images");
             updateGridImage(index, { src: url });
+        } catch (err) {
+            toast.error(err instanceof ApiError ? err.message : "Falha no upload");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const uploadGridImageMobile = async (index: number, file: File) => {
+        const error = validateBannerImageFile(file);
+        if (error) {
+            toast.error(error);
+            return;
+        }
+        setUploading(true);
+        try {
+            const url = await uploadTo(file, "Banners/Grid Images");
+            updateGridImage(index, { srcMobile: url });
         } catch (err) {
             toast.error(err instanceof ApiError ? err.message : "Falha no upload");
         } finally {
@@ -231,7 +305,7 @@ export function useHomeBannersAdmin() {
         kind: "desktopSrc" | "mobileSrc",
         file: File,
     ) => {
-        const error = validateCategoryBannerFile(file);
+        const error = validateBannerImageFile(file);
         if (error) {
             toast.error(error);
             return;
@@ -248,19 +322,47 @@ export function useHomeBannersAdmin() {
     };
 
     const handleSave = async () => {
+        // Salva o que está COMPLETO e AVISA (visível) o que foi pulado — NUNCA
+        // bloqueia o save inteiro por causa de um item incompleto (isso travava
+        // até o que já estava pronto: um 5º bloco vazio impedia salvar o mobile
+        // do intermediário). Item sem imagem simplesmente não é persistido vazio.
+        const avisos: string[] = [];
+
+        const faixaCompleta = settings.imageGrid.images.filter((img) => img.src);
+        const faixaPulada = settings.imageGrid.images.length - faixaCompleta.length;
+        if (faixaPulada > 0)
+            avisos.push(`${faixaPulada} bloco(s) da faixa sem imagem`);
+
+        const catCompleta = settings.categoryBanners.filter(
+            (b) => b.desktopSrc || b.mobileSrc,
+        );
+        const catPulada = settings.categoryBanners.length - catCompleta.length;
+        if (catPulada > 0)
+            avisos.push(`${catPulada} banner(s) de categoria sem imagem`);
+
+        const inter = settings.intermediateBanner;
+        const salvarInter = !!inter.src;
+        if (!salvarInter && (inter.alt || inter.href || inter.srcMobile))
+            avisos.push("banner intermediário sem imagem desktop");
+
         setSaving(true);
         try {
-            await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, settings.intermediateBanner);
+            if (salvarInter) {
+                await api.put(`/api/admin/settings/${KEYS.intermediateBanner}`, inter);
+            }
             await api.put(`/api/admin/settings/${KEYS.videoSection}`, settings.videoSection);
-            await api.put(`/api/admin/settings/${KEYS.imageGrid}`, {
-                images: settings.imageGrid.images.map((img, i) => ({
-                    ...img,
-                    order: i,
-                })),
-            });
-            await api.put(`/api/admin/settings/${KEYS.categoryBanners}`, settings.categoryBanners);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
+            const faixaPayload = faixaCompleta.map((img, i) => ({ ...img, order: i }));
+            await api.put(`/api/admin/settings/${KEYS.imageGrid}`, { images: faixaPayload });
+            await api.put(`/api/admin/settings/${KEYS.categoryBanners}`, catCompleta);
+
+            if (avisos.length > 0) {
+                toast.warning(
+                    `Salvo. NÃO salvos (suba a imagem e salve de novo): ${avisos.join(" · ")}.`,
+                );
+            } else {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            }
         } catch (err) {
             alert(err instanceof ApiError ? err.message : "Erro ao salvar");
         } finally {
@@ -283,7 +385,9 @@ export function useHomeBannersAdmin() {
         updateGridImage,
         removeGridImage,
         uploadIntermediateBanner,
+        uploadIntermediateBannerMobile,
         uploadGridImage,
+        uploadGridImageMobile,
         addCategoryBanner,
         updateCategoryBanner,
         removeCategoryBanner,

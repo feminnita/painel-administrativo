@@ -32,6 +32,9 @@ export const products = pgTable('products', {
   blingId: bigint('bling_id', { mode: 'number' }),
   videoUrl: text('video_url'),
   colorImages: jsonb('color_images').$type<Record<string, unknown>>().default({}),
+  // Colunas já existentes no BANCO (migração aplicada) mas que faltavam no schema
+  // drizzle do backend main → drizzle descartava em silêncio na escrita, e o
+  // cadastro perdia Marca/custo/referência/promoção/exibir-na-loja ao salvar.
   costPrice: numeric('cost_price', { precision: 10, scale: 2 }),
   reference: text('reference'),
   brand: text('brand'),

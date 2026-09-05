@@ -26,7 +26,7 @@ export async function list(req: Request, res: Response) {
 
 export async function create(req: Request, res: Response) {
     try {
-        const { type, src, srcMobile, alt, poster, ctaText, ctaHref, title, subtitle, textPosition, focal } = req.body;
+        const { type, src, srcMobile, alt, poster, ctaText, ctaHref, title, subtitle, textPosition, textTheme, textPositionMobile, textThemeMobile, focal } = req.body;
         res.status(201).json(await HeroSlideService.createSlide({
             type,
             src,
@@ -38,6 +38,9 @@ export async function create(req: Request, res: Response) {
             title,
             subtitle,
             textPosition,
+            textTheme,
+            textPositionMobile,
+            textThemeMobile,
             focal,
         }));
     } catch (error) {

@@ -8,8 +8,21 @@ function required(name: string): string {
     return value;
 }
 
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+
+// Em produção, BLING_REDIRECT_URI é obrigatório: o fallback silencioso pra
+// localhost já custou dias neste projeto. Em dev, mantém o fallback localhost.
+function resolveBlingRedirectUri(): string {
+    const configured = process.env.BLING_REDIRECT_URI;
+    if (configured) return configured;
+    if (nodeEnv === 'production') {
+        throw new Error('BLING_REDIRECT_URI ausente em produção — configure no Render');
+    }
+    return 'http://localhost:3334/api/admin/bling/oauth/callback';
+}
+
 export const env = {
-    nodeEnv: process.env.NODE_ENV ?? 'development',
+    nodeEnv,
     port: Number(process.env.PORT ?? 3334),
     corsOrigins: process.env.CORS_ORIGINS?.split(',') ?? ['http://localhost:3001'],
     panelUrl: process.env.PANEL_URL ?? 'http://localhost:3001',
@@ -19,7 +32,7 @@ export const env = {
     bling: {
         clientId: process.env.BLING_CLIENT_ID ?? '',
         clientSecret: process.env.BLING_CLIENT_SECRET ?? '',
-        redirectUri: process.env.BLING_REDIRECT_URI ?? 'http://localhost:3334/api/admin/bling/oauth/callback',
+        redirectUri: resolveBlingRedirectUri(),
     },
 
     melhorEnvio: {

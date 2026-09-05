@@ -1,7 +1,15 @@
 import * as ProductColorRepository from '../../repository/product/ProductColorRepository';
 
+function normalizeName(s: string) {
+    return s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+}
+
 export function listColors() {
-    return ProductColorRepository.findAll();
+    return ProductColorRepository.findAllWithUsage();
 }
 
 export async function getColor(id: string) {
@@ -10,7 +18,11 @@ export async function getColor(id: string) {
     return color;
 }
 
-export function createColor(input: { name: string; imageUrl: string }) {
+export async function createColor(input: { name: string; imageUrl: string }) {
+    const target = normalizeName(input.name);
+    const existing = await ProductColorRepository.findAll();
+    const match = existing.find((c) => normalizeName(c.name) === target);
+    if (match) return match;
     return ProductColorRepository.insert(input);
 }
 

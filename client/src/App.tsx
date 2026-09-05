@@ -11,12 +11,15 @@ import { CategoryBoard } from "./pages/categories/ui/CategoryBoard";
 import { StockPage } from "./pages/stock/ui/StockPage";
 import { CouponsPage } from "./pages/coupons/ui/CouponsPage";
 import { BannersPage } from './pages/banners/ui/BannersPage';
+import { VitrinePage } from './pages/vitrine/ui/VitrinePage';
 import { IntegracoesPage } from "./pages/integrations/ui/IntegracoesPage";
 import { CartsPage } from "./pages/carts/ui/CartsPage";
 import { VendasPage } from "./pages/vendas/ui/VendasPage";
 import { CustomersPage } from "./pages/customers/ui/CustomersPage";
 import { VisitasPage } from "./pages/visitas/ui/VisitasPage";
 import { FretePage } from "./pages/frete/ui/FretePage";
+import { ReconcilePage } from "./pages/reconcile/ui/ReconcilePage";
+import { ResaleTermPage } from "./pages/resale-term/ui/ResaleTermPage";
 import { ConfirmProvider } from "./components/confirm/ConfirmProvider";
 
 
@@ -38,12 +41,15 @@ export default function App() {
             <Route path="/estoque" element={<StockPage />} />
             <Route path="/cupons" element={<CouponsPage />} />
             <Route path="/slides" element={<BannersPage />} />
+            <Route path="/vitrine" element={<VitrinePage />} />
             <Route path="/integracoes" element={<IntegracoesPage />} />
             <Route path="/carrinhos" element={<CartsPage />} />
             <Route path="/vendas" element={<VendasPage />} />
             <Route path="/clientes" element={<CustomersPage />} />
             <Route path="/visitas" element={<VisitasPage />} />
             <Route path="/frete" element={<FretePage />} />
+            <Route path="/reconciliar-bling" element={<ReconcilePage />} />
+            <Route path="/termo-revenda" element={<ResaleTermPage />} />
             <Route path="*" element={<UnderConstructionPage />} />
           </Route>
         </Route>
