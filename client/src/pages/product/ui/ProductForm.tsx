@@ -540,15 +540,23 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 />
                             </div>
                             {editing.video_url != null && (
-                                <input
-                                    type="text"
-                                    value={editing.video_url || ""}
-                                    onChange={(e) =>
-                                        setEditing({ ...editing, video_url: e.target.value })
-                                    }
-                                    className="input"
-                                    placeholder="https://www.youtube.com/watch?v=... (aceita youtu.be e shorts)"
-                                />
+                                <>
+                                    <input
+                                        type="text"
+                                        value={editing.video_url || ""}
+                                        onChange={(e) =>
+                                            setEditing({ ...editing, video_url: e.target.value })
+                                        }
+                                        className="input"
+                                        placeholder="https://pub-xxxxx.r2.dev/produtos/clipe.mp4"
+                                    />
+                                    <p className="mt-1.5 text-xs text-gray-500">
+                                        Cole a URL do arquivo <strong>MP4</strong> hospedado no
+                                        Cloudflare R2. O clipe toca dentro da galeria como se fosse foto
+                                        — mudo, em loop, sem controles. Link do YouTube ainda funciona
+                                        para produtos antigos.
+                                    </p>
+                                </>
                             )}
                         </div>
                     </section>
