@@ -725,13 +725,9 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 type="button"
                                 onClick={() => {
                                     const n = generateVariations();
-                                    setExpanded(
-                                        new Set(variations.map((s) => s.color)),
-                                    );
+                                    setExpanded(new Set(colors));
                                     setGenMsg(
-                                        n > 0
-                                            ? `${n} ${n === 1 ? "variação criada" : "variações criadas"} — confira na lista abaixo.`
-                                            : "Nenhuma variação nova — todas as combinações de cor × tamanho já existem.",
+                                        `Grade gerada: ${n} variações (${colors.length} ${colors.length === 1 ? "cor" : "cores"} × ${sizes.length} ${sizes.length === 1 ? "tamanho" : "tamanhos"}) — confira na lista abaixo.`,
                                     );
                                 }}
                                 disabled={colors.length === 0 || sizes.length === 0}
