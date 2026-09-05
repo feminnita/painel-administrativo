@@ -1,12 +1,13 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
     BarChart,
-    BarChart2, BookOpen, Camera, ChevronRight, Image, LayoutDashboard,
+    BarChart2, BookOpen, Camera, ChevronRight, ExternalLink, Image, LayoutDashboard,
     LayoutGrid, Link2, LogOut, Mail, Megaphone, Menu, Package, Palette, Ruler, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, Users2, X, Zap,
     FileText,
 } from "lucide-react";
+import { api, clearToken } from "@/lib/api/client";
 
 type NavLeaf = { href: string; label: string; icon: typeof Package };
 type NavGroup = { label: string; icon: typeof Package; children: NavLeaf[] };
@@ -70,7 +71,21 @@ const navItems: NavEntry[] = [
 
 export function AdminLayout() {
     const { pathname } = useLocation();
+    const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Sair de verdade: invalida a sessão no servidor (deleta o token), limpa o
+    // token local e volta pro login. Sem isso, num PC compartilhado a próxima
+    // pessoa continuaria logada. O logout do servidor não pode bloquear a saída.
+    const handleLogout = async () => {
+        try {
+            await api.post("/api/admin/auth/logout");
+        } catch {
+            // se o servidor falhar, ainda assim desloga localmente
+        }
+        clearToken();
+        navigate("/login", { replace: true });
+    };
 
     const activedGroupLabel = navItems.find(
         (item) =>
@@ -189,16 +204,24 @@ export function AdminLayout() {
                     })}
                 </nav>
 
-                <div className="border-t border-white/10 p-4">
+                <div className="space-y-1 border-t border-white/10 p-4">
                     <a
                         href={SITE_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
                     >
-                        <LogOut size={18} />
+                        <ExternalLink size={18} />
                         <span className="text-sm font-medium">Ver o site</span>
                     </a>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
+                    >
+                        <LogOut size={18} />
+                        <span className="text-sm font-medium">Sair</span>
+                    </button>
                 </div>
             </aside>
 
