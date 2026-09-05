@@ -110,6 +110,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         createColor,
         getColorImages,
         uploadColorImages,
+        reorderColorImages,
         removeColorImage,
         clearAllImages,
     } = vm;
@@ -1027,70 +1028,77 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                     {/* foto da cor: UMA foto, opcional — não trava o salvar */}
                                                     <div>
                                                         <p className="mb-2 text-xs font-medium text-gray-500">
-                                                            Foto da cor{" "}
+                                                            Fotos da cor{" "}
                                                             <span className="font-normal text-gray-400">
-                                                                (uma foto, opcional — não é obrigatória para
-                                                                salvar)
+                                                                (até 5, opcional — a 1ª é a capa da cor; arraste
+                                                                para reordenar)
                                                             </span>
                                                         </p>
-                                                        {imgs.length > 0 ? (
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {imgs.map((url, i) => (
+                                                                <div
+                                                                    key={url}
+                                                                    draggable
+                                                                    onDragStart={(e) =>
+                                                                        e.dataTransfer.setData(
+                                                                            "text/plain",
+                                                                            String(i),
+                                                                        )
+                                                                    }
+                                                                    onDragOver={(e) => e.preventDefault()}
+                                                                    onDrop={(e) => {
+                                                                        e.preventDefault();
+                                                                        const from = Number(
+                                                                            e.dataTransfer.getData("text/plain"),
+                                                                        );
+                                                                        if (Number.isFinite(from))
+                                                                            reorderColorImages(color, from, i);
+                                                                    }}
+                                                                    className="group relative h-24 w-20 cursor-move overflow-hidden rounded-lg bg-gray-100"
+                                                                >
                                                                     <img
-                                                                        src={imgs[0]}
+                                                                        src={url}
                                                                         alt=""
-                                                                        className="h-full w-full object-cover"
+                                                                        className="absolute inset-0 h-full w-full object-cover"
                                                                     />
-                                                                </div>
-                                                                <div className="flex flex-col gap-2">
-                                                                    <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#8C2F39] px-3 py-1.5 text-xs font-medium text-[#8C2F39] hover:bg-red-50/40">
-                                                                        <input
-                                                                            type="file"
-                                                                            accept="image/*"
-                                                                            className="hidden"
-                                                                            disabled={uploading}
-                                                                            onChange={(e) =>
-                                                                                e.target.files &&
-                                                                                uploadColorImages(
-                                                                                    color,
-                                                                                    e.target.files,
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        <Upload size={13} />
-                                                                        {uploading
-                                                                            ? "Enviando..."
-                                                                            : "Trocar foto"}
-                                                                    </label>
+                                                                    <span
+                                                                        className={`absolute bottom-0 left-0 right-0 py-0.5 text-center text-[9px] text-white ${i === 0 ? "bg-[#8C2F39]" : "bg-black/50"}`}
+                                                                    >
+                                                                        {i === 0 ? "Capa" : `Foto ${i + 1}`}
+                                                                    </span>
                                                                     <button
                                                                         type="button"
                                                                         onClick={() =>
-                                                                            removeColorImage(color, imgs[0])
+                                                                            removeColorImage(color, url)
                                                                         }
-                                                                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                                                                        aria-label="Remover foto"
+                                                                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-xs leading-none text-white opacity-0 transition-opacity group-hover:opacity-100"
                                                                     >
-                                                                        Remover foto
+                                                                        ×
                                                                     </button>
                                                                 </div>
-                                                            </div>
-                                                        ) : (
-                                                            <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm text-gray-500 hover:border-[#8C2F39] hover:bg-red-50/30">
-                                                                <input
-                                                                    type="file"
-                                                                    accept="image/*"
-                                                                    className="hidden"
-                                                                    disabled={uploading}
-                                                                    onChange={(e) =>
-                                                                        e.target.files &&
-                                                                        uploadColorImages(color, e.target.files)
-                                                                    }
-                                                                />
-                                                                <Upload size={15} />
-                                                                {uploading
-                                                                    ? "Enviando..."
-                                                                    : `Adicionar foto de ${color} (opcional)`}
-                                                            </label>
-                                                        )}
+                                                            ))}
+                                                            {imgs.length < 5 && (
+                                                                <label className="flex h-24 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-300 text-center text-[10px] text-gray-500 hover:border-[#8C2F39] hover:bg-red-50/30">
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        multiple
+                                                                        className="hidden"
+                                                                        disabled={uploading}
+                                                                        onChange={(e) =>
+                                                                            e.target.files &&
+                                                                            uploadColorImages(
+                                                                                color,
+                                                                                e.target.files,
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <Upload size={15} />
+                                                                    {uploading ? "Enviando..." : "Adicionar"}
+                                                                </label>
+                                                            )}
+                                                        </div>
                                                     </div>
 
                                                     {/* um bloco por tamanho */}

@@ -420,24 +420,48 @@ export function useProductsAdmin() {
     setUploading(true);
     try {
       const { urls } = await api.upload("/api/admin/upload", files);
-      // UMA foto por cor: o novo envio substitui a foto anterior (mesmo
-      // armazenamento — product_color_images). Guardamos só a última URL.
-      const url = urls[urls.length - 1];
-      if (!url) return;
+      if (!urls.length) return;
+      // ATÉ 5 fotos por cor (como as capas): o novo envio APPENDA às existentes,
+      // mantendo a ordem. A 1ª é a capa da cor (miniatura de estampa + card dos
+      // carrosséis de outro produto). product_color_images.images já é array.
       setColorImages((prev) => {
         const idx = prev.findIndex((c) => c.color === color);
         if (idx > -1) {
           const next = [...prev];
-          next[idx] = { ...next[idx], images: [url] };
+          next[idx] = {
+            ...next[idx],
+            images: [...next[idx].images, ...urls].slice(0, 5),
+          };
           return next;
         }
-        return [...prev, { color, images: [url] }];
+        return [...prev, { color, images: urls.slice(0, 5) }];
       });
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Falha no upload");
     } finally {
       setUploading(false);
     }
+  };
+
+  // Reordena as fotos de uma cor (drag). A posição 0 é a capa daquela cor.
+  const reorderColorImages = (color: string, from: number, to: number) => {
+    setColorImages((prev) =>
+      prev.map((c) => {
+        if (c.color !== color) return c;
+        if (
+          from === to ||
+          from < 0 ||
+          to < 0 ||
+          from >= c.images.length ||
+          to >= c.images.length
+        )
+          return c;
+        const imgs = [...c.images];
+        const [moved] = imgs.splice(from, 1);
+        imgs.splice(to, 0, moved);
+        return { ...c, images: imgs };
+      }),
+    );
   };
 
   // Zera SÓ as imagens do produto em edição: as fotos de capa (imagesInput) e
@@ -600,6 +624,7 @@ export function useProductsAdmin() {
     toggleActive,
     getColorImages,
     uploadColorImages,
+    reorderColorImages,
     removeColorImage,
     clearAllImages,
   };
