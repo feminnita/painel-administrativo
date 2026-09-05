@@ -287,23 +287,32 @@ export function useProductsAdmin() {
   };
 
   // Gera todas as combinações cor × tamanho que ainda não existem.
-  const generateVariations = () => {
-    if (!editing) return;
+  // Dedupe CASE-INSENSITIVE: "Azul" (editing.colors, title-case) e "AZUL" (SKU
+  // legacy) são a MESMA variação — não recria duplicata (que geraria SKU dobrado
+  // e quebraria a reconciliação Bling). Retorna quantas foram criadas para a tela
+  // dar retorno (nunca no-op silencioso).
+  const generateVariations = (): number => {
+    if (!editing) return 0;
     const cols = editing.colors || [];
     const szs = editing.sizes || [];
-    setSkus((prev) => {
-      const seen = new Set(prev.map((s) => `${s.color}__${s.size}`));
-      const next = [...prev];
-      for (const color of cols)
-        for (const size of szs) {
-          const key = `${color}__${size}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            next.push(newSku(color, size));
-          }
+    const norm = (s: string) =>
+      (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    const seen = new Set(skus.map((s) => `${norm(s.color)}__${norm(s.size)}`));
+    const toAdd: Sku[] = [];
+    for (const color of cols)
+      for (const size of szs) {
+        const key = `${norm(color)}__${norm(size)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          toAdd.push(newSku(color, size));
         }
-      return next;
-    });
+      }
+    if (toAdd.length) setSkus((prev) => [...prev, ...toAdd]);
+    return toAdd.length;
   };
 
   const addVariation = (color: string, size: string) => {
