@@ -17,7 +17,6 @@ import {
     Package,
     ShoppingBag,
     Search,
-    X,
     Plus,
     Trash2,
     Wand2,
@@ -36,10 +35,6 @@ const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"]
 const COLOR_SUGGEST_LIMIT = 8;
 
 type ProductsVM = ReturnType<typeof useProductsAdmin>;
-
-// O painel de "Adicionar opções" agora só serve TAMANHO — a cor virou campo
-// digita-e-cria dentro do próprio produto.
-type PickerKind = "tamanho" | null;
 
 /** ISO string -> valor de <input type="datetime-local"> (YYYY-MM-DDTHH:mm). */
 function toLocalInput(iso: string | null): string {
@@ -117,8 +112,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         clearAllImages,
     } = vm;
 
-    const [picker, setPicker] = useState<PickerKind>(null);
-    const [pickerSearch, setPickerSearch] = useState("");
     const [colorQuery, setColorQuery] = useState("");
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [addColor, setAddColor] = useState("");
@@ -128,6 +121,14 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     // só quando a dona clica em "ver e editar". Produtos com 105/113 cores não
     // enchem meia tela mais.
     const [showColors, setShowColors] = useState(false);
+    // "Tamanho por cor": em produto com 100+ cores vira uma parede. Inicia
+    // colapsado — só o resumo aparece; a grade abre ao clicar.
+    const [showColorSizes, setShowColorSizes] = useState(false);
+    // "colar URLs": textarea escondida atrás de um link discreto; o upload por
+    // arquivo continua na frente.
+    const [showUrlInput, setShowUrlInput] = useState(false);
+    // SEO colapsado por padrão — resumo "SEO · editar" abre os campos.
+    const [showSeo, setShowSeo] = useState(false);
     // "+ adicionar variação" discreto na lista (substitui o bloco solto do rodapé).
     const [addingVar, setAddingVar] = useState(false);
 
@@ -236,17 +237,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         else if (canCreateColor) void handleCreateColor();
     };
 
-    const sizeList = pickerSearch.trim()
-        ? DEFAULT_SIZES.filter((s) =>
-            s.toLowerCase().includes(pickerSearch.trim().toLowerCase()),
-        )
-        : DEFAULT_SIZES;
-
-    const closePicker = () => {
-        setPicker(null);
-        setPickerSearch("");
-    };
-
     const cancel = () => {
         if (window.confirm("Descartar alterações não salvas?")) setEditing(null);
     };
@@ -321,7 +311,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                 {[
                     { icon: Hash, title: "Código do produto", value: editing.code || "—" },
                     { icon: Package, title: "Estoque atual", value: String(stockTotal) },
-                    { icon: TrendingUp, title: "Quantidade vendida", value: "—" },
                 ].map(({ icon: Icon, title, value }) => (
                     <div
                         key={title}
@@ -479,21 +468,27 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </span>
                         </label>
 
-                        <div className="my-3 flex items-center gap-3">
-                            <div className="h-px flex-1 bg-gray-200" />
-                            <span className="text-xs text-gray-400">ou cole URLs</span>
-                            <div className="h-px flex-1 bg-gray-200" />
+                        <div className="mt-3 text-center">
+                            <button
+                                type="button"
+                                onClick={() => setShowUrlInput((v) => !v)}
+                                className="text-xs text-gray-400 hover:text-[#8C2F39] hover:underline"
+                            >
+                                {showUrlInput ? "ocultar URLs" : "colar URLs"}
+                            </button>
                         </div>
 
+                        {(showUrlInput || imagesInput.trim() !== "") && (
                         <textarea
                             value={imagesInput}
                             onChange={(e) => setImagesInput(e.target.value)}
                             rows={3}
-                            className="w-full rounded-lg border border-gray-200 px-4 py-2 font-mono text-sm focus:border-[#8C2F39] focus:outline-none"
+                            className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-2 font-mono text-sm focus:border-[#8C2F39] focus:outline-none"
                             placeholder={
                                 "https://exemplo.com/frente.jpg\nhttps://exemplo.com/costas.jpg"
                             }
                         />
+                        )}
                         {imagesInput.split("\n").filter(Boolean).length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {imagesInput
@@ -1020,57 +1015,48 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </div>
                         </div>
 
-                        {/* característica secundária: tamanho */}
+                        {/* característica secundária: tamanho — chips inline
+                            togglaveis (igual às cores), sem drawer/overlay. */}
                         <div className="mt-4 rounded-lg border border-gray-100 p-4">
-                            <div className="mb-3 flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                    <Ruler size={15} className="text-gray-400" />
-                                    <div>
-                                        <p className="text-[11px] uppercase tracking-wide text-gray-400">
-                                            Característica Secundária
-                                        </p>
-                                        <p className="text-sm font-semibold text-gray-700">
-                                            Tamanho
-                                            {sizes.length > 0 && (
-                                                <span className="ml-2 text-xs font-normal text-gray-400">
-                                                    {sizes.length} selecionado(s)
-                                                </span>
-                                            )}
-                                        </p>
-                                    </div>
+                            <div className="mb-3 flex items-center gap-2">
+                                <Ruler size={15} className="text-gray-400" />
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-wide text-gray-400">
+                                        Característica Secundária
+                                    </p>
+                                    <p className="text-sm font-semibold text-gray-700">
+                                        Tamanho
+                                        {sizes.length > 0 && (
+                                            <span className="ml-2 text-xs font-normal text-gray-400">
+                                                {sizes.length} selecionado(s)
+                                            </span>
+                                        )}
+                                    </p>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setPicker("tamanho")}
-                                    className="flex shrink-0 items-center gap-1 text-sm font-medium text-[#8C2F39] hover:underline"
-                                >
-                                    <Plus size={15} /> Adicionar opções
-                                </button>
                             </div>
 
-                            {sizes.length === 0 ? (
-                                <p className="text-sm text-gray-400">
-                                    Nenhum tamanho neste produto ainda.
-                                </p>
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {sizes.map((size) => (
-                                        <span
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    ...DEFAULT_SIZES,
+                                    ...sizes.filter((s) => !DEFAULT_SIZES.includes(s)),
+                                ].map((size) => {
+                                    const on = sizes.includes(size);
+                                    return (
+                                        <button
                                             key={size}
-                                            className="flex items-center gap-2 rounded-full border border-[#8C2F39]/30 bg-[#8C2F39]/5 px-3 py-1 text-sm font-medium text-[#8C2F39]"
+                                            type="button"
+                                            onClick={() => toggleSize(size)}
+                                            className={
+                                                on
+                                                    ? "rounded-full border border-[#8C2F39] bg-[#8C2F39] px-3.5 py-1 text-sm font-semibold text-white"
+                                                    : "rounded-full border border-gray-200 bg-white px-3.5 py-1 text-sm font-medium text-gray-500 hover:border-[#8C2F39] hover:text-[#8C2F39]"
+                                            }
                                         >
                                             {size}
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleSize(size)}
-                                                className="flex h-4 w-4 items-center justify-center rounded-full text-xs text-[#8C2F39]/60 hover:bg-[#8C2F39] hover:text-white"
-                                            >
-                                                ✕
-                                            </button>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* ── TAMANHO POR COR ──
@@ -1079,13 +1065,27 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             chip faz o GERAR não criar aquele tamanho naquela cor. */}
                         {colors.length > 0 && sizes.length > 0 && (
                             <div className="mt-4 rounded-lg border border-gray-100 p-4">
-                                <div className="mb-1 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowColorSizes((v) => !v)}
+                                    className="flex w-full items-center gap-2 text-left"
+                                >
                                     <Ruler size={15} className="text-gray-400" />
                                     <p className="text-sm font-semibold text-gray-700">
                                         Tamanho por cor
                                     </p>
-                                </div>
-                                <p className="mb-3 text-xs text-gray-400">
+                                    <span className="text-xs text-[#8C2F39]">
+                                        {showColorSizes ? "· ocultar" : "· ajustar"}
+                                    </span>
+                                    <ChevronDown
+                                        size={14}
+                                        className={`ml-auto text-gray-400 transition-transform ${showColorSizes ? "rotate-180" : ""}`}
+                                    />
+                                </button>
+
+                                {showColorSizes && (
+                                <>
+                                <p className="mb-3 mt-2 text-xs text-gray-400">
                                     Os tamanhos acima são o padrão. Aqui, desmarque os
                                     que <strong>não existem</strong> em cada cor — o GERAR
                                     respeita e não cria a variação desmarcada.
@@ -1127,6 +1127,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                         );
                                     })}
                                 </div>
+                                </>
+                                )}
                             </div>
                         )}
 
@@ -1630,12 +1632,25 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         ownChart={editing.size_chart}
                     />
 
-                    {/* ── SEO ── */}
+                    {/* ── SEO (colapsado por padrão) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
+                        <button
+                            type="button"
+                            onClick={() => setShowSeo((v) => !v)}
+                            className="flex w-full items-center gap-2 text-left font-semibold text-gray-700"
+                        >
                             <Globe size={16} /> Otimização para busca (SEO)
-                        </h3>
+                            <span className="text-xs font-normal text-[#8C2F39]">
+                                {showSeo ? "· ocultar" : "· editar"}
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`ml-auto text-gray-400 transition-transform ${showSeo ? "rotate-180" : ""}`}
+                            />
+                        </button>
 
+                        {showSeo && (
+                        <div className="mt-4">
                         <p className="mb-1 text-xs font-medium text-gray-500">
                             Visualização do resultado da busca
                         </p>
@@ -1714,6 +1729,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 </p>
                             </div>
                         </div>
+                        </div>
+                        )}
                     </section>
                 </div>
             </div>
@@ -1735,146 +1752,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                     {saving ? "Salvando..." : "Salvar Produto"}
                 </button>
             </div>
-
-            {/* ── SIDEBAR: ADICIONAR OPÇÕES (estilo Tray) ── */}
-            {picker !== null && (
-                <div className="fixed inset-0 z-50">
-                    <div className="absolute inset-0 bg-black/40" onClick={closePicker} />
-                    <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl">
-                        {/* header */}
-                        <div className="flex items-center justify-between border-b px-5 py-4">
-                            <h4 className="font-semibold text-gray-800">
-                                Adicionar: Tamanho
-                            </h4>
-                            <button
-                                type="button"
-                                onClick={closePicker}
-                                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        {/* conteúdo em 2 colunas */}
-                        <div className="flex flex-1 overflow-hidden">
-                            {/* coluna esquerda: busca + lista */}
-                            <div className="flex flex-1 flex-col border-r">
-                                <div className="border-b px-5 py-3">
-                                    <div className="relative">
-                                        <Search
-                                            size={15}
-                                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={pickerSearch}
-                                            onChange={(e) => setPickerSearch(e.target.value)}
-                                            autoFocus
-                                            className="input"
-                                            style={{ paddingLeft: "2.25rem" }}
-                                            placeholder="Nome do tamanho"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex-1 overflow-y-auto px-5 py-2">
-                                    {sizeList.length === 0 ? (
-                                        <p className="py-6 text-center text-sm text-gray-400">
-                                            Nenhum tamanho encontrado.
-                                        </p>
-                                    ) : (
-                                        sizeList.map((size) => {
-                                            const isSelected = sizes.includes(size);
-                                            return (
-                                                <div
-                                                    key={size}
-                                                    className="flex items-center justify-between gap-3 border-b border-gray-50 py-2.5"
-                                                >
-                                                    <div className="flex min-w-0 items-center gap-3">
-                                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-gray-50 text-xs font-semibold text-gray-600">
-                                                            {size}
-                                                        </span>
-                                                        <span className="truncate text-sm text-gray-700">
-                                                            Tamanho {size}
-                                                        </span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleSize(size)}
-                                                        disabled={isSelected}
-                                                        className={`shrink-0 rounded-lg border px-4 py-1.5 text-xs font-medium transition-colors ${isSelected
-                                                            ? "cursor-default border-gray-200 text-gray-300"
-                                                            : "border-[#8C2F39] text-[#8C2F39] hover:bg-red-50/40"
-                                                            }`}
-                                                    >
-                                                        {isSelected ? "Selecionado" : "Selecionar"}
-                                                    </button>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* coluna direita: itens selecionados */}
-                            <div className="flex w-72 shrink-0 flex-col">
-                                <div className="border-b px-5 py-3">
-                                    <h5 className="text-sm font-semibold text-gray-700">
-                                        Itens selecionados
-                                    </h5>
-                                </div>
-                                <div className="flex-1 overflow-y-auto px-5 py-2">
-                                    {sizes.length === 0 ? (
-                                        <p className="py-4 text-sm text-gray-400">
-                                            Nenhuma opção selecionada.
-                                        </p>
-                                    ) : (
-                                        sizes.map((size) => (
-                                            <div
-                                                key={size}
-                                                className="flex items-center justify-between gap-2 border-b border-gray-50 py-2"
-                                            >
-                                                <div className="flex min-w-0 items-center gap-2">
-                                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border bg-gray-50 text-[10px] font-semibold text-gray-600">
-                                                        {size}
-                                                    </span>
-                                                    <span className="truncate text-sm text-gray-700">
-                                                        Tamanho {size}
-                                                    </span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleSize(size)}
-                                                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                                                >
-                                                    <X size={13} />
-                                                </button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* footer */}
-                        <div className="flex items-center justify-between border-t px-5 py-3">
-                            <button
-                                type="button"
-                                onClick={closePicker}
-                                className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={closePicker}
-                                className="rounded-lg bg-[#8C2F39] px-5 py-2 text-sm font-semibold text-white hover:bg-[#7a2832]"
-                            >
-                                Adicionar
-                            </button>
-                        </div>
-                    </aside>
-                </div>
-            )}
 
             <style>
                 {
