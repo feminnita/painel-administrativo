@@ -370,12 +370,16 @@ export function useProductsAdmin() {
   // Cria (ou reaproveita) uma cor no mestre a partir do nome digitado no próprio
   // produto. O backend dedupa por normalizado e devolve a cor canônica; aqui só
   // fazemos o upsert na lista local (por id) e devolvemos a cor pra vincular.
-  const createColor = async (name: string): Promise<Color | null> => {
+  const createColor = async (
+    name: string,
+    force = false,
+  ): Promise<Color | null> => {
     const trimmed = name.trim();
     if (!trimmed) return null;
     try {
       const created = await api.post<Record<string, any>>("/api/admin/colors", {
         name: trimmed,
+        force,
       });
       const color = mapApiColor(created);
       setProductColors((prev) =>

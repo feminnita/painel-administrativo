@@ -190,17 +190,21 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const colorExact = colorQn
         ? productColors.find((c) => normColor(c.name) === colorQn)
         : undefined;
-    const canCreateColor = colorQ.length > 0 && !colorExact;
+    // "Criar 'X'" SEMPRE disponível (mesmo com nome existindo em outro produto):
+    // as sugestões deixam COMPARTILHAR a cor do mestre; o "Criar" faz uma cor
+    // DISTINTA deste produto (foto própria), pra não ficar presa à de outro.
+    const canCreateColor = colorQ.length > 0;
 
     const selectColor = (name: string) => {
         if (!colors.includes(name)) toggleColor(name);
         setColorQuery("");
     };
     const handleCreateColor = async () => {
-        const created = await createColor(colorQ);
+        // force = cria distinta mesmo se o nome já existir (a cliente clicou "Criar").
+        const created = await createColor(colorQ, true);
         if (created) selectColor(created.name);
     };
-    // Enter: casa exato → vincula à canônica; senão → cria na hora.
+    // Enter: casa exato → vincula à cor existente (compartilha); senão → cria.
     const onColorQueryKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
@@ -718,6 +722,16 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </button>
                         </div>
 
+                        {(colors.length === 0 || sizes.length === 0) && (
+                            <p className="mb-4 -mt-2 text-xs text-amber-600">
+                                {colors.length === 0 && sizes.length === 0
+                                    ? "Selecione pelo menos uma cor e um tamanho para gerar as variações."
+                                    : colors.length === 0
+                                        ? "Selecione pelo menos uma cor para gerar as variações."
+                                        : "Selecione pelo menos um tamanho para gerar as variações."}
+                            </p>
+                        )}
+
                         {/* característica primária: cor */}
                         <div className="rounded-lg border border-gray-100 p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
@@ -830,7 +844,14 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                     className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2.5 text-left text-sm font-medium text-[#8C2F39] hover:bg-red-50/40"
                                                 >
                                                     <Plus size={15} className="shrink-0" />
-                                                    Criar “{colorQ}”
+                                                    <span>
+                                                        Criar “{colorQ}”
+                                                        {colorExact && (
+                                                            <span className="ml-1 text-xs font-normal text-gray-400">
+                                                                (nova cor só deste produto)
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </button>
                                             )}
 
