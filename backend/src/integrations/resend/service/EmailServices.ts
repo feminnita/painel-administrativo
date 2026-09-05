@@ -13,6 +13,22 @@ function escapeHtml(value: string): string {
         .replace(/"/g, '&quot;');
 }
 
+export async function sendAdminPasswordReset(data: { to: string; resetUrl: string }) {
+    await EmailClient.sendEmail({
+        to: data.to,
+        subject: 'Redefinição de senha - Painel Feminnita',
+        html: `
+        <h2>Redefinição de senha</h2>
+        <p>Recebemos um pedido para redefinir a senha do seu acesso ao painel administrativo da Feminnita.</p>
+        <p>Clique no link abaixo para cadastrar uma nova senha. Ele é válido por <strong>30 minutos</strong> e pode ser usado uma única vez.</p>
+        <p><a href="${escapeHtml(data.resetUrl)}" style="display:inline-block;padding:12px 20px;background:#8C2F39;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;">Redefinir minha senha</a></p>
+        <p style="font-size:12px;color:#666;">Se o botão não funcionar, copie e cole este endereço no navegador:<br>${escapeHtml(data.resetUrl)}</p>
+        <p>Se não foi você que solicitou, ignore este e-mail — sua senha continua a mesma.</p>
+        <p>— Equipe Feminnita</p>
+      `,
+    });
+}
+
 export async function sendOrderReceived(data: OrderEmailData) {
     try {
         await EmailClient.sendEmail({

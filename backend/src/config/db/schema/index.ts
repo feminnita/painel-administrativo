@@ -6,6 +6,7 @@ export * from './product/product-colors';
 export * from './product/product-skus';
 //
 export * from './users/admin';
+export * from './users/password-reset';
 export * from './users/customers';
 export * from './users/addresses';
 //

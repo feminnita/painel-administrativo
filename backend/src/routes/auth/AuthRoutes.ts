@@ -20,3 +20,5 @@ export const adminAuthRoutes = Router();
 adminAuthRoutes.post('/login', loginLimiter, AuthController.login);
 adminAuthRoutes.post('/logout', AuthController.logout);
 adminAuthRoutes.get('/me', loginLimiter, requireAdminAuth, AuthController.me);
+adminAuthRoutes.post('/forgot-password', loginLimiter, AuthController.forgotPassword);
+adminAuthRoutes.post('/reset-password', loginLimiter, AuthController.resetPassword);

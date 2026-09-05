@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "@/auth/LoginPage";
+import { ForgotPasswordPage } from "@/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/auth/ResetPasswordPage";
 import { ProtectedRoute } from "@/components/ProtectedRouter";
 import { AdminLayout } from "@/components/AdminLayout";
 import { DashboardPage } from "@/pages/dashboard/ui/DashboardPage";
@@ -30,6 +32,8 @@ export default function App() {
     <ConfirmProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
