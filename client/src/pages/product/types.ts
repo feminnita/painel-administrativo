@@ -22,6 +22,7 @@ export type AdminProduct = {
   featured: boolean;
   is_new: boolean;
   is_bestseller: boolean;
+  is_outlet: boolean;
   images: string[];
   video_url: string | null;
   weight_kg: number | null;
