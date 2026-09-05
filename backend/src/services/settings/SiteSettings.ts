@@ -9,6 +9,7 @@ export const ALLOWED_KEYS = [
     'home_section_categories',
     'shipping_config',
     'size_charts',
+    'resale_term',
 ] as const;
 
 export function listSettings() {

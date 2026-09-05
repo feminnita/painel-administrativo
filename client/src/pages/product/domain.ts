@@ -42,6 +42,46 @@ export function filterAndSortProducts(
     });
 }
 
+/**
+ * Converte o texto de um campo numerico (padrao BR) em numero.
+ * - Se houver virgula: trata a virgula como decimal e remove pontos de milhar
+ *   ("49,90" -> 49.9, "1.234,50" -> 1234.5).
+ * - Se NAO houver virgula: usa como esta ("49.90" -> 49.9, "49" -> 49) para nao
+ *   quebrar quem digita ponto como decimal.
+ * - Vazio/invalido -> null (nunca vira 0 ou um numero errado silenciosamente).
+ */
+export function parseDecimal(value: string): number | null {
+    const v = value.trim();
+    if (!v) return null;
+    const norm = v.includes(",") ? v.replace(/\./g, "").replace(",", ".") : v;
+    const n = Number.parseFloat(norm);
+    return Number.isFinite(n) ? n : null;
+}
+
+const LETTER_SIZE_ORDER = ["PP", "P", "M", "G", "GG", "XG", "XGG", "XXG", "XXGG"];
+
+/** Rank de tamanho de vestuario: letras (PP..XGG) primeiro, numericos crescentes depois. */
+export function sizeRank(raw: string): number {
+    const s = String(raw ?? "").trim().toUpperCase();
+    const idx = LETTER_SIZE_ORDER.indexOf(s);
+    if (idx !== -1) return idx;
+    const n = Number.parseInt(s, 10);
+    if (Number.isFinite(n)) return 1000 + n;
+    return 5000;
+}
+
+/**
+ * NormalizaÃ§Ã£o de nome de cor â€” mesma norma da reconciliaÃ§Ã£o. Usada para casar
+ * o que a cliente digita com o mestre de cores (ignora acento, caixa e espaÃ§o).
+ */
+export function normColor(s: string): string {
+    return s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+}
+
 export function slugify(text: string): string {
     return text
         .toLowerCase()
@@ -58,12 +98,18 @@ export function emptyProduct(): ProductInput {
         slug: "",
         description: "",
         code: "",
+        reference: null,
+        brand: null,
         category_id: null,
         base_price: 0,
+        cost_price: null,
         pix_price: null,
         sale_price: null,
+        sale_start: null,
+        sale_end: null,
         stock: 0,
         active: true,
+        visible_in_store: true,
         featured: false,
         is_new: true,
         is_bestseller: false,
@@ -95,9 +141,14 @@ export function buildProductPayload(
         slug: form.slug || slugify(form.name),
         description: form.description || null,
         code: form.code || null,
+        reference: form.reference || null,
+        brand: form.brand || null,
         category_id: form.category_id || null,
+        cost_price: form.cost_price || null,
         pix_price: form.pix_price || null,
         sale_price: form.sale_price || null,
+        sale_start: form.sale_start || null,
+        sale_end: form.sale_end || null,
         images,
         video_url: form.video_url || null,
         colors: form.colors || [],

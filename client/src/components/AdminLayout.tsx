@@ -5,6 +5,7 @@ import {
     BarChart2, BookOpen, Camera, ChevronRight, Image, LayoutDashboard,
     LayoutGrid, Link2, LogOut, Mail, Megaphone, Menu, Package, Palette, Ruler, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, Users2, X, Zap,
+    FileText,
 } from "lucide-react";
 
 type NavLeaf = { href: string; label: string; icon: typeof Package };
@@ -60,6 +61,7 @@ const navItems: NavEntry[] = [
         children: [
             { href: "/frete", label: "Frete", icon: Truck },
             { href: "/tabela-medidas", label: "Tabela de Medidas", icon: Ruler },
+            { href: "/termo-revenda", label: "Termo de Revenda", icon: FileText },
             { href: "/integracoes", label: "Integrações", icon: Zap },
             { href: "/reconciliar-bling", label: "Reconciliar Bling", icon: Link2 },
         ],

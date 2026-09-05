@@ -20,6 +20,7 @@ import { VisitasPage } from "./pages/visitas/ui/VisitasPage";
 import { FretePage } from "./pages/frete/ui/FretePage";
 import { ReconcilePage } from "./pages/reconcile/ui/ReconcilePage";
 import { SizeChartsPage } from "./pages/tabela-medidas/ui/SizeChartsPage";
+import { ResaleTermPage } from "./pages/resale-term/ui/ResaleTermPage";
 import { ConfirmProvider } from "./components/confirm/ConfirmProvider";
 
 
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/frete" element={<FretePage />} />
             <Route path="/tabela-medidas" element={<SizeChartsPage />} />
             <Route path="/reconciliar-bling" element={<ReconcilePage />} />
+            <Route path="/termo-revenda" element={<ResaleTermPage />} />
             <Route path="*" element={<UnderConstructionPage />} />
           </Route>
         </Route>
