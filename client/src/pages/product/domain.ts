@@ -100,6 +100,7 @@ export function emptyProduct(): ProductInput {
         featured: false,
         is_new: true,
         is_bestseller: false,
+        is_outlet: false,
         images: [],
         video_url: null,
         weight_kg: 0.3,

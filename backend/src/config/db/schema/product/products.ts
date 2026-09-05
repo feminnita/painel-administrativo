@@ -16,6 +16,7 @@ export const products = pgTable('products', {
   featured: boolean('featured').default(false),
   isNew: boolean('is_new').default(false),
   isBestseller: boolean('is_bestseller').default(false),
+  isOutlet: boolean('is_outlet').default(false),
   images: jsonb('images').$type<string[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),

@@ -59,7 +59,12 @@ export function useProductsAdmin() {
     load();
   }, [load]);
 
-  const categoryTree = useMemo(() => buildTree(categoryRows), [categoryRows]);
+  // Picker de categoria do produto: só categorias ATIVAS. As 3 marcadoras
+  // (Lançamentos / Mais Vendidos / Outlet) estão inativas -> saem da árvore.
+  const categoryTree = useMemo(
+    () => buildTree(categoryRows.filter((r) => r.active)),
+    [categoryRows],
+  );
   const categories = useMemo(
     () => listGrandchildCategories(categoryRows),
     [categoryRows],
