@@ -7,7 +7,15 @@ function normalizePrice(value: unknown): string | null | undefined {
     return Number(value).toFixed(2);
 }
 
-const PRICE_FIELDS = ['basePrice', 'pixPrice', 'salePrice', 'weightKg', 'pkgHeightCm', 'pkgWidthCm', 'pkgLengthCm'];
+const PRICE_FIELDS = ['basePrice', 'pixPrice', 'salePrice', 'costPrice', 'weightKg', 'pkgHeightCm', 'pkgWidthCm', 'pkgLengthCm'];
+const DATE_FIELDS = ['saleStart', 'saleEnd'];
+
+function normalizeDate(value: unknown): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+    const d = new Date(value as string);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
 
 export async function list(req: Request, res: Response) {
     res.json(await ProductService.listProducts());
@@ -28,6 +36,9 @@ export async function saveFull(req: Request, res: Response) {
         const product: Record<string, unknown> = { ...req.body.product };
         for (const field of PRICE_FIELDS) {
             if (field in product) product[field] = normalizePrice(product[field]);
+        }
+        for (const field of DATE_FIELDS) {
+            if (field in product) product[field] = normalizeDate(product[field]);
         }
         delete product.id;
         delete product.createdAt;

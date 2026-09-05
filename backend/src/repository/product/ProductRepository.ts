@@ -1,10 +1,20 @@
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { products, productsSkus, productsColors, productColorImages } from '../../config/db/schema';
+import { products, productsSkus, productsColors, productColorImages, orderItems } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
 
 type ProductInsert = typeof products.$inferInsert;
-type SkuGridItem = { size: string; color: string | null; stockQty: number };
+type SkuGridItem = {
+    size: string;
+    color: string | null;
+    price?: string | null;
+    salePrice?: string | null;
+    saleStart?: Date | null;
+    saleEnd?: Date | null;
+    reference?: string | null;
+    minStock?: number | null;
+    active?: boolean;
+};
 type ColorImagesItem = { color: string; images: string[] };
 
 export function findAll() {
@@ -66,21 +76,40 @@ export async function saveProductWithRelations(
 
         const keptSkuIds: string[] = [];
         for (const item of skus) {
+            // stockQty NUNCA e gravado pelo painel: fonte e o StockHub. Novos SKUs
+            // nascem com o default 0 e o upsert nunca toca stock_qty.
             const [row] = await tx
                 .insert(productsSkus)
                 .values({
                     productId: savedId,
                     size: normalizeSize(item.size),
                     colorId: item.color ? colorIdByName.get(item.color)! : null,
-                    stockQty: item.stockQty,
+                    price: item.price ?? null,
+                    salePrice: item.salePrice ?? null,
+                    saleStart: item.saleStart ?? null,
+                    saleEnd: item.saleEnd ?? null,
+                    reference: item.reference ?? null,
+                    minStock: item.minStock ?? 0,
+                    active: item.active ?? true,
                 })
                 .onConflictDoUpdate({
                     target: [productsSkus.productId, productsSkus.size, productsSkus.colorId],
-                    set: { stockQty: item.stockQty, updatedAt: new Date() },
+                    set: {
+                        price: item.price ?? null,
+                        salePrice: item.salePrice ?? null,
+                        saleStart: item.saleStart ?? null,
+                        saleEnd: item.saleEnd ?? null,
+                        reference: item.reference ?? null,
+                        minStock: item.minStock ?? 0,
+                        active: item.active ?? true,
+                        updatedAt: new Date(),
+                    },
                 })
                 .returning({ id: productsSkus.id });
             keptSkuIds.push(row.id);
         }
+        // Variacoes retiradas da grade: com pedido -> desativa (historico intacto);
+        // sem pedido -> apaga. Nunca apaga cego.
         const removedSkus = await tx.query.productsSkus.findMany({
             where: and(
                 eq(productsSkus.productId, savedId),
@@ -88,13 +117,18 @@ export async function saveProductWithRelations(
             ),
         });
         for (const orphan of removedSkus) {
-            try {
-                await tx.delete(productsSkus).where(eq(productsSkus.id, orphan.id));
-            } catch {
+            const [used] = await tx
+                .select({ id: orderItems.id })
+                .from(orderItems)
+                .where(eq(orderItems.skuId, orphan.id))
+                .limit(1);
+            if (used) {
                 await tx
                     .update(productsSkus)
-                    .set({ stockQty: 0, updatedAt: new Date() })
+                    .set({ active: false, updatedAt: new Date() })
                     .where(eq(productsSkus.id, orphan.id));
+            } else {
+                await tx.delete(productsSkus).where(eq(productsSkus.id, orphan.id));
             }
         }
 
