@@ -1503,8 +1503,19 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 value={selectedCategoryFilhoId || ""}
                                 disabled={!selectedCategoryPaiId}
                                 onChange={(e) => {
-                                    setSelectedCategoryFilhoId(e.target.value || null);
-                                    setEditing({ ...editing, category_id: null });
+                                    const filhoId = e.target.value || null;
+                                    setSelectedCategoryFilhoId(filhoId);
+                                    // Se a subcategoria NÃO tem netos, ela É a folha: grava
+                                    // category_id = filho (categoria completa em 2 níveis).
+                                    // Se tem netos, zera pra exigir a específica (3º nível).
+                                    const filho = categoryTree
+                                        .find((p) => p.id === selectedCategoryPaiId)
+                                        ?.children.find((f) => f.id === filhoId);
+                                    const temNetos = (filho?.children?.length ?? 0) > 0;
+                                    setEditing({
+                                        ...editing,
+                                        category_id: temNetos ? null : filhoId,
+                                    });
                                 }}
                                 className="input disabled:bg-gray-50 disabled:text-gray-400"
                             >
@@ -1519,29 +1530,36 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 ))}
                             </select>
 
-                            <select
-                                value={editing.category_id || ""}
-                                disabled={!selectedCategoryFilhoId}
-                                onChange={(e) =>
-                                    setEditing({
-                                        ...editing,
-                                        category_id: e.target.value || null,
-                                    })
-                                }
-                                className="input disabled:bg-gray-50 disabled:text-gray-400"
-                            >
-                                <option value="">— Específica —</option>
-                                {(
+                            {/* 3º nível ("Específica") só aparece/é exigido quando a
+                                subcategoria escolhida TEM netos (ex.: Plus Size). Sem
+                                netos (ex.: Camisola), a categoria está completa em 2 níveis. */}
+                            {(() => {
+                                const netos =
                                     categoryTree
                                         .find((p) => p.id === selectedCategoryPaiId)
                                         ?.children.find((f) => f.id === selectedCategoryFilhoId)
-                                        ?.children ?? []
-                                ).map((neto) => (
-                                    <option key={neto.id} value={neto.id}>
-                                        {neto.name}
-                                    </option>
-                                ))}
-                            </select>
+                                        ?.children ?? [];
+                                if (netos.length === 0) return null;
+                                return (
+                                    <select
+                                        value={editing.category_id || ""}
+                                        onChange={(e) =>
+                                            setEditing({
+                                                ...editing,
+                                                category_id: e.target.value || null,
+                                            })
+                                        }
+                                        className="input"
+                                    >
+                                        <option value="">— Específica —</option>
+                                        {netos.map((neto) => (
+                                            <option key={neto.id} value={neto.id}>
+                                                {neto.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                );
+                            })()}
                         </div>
                     </section>
 
@@ -1554,7 +1572,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
                     {/* ── APRESENTAÇÃO (SELOS) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 font-semibold text-gray-700">Apresentação</h3>
+                        <h3 className="mb-4 font-semibold text-gray-700">Marcadores</h3>
                         <div className="space-y-4">
                             {badges.map(({ key, label, desc, icon: Icon }) => {
                                 const val = editing[key as keyof typeof editing] as boolean;
