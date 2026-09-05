@@ -103,6 +103,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         getVariations,
         updateVariation,
         generateVariations,
+        getColorSizes,
+        toggleColorSize,
         addVariation,
         deleteVariation,
         toggleSize,
@@ -728,7 +730,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     const n = generateVariations();
                                     setExpanded(new Set(colors));
                                     setGenMsg(
-                                        `Grade gerada: ${n} variações (${colors.length} ${colors.length === 1 ? "cor" : "cores"} × ${sizes.length} ${sizes.length === 1 ? "tamanho" : "tamanhos"}) — confira na lista abaixo.`,
+                                        `Grade gerada: ${n} ${n === 1 ? "variação" : "variações"} (tamanhos por cor) — confira na lista abaixo.`,
                                     );
                                 }}
                                 disabled={colors.length === 0 || sizes.length === 0}
@@ -947,6 +949,63 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 </div>
                             )}
                         </div>
+
+                        {/* ── TAMANHO POR COR ──
+                            O bloco acima é o PADRÃO do produto. Aqui a dona ajusta,
+                            por cor, quais tamanhos REALMENTE existem: desmarcar um
+                            chip faz o GERAR não criar aquele tamanho naquela cor. */}
+                        {colors.length > 0 && sizes.length > 0 && (
+                            <div className="mt-4 rounded-lg border border-gray-100 p-4">
+                                <div className="mb-1 flex items-center gap-2">
+                                    <Ruler size={15} className="text-gray-400" />
+                                    <p className="text-sm font-semibold text-gray-700">
+                                        Tamanho por cor
+                                    </p>
+                                </div>
+                                <p className="mb-3 text-xs text-gray-400">
+                                    Os tamanhos acima são o padrão. Aqui, desmarque os
+                                    que <strong>não existem</strong> em cada cor — o GERAR
+                                    respeita e não cria a variação desmarcada.
+                                </p>
+
+                                <div className="space-y-2">
+                                    {colors.map((color) => {
+                                        const active = getColorSizes(color);
+                                        return (
+                                            <div
+                                                key={color}
+                                                className="flex flex-col gap-2 rounded-lg bg-gray-50 p-2.5 sm:flex-row sm:items-center sm:gap-3"
+                                            >
+                                                <span className="shrink-0 text-sm font-medium text-gray-700 sm:w-32 sm:truncate">
+                                                    {color}
+                                                </span>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {sizes.map((size) => {
+                                                        const on = active.includes(size);
+                                                        return (
+                                                            <button
+                                                                key={size}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    toggleColorSize(color, size)
+                                                                }
+                                                                className={
+                                                                    on
+                                                                        ? "rounded-full border border-[#8C2F39] bg-[#8C2F39] px-3 py-1 text-xs font-semibold text-white"
+                                                                        : "rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-400 line-through hover:border-gray-300"
+                                                                }
+                                                            >
+                                                                {size}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                     </section>
 

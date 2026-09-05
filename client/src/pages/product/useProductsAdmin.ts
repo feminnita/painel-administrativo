@@ -7,6 +7,15 @@ import { mapApiCategory, mapApiColor, mapApiProduct, toApiProduct } from "./mapp
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import type { AdminProduct, Color, ColorImages, ProductInput, ProductSortKey, Sku } from "./types";
 
+// Normalização usada como CHAVE de cor em toda a grade (generate, colorSizes):
+// minúsculo, sem acento, só [a-z0-9]. "Azul" casa com o legacy "AZUL".
+const norm = (s: string) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
 export function useProductsAdmin() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categoryRows, setCategoryRows] = useState<CategoryRow[]>([]);
@@ -20,6 +29,9 @@ export function useProductsAdmin() {
   const [saving, setSaving] = useState(false);
   const [imagesInput, setImagesInput] = useState("");
   const [skus, setSkus] = useState<Sku[]>([]);
+  // Tamanho POR COR: override por cor (chave = cor normalizada) dos tamanhos que
+  // EXISTEM naquela cor. Ausência da chave = usa o padrão do produto (editing.sizes).
+  const [colorSizes, setColorSizes] = useState<Record<string, string[]>>({});
   const [uploading, setUploading] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "inactive">(
@@ -184,6 +196,7 @@ export function useProductsAdmin() {
     setEditing(emptyProduct());
     setImagesInput("");
     setSkus([]);
+    setColorSizes({});
     setColorImages([]);
     setSelectedCategoryPaiId(null);
     setSelectedCategoryFilhoId(null);
@@ -205,22 +218,32 @@ export function useProductsAdmin() {
     ]);
 
     const colorNameById = new Map(productColors.map((c) => [c.id, c.name]));
-    setSkus(
-      skuRows.map((s) => ({
-        id: s.id,
-        size: s.size,
-        color: s.colorId ? (colorNameById.get(s.colorId) ?? "") : "",
-        stock_qty: s.stockQty ?? 0,
-        price: s.price == null ? null : Number(s.price),
-        sale_price: s.salePrice == null ? null : Number(s.salePrice),
-        sale_start: s.saleStart ?? null,
-        sale_end: s.saleEnd ?? null,
-        reference: s.reference ?? null,
-        min_stock: s.minStock ?? 0,
-        active: s.active ?? true,
-        has_orders: s.hasOrders ?? false,
-      })),
-    );
+    const loadedSkus: Sku[] = skuRows.map((s) => ({
+      id: s.id,
+      size: s.size,
+      color: s.colorId ? (colorNameById.get(s.colorId) ?? "") : "",
+      stock_qty: s.stockQty ?? 0,
+      price: s.price == null ? null : Number(s.price),
+      sale_price: s.salePrice == null ? null : Number(s.salePrice),
+      sale_start: s.saleStart ?? null,
+      sale_end: s.saleEnd ?? null,
+      reference: s.reference ?? null,
+      min_stock: s.minStock ?? 0,
+      active: s.active ?? true,
+      has_orders: s.hasOrders ?? false,
+    }));
+    setSkus(loadedSkus);
+    // Inicializa o override de tamanho POR COR a partir dos SKUs carregados: para
+    // cada cor (normalizada), os tamanhos DISTINTOS que já têm SKU. Reabrir o 29800
+    // mostra Rosa só com G/GG (as cores que ela apagou não voltam).
+    const cs: Record<string, string[]> = {};
+    for (const s of loadedSkus) {
+      if (!s.color) continue;
+      const key = norm(s.color);
+      if (!cs[key]) cs[key] = [];
+      if (!cs[key].includes(s.size)) cs[key].push(s.size);
+    }
+    setColorSizes(cs);
     setColorImages(colorImageData);
   };
 
@@ -295,20 +318,35 @@ export function useProductsAdmin() {
   // vínculo Bling; só CRIA os combos que ainda não existem. O save é ADITIVO no
   // backend, então SKUs fora da grade (ex.: cor com grafia divergente) não são
   // apagados — a Chris consolida no recadastro.
+  // Tamanhos que EXISTEM naquela cor: o override (colorSizes) se DEFINIDO, senão o
+  // padrão do produto (editing.sizes). Cor sem override herda o padrão.
+  const getColorSizes = (color: string): string[] => {
+    const override = colorSizes[norm(color)];
+    return override !== undefined ? override : editing?.sizes || [];
+  };
+
+  // Liga/desliga um tamanho SÓ naquela cor. Se ainda não há override, começa do
+  // padrão do produto e vira override daquela cor a partir daí.
+  const toggleColorSize = (color: string, size: string) => {
+    const key = norm(color);
+    setColorSizes((prev) => {
+      const base = prev[key] !== undefined ? prev[key] : editing?.sizes || [];
+      const next = base.includes(size)
+        ? base.filter((s) => s !== size)
+        : [...new Set([...base, size])];
+      return { ...prev, [key]: next };
+    });
+  };
+
   const generateVariations = (): number => {
     if (!editing) return 0;
     const cols = [...new Set(editing.colors || [])];
-    const szs = [...new Set(editing.sizes || [])];
-    const norm = (s: string) =>
-      (s || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9]/g, '');
     const existing = new Map(skus.map((s) => [`${norm(s.color)}__${norm(s.size)}`, s]));
     const grid: Sku[] = [];
+    // POR COR: itera os tamanhos que existem NAQUELA cor (override ou padrão), não
+    // a grade cheia. Assim Rosa só gera G/GG e não cria M pra apagar depois.
     for (const color of cols)
-      for (const size of szs) {
+      for (const size of [...new Set(getColorSizes(color))]) {
         const found = existing.get(`${norm(color)}__${norm(size)}`);
         grid.push(found ?? newSku(color, size));
       }
@@ -614,6 +652,9 @@ export function useProductsAdmin() {
     getVariations,
     updateVariation,
     generateVariations,
+    colorSizes,
+    getColorSizes,
+    toggleColorSize,
     addVariation,
     deleteVariation,
     toggleSize,
