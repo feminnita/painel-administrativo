@@ -124,6 +124,12 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const [addColor, setAddColor] = useState("");
     const [addSize, setAddSize] = useState("");
     const [genMsg, setGenMsg] = useState("");
+    // Cores: paredão colapsado por padrão — só o resumo aparece; chips (com X)
+    // só quando a dona clica em "ver e editar". Produtos com 105/113 cores não
+    // enchem meia tela mais.
+    const [showColors, setShowColors] = useState(false);
+    // "+ adicionar variação" discreto na lista (substitui o bloco solto do rodapé).
+    const [addingVar, setAddingVar] = useState(false);
 
     // Aviso ao sair com o formulário aberto (fechar/atualizar a aba).
     useEffect(() => {
@@ -199,11 +205,25 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     // DISTINTA deste produto (foto própria), pra não ficar presa à de outro.
     const canCreateColor = colorQ.length > 0;
 
+    // DE-DUP por normalização (lowercase + NFD sem acento + alfanumérico — a MESMA
+    // do generate/loja): se já existe no produto uma cor equivalente (ex.: "Rosa"
+    // vs "ROSA"), reusa a existente em vez de criar outra bolinha.
+    const findEquivColor = (name: string): string | undefined => {
+        const key = normColor(name);
+        return colors.find((c) => normColor(c) === key);
+    };
     const selectColor = (name: string) => {
-        if (!colors.includes(name)) toggleColor(name);
+        // Só adiciona se não houver equivalente por normalização já no produto.
+        if (!findEquivColor(name)) toggleColor(name);
         setColorQuery("");
     };
     const handleCreateColor = async () => {
+        // Se já existe equivalente por normalização neste produto, não cria dup —
+        // usa a que já está (loja não mostra duas bolinhas pra mesma cor).
+        if (findEquivColor(colorQ)) {
+            setColorQuery("");
+            return;
+        }
         // force = cria distinta mesmo se o nome já existir (a cliente clicou "Criar").
         const created = await createColor(colorQ, true);
         if (created) selectColor(created.name);
@@ -718,6 +738,88 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         </div>
                     </section>
 
+                    {/* ── PESO E DIMENSÕES (só no pai) ──
+                        Atributo do PRODUTO — fica no topo, junto de preço/descrição,
+                        não depois de todas as variações. */}
+                    <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
+                            <Weight size={16} /> Peso e dimensões
+                        </h3>
+                        <p className="mb-4 text-xs text-gray-400">
+                            Usado para calcular o frete via Melhor Envio
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                            <div>
+                                <label className="label">Peso (kg)</label>
+                                <input
+                                    type="number"
+                                    step="0.001"
+                                    min="0"
+                                    value={editing.weight_kg ?? ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            weight_kg: parseDecimal(e.target.value),
+                                        })
+                                    }
+                                    className="input"
+                                    placeholder="0.300"
+                                />
+                            </div>
+                            <div>
+                                <label className="label">Altura (cm)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    value={editing.pkg_height_cm ?? ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            pkg_height_cm: parseDecimal(e.target.value),
+                                        })
+                                    }
+                                    className="input"
+                                    placeholder="5"
+                                />
+                            </div>
+                            <div>
+                                <label className="label">Largura (cm)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    value={editing.pkg_width_cm ?? ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            pkg_width_cm: parseDecimal(e.target.value),
+                                        })
+                                    }
+                                    className="input"
+                                    placeholder="15"
+                                />
+                            </div>
+                            <div>
+                                <label className="label">Comprimento (cm)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    value={editing.pkg_length_cm ?? ""}
+                                    onChange={(e) =>
+                                        setEditing({
+                                            ...editing,
+                                            pkg_length_cm: parseDecimal(e.target.value),
+                                        })
+                                    }
+                                    className="input"
+                                    placeholder="20"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     {/* ── DEFINIÇÃO DE VARIAÇÕES (Cor + Tamanho) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-center justify-between gap-3">
@@ -778,7 +880,28 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </div>
 
                             <div className="space-y-3">
+                                {/* RESUMO: em vez de despejar todas as bolinhas
+                                    (105/113 cores enchem a tela), mostra uma linha
+                                    e revela os chips só no "ver e editar". */}
                                 {colors.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowColors((v) => !v)}
+                                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#8C2F39]"
+                                    >
+                                        <span className="font-medium">
+                                            {colors.length} cor{colors.length > 1 ? "es" : ""} selecionada{colors.length > 1 ? "s" : ""}
+                                        </span>
+                                        <span className="text-xs text-[#8C2F39]">
+                                            {showColors ? "· ocultar" : "· ver e editar"}
+                                        </span>
+                                        <ChevronDown
+                                            size={14}
+                                            className={`text-gray-400 transition-transform ${showColors ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                )}
+                                {colors.length > 0 && showColors && (
                                 <div className="flex flex-wrap gap-2">
                                     {colors.map((name) => {
                                         const c = colorByName.get(name);
@@ -1162,15 +1285,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
                                                     {/* um bloco por tamanho */}
                                                     {skus.map((sku) => {
-                                                        const skuPct = discountPct(
-                                                            sku.price ?? editing.base_price,
-                                                            sku.sale_price,
-                                                        );
-                                                        // Promoção da variação HERDA a do produto: enquanto
-                                                        // sale_price da variação for null, vale o promo do pai
-                                                        // (preço + janela). Só vira override se a dona digitar
-                                                        // aqui — igual ao "preço de venda", que herda o base.
-                                                        const varOverride = sku.sale_price != null;
+                                                        // Promoção é do PRODUTO inteiro (nível de cima) — a
+                                                        // variação herda; o campo de sale por SKU saiu da UI.
                                                         return (
                                                             <div
                                                                 key={sku.size}
@@ -1263,94 +1379,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                         {sku.stock_qty}
                                                                     </span>
                                                                 </div>
-
-                                                                {/* promoção da variação — HERDA do produto.
-                                                                    Em branco = usa o promo do produto (preço +
-                                                                    janela). Digitou aqui = override só desta
-                                                                    variação (ex.: uma cor em queima). */}
-                                                                <div className="rounded-lg border border-gray-100 p-3">
-                                                                    <div className="mb-2 flex items-center gap-2">
-                                                                        <Percent
-                                                                            size={14}
-                                                                            className="text-gray-400"
-                                                                        />
-                                                                        <p className="text-sm font-medium text-gray-700">
-                                                                            Preço em promoção
-                                                                        </p>
-                                                                        {!varOverride && (
-                                                                            <span className="text-xs text-gray-400">
-                                                                                herda do produto
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="grid gap-3 md:grid-cols-3">
-                                                                        <div>
-                                                                            <label className="label">
-                                                                                Preço promocional (R$)
-                                                                            </label>
-                                                                            <input
-                                                                                type="number"
-                                                                                step="0.01"
-                                                                                min="0"
-                                                                                value={sku.sale_price ?? ""}
-                                                                                onChange={(e) =>
-                                                                                    updateVariation(sku, {
-                                                                                        sale_price: parseDecimal(
-                                                                                            e.target.value,
-                                                                                        ),
-                                                                                    })
-                                                                                }
-                                                                                className="input"
-                                                                                placeholder={
-                                                                                    editing.sale_price != null
-                                                                                        ? editing.sale_price.toFixed(2)
-                                                                                        : "—"
-                                                                                }
-                                                                            />
-                                                                            {skuPct != null && (
-                                                                                <p className="mt-1 text-xs font-semibold text-green-600">
-                                                                                    {skuPct}% off
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-                                                                        {varOverride && (
-                                                                            <>
-                                                                                <div>
-                                                                                    <label className="label">
-                                                                                        Data inicial
-                                                                                    </label>
-                                                                                    <input
-                                                                                        type="datetime-local"
-                                                                                        value={toLocalInput(sku.sale_start)}
-                                                                                        onChange={(e) =>
-                                                                                            updateVariation(sku, {
-                                                                                                sale_start: fromLocalInput(
-                                                                                                    e.target.value,
-                                                                                                ),
-                                                                                            })
-                                                                                        }
-                                                                                        className="input"
-                                                                                    />
-                                                                                </div>
-                                                                                <div>
-                                                                                    <label className="label">Data final</label>
-                                                                                    <input
-                                                                                        type="datetime-local"
-                                                                                        value={toLocalInput(sku.sale_end)}
-                                                                                        onChange={(e) =>
-                                                                                            updateVariation(sku, {
-                                                                                                sale_end: fromLocalInput(
-                                                                                                    e.target.value,
-                                                                                                ),
-                                                                                            })
-                                                                                        }
-                                                                                        className="input"
-                                                                                    />
-                                                                                </div>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
                                                             </div>
                                                         );
                                                     })}
@@ -1361,133 +1389,79 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 })}
                             </div>
 
-                            {/* adicionar variação avulsa */}
-                            <div className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4">
-                                <div>
-                                    <label className="label">Cor</label>
-                                    <select
-                                        value={addColor}
-                                        onChange={(e) => setAddColor(e.target.value)}
-                                        className="input"
+                            {/* adicionar UMA variação — discreto, no fim da lista.
+                                O lote continua no "GERAR VARIAÇÕES" lá em cima. */}
+                            <div className="mt-3">
+                                {addingVar ? (
+                                    <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                                        <div>
+                                            <label className="label">Cor</label>
+                                            <select
+                                                value={addColor}
+                                                onChange={(e) => setAddColor(e.target.value)}
+                                                className="input"
+                                            >
+                                                <option value="">— Cor —</option>
+                                                {colors.map((c) => (
+                                                    <option key={c} value={c}>
+                                                        {c}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="label">Tamanho</label>
+                                            <select
+                                                value={addSize}
+                                                onChange={(e) => setAddSize(e.target.value)}
+                                                className="input"
+                                            >
+                                                <option value="">— Tam —</option>
+                                                {sizes.map((s) => (
+                                                    <option key={s} value={s}>
+                                                        {s}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                addVariation(addColor, addSize);
+                                                setAddColor("");
+                                                setAddSize("");
+                                                setAddingVar(false);
+                                            }}
+                                            disabled={!addColor || !addSize}
+                                            className="flex items-center gap-1.5 rounded-lg border border-[#8C2F39] px-4 py-2 text-sm font-medium text-[#8C2F39] hover:bg-red-50/40 disabled:opacity-40"
+                                        >
+                                            <Plus size={15} /> Adicionar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAddingVar(false);
+                                                setAddColor("");
+                                                setAddSize("");
+                                            }}
+                                            className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setAddingVar(true)}
+                                        className="flex items-center gap-1.5 text-sm font-medium text-[#8C2F39] hover:underline"
                                     >
-                                        <option value="">— Cor —</option>
-                                        {colors.map((c) => (
-                                            <option key={c} value={c}>
-                                                {c}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="label">Tamanho</label>
-                                    <select
-                                        value={addSize}
-                                        onChange={(e) => setAddSize(e.target.value)}
-                                        className="input"
-                                    >
-                                        <option value="">— Tam —</option>
-                                        {sizes.map((s) => (
-                                            <option key={s} value={s}>
-                                                {s}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        addVariation(addColor, addSize);
-                                        setAddColor("");
-                                        setAddSize("");
-                                    }}
-                                    disabled={!addColor || !addSize}
-                                    className="flex items-center gap-1.5 rounded-lg border border-[#8C2F39] px-4 py-2 text-sm font-medium text-[#8C2F39] hover:bg-red-50/40 disabled:opacity-40"
-                                >
-                                    <Plus size={15} /> Adicionar variação
-                                </button>
+                                        <Plus size={14} /> adicionar variação
+                                    </button>
+                                )}
                             </div>
                         </section>
                     )}
 
-                    {/* ── PESO E DIMENSÕES (só no pai) ── */}
-                    <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
-                            <Weight size={16} /> Peso e dimensões
-                        </h3>
-                        <p className="mb-4 text-xs text-gray-400">
-                            Usado para calcular o frete via Melhor Envio
-                        </p>
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                            <div>
-                                <label className="label">Peso (kg)</label>
-                                <input
-                                    type="number"
-                                    step="0.001"
-                                    min="0"
-                                    value={editing.weight_kg ?? ""}
-                                    onChange={(e) =>
-                                        setEditing({
-                                            ...editing,
-                                            weight_kg: parseDecimal(e.target.value),
-                                        })
-                                    }
-                                    className="input"
-                                    placeholder="0.300"
-                                />
-                            </div>
-                            <div>
-                                <label className="label">Altura (cm)</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    value={editing.pkg_height_cm ?? ""}
-                                    onChange={(e) =>
-                                        setEditing({
-                                            ...editing,
-                                            pkg_height_cm: parseDecimal(e.target.value),
-                                        })
-                                    }
-                                    className="input"
-                                    placeholder="5"
-                                />
-                            </div>
-                            <div>
-                                <label className="label">Largura (cm)</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    value={editing.pkg_width_cm ?? ""}
-                                    onChange={(e) =>
-                                        setEditing({
-                                            ...editing,
-                                            pkg_width_cm: parseDecimal(e.target.value),
-                                        })
-                                    }
-                                    className="input"
-                                    placeholder="15"
-                                />
-                            </div>
-                            <div>
-                                <label className="label">Comprimento (cm)</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    value={editing.pkg_length_cm ?? ""}
-                                    onChange={(e) =>
-                                        setEditing({
-                                            ...editing,
-                                            pkg_length_cm: parseDecimal(e.target.value),
-                                        })
-                                    }
-                                    className="input"
-                                    placeholder="20"
-                                />
-                            </div>
-                        </div>
-                    </section>
                 </div>
 
                 {/* ════════ COLUNA LATERAL ════════ */}
