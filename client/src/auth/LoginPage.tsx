@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { useAuth } from "./useAuth";
 
@@ -116,6 +116,13 @@ export function LoginPage() {
                         <LogIn size={15} />
                         {loading ? "Entrando..." : "Entrar"}
                     </button>
+
+                    <Link
+                        to="/esqueci-senha"
+                        className="block text-center text-xs font-medium text-[#8C2F39] hover:underline"
+                    >
+                        Esqueci minha senha
+                    </Link>
                 </form>
 
                 <p className="mt-6 text-center text-xs text-gray-500">
