@@ -18,12 +18,17 @@ export async function getColor(id: string) {
     return color;
 }
 
-export async function createColor(input: { name: string; imageUrl: string }) {
-    const target = normalizeName(input.name);
-    const existing = await ProductColorRepository.findAll();
-    const match = existing.find((c) => normalizeName(c.name) === target);
-    if (match) return match;
-    return ProductColorRepository.insert(input);
+export async function createColor(input: { name: string; imageUrl?: string; force?: boolean }) {
+    // force = criação DISTINTA explícita (a cliente clicou "Criar 'X'" sabendo que
+    // o nome já existe em outro produto e quer uma cor própria, com foto própria).
+    // Sem force, deduplica por nome normalizado (mantém "marinho" único/foto uma vez).
+    if (!input.force) {
+        const target = normalizeName(input.name);
+        const existing = await ProductColorRepository.findAll();
+        const match = existing.find((c) => normalizeName(c.name) === target);
+        if (match) return match;
+    }
+    return ProductColorRepository.insert({ name: input.name, imageUrl: input.imageUrl ?? '' });
 }
 
 export async function updateColor(id: string, input: Record<string, unknown>) {

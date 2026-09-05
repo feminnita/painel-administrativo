@@ -18,8 +18,8 @@ export async function getOne(req: Request, res: Response) {
 export async function create(req: Request, res: Response) {
     const id = req.params.id as string;
     try {
-        const { name, imageUrl } = req.body;
-        const color = await ProductColorService.createColor({ name, imageUrl });
+        const { name, imageUrl, force } = req.body;
+        const color = await ProductColorService.createColor({ name, imageUrl, force: force === true });
         res.status(201).json(color);
     } catch (error) {
         console.error(error);
