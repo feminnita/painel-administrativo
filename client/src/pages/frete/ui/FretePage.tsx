@@ -1,4 +1,5 @@
 import { Save, Truck } from "lucide-react";
+import { parseDecimal } from "@/lib/parseDecimal";
 import { useFreteAdmin } from "../useFreteAdmin";
 
 function ToggleSwitch({
@@ -89,7 +90,7 @@ export function FretePage() {
                                     setConfig({
                                         ...config,
                                         freeShipingThreshold:
-                                            Number.parseFloat(e.target.value) || null,
+                                            parseDecimal(e.target.value),
                                     })
                                 }
                                 className="w-40 rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-[#8C2F39] focus:outline-none"
