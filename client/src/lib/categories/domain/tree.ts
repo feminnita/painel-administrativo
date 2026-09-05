@@ -100,19 +100,29 @@ export function collectDescendantGrandchildrenIds(
   return target ? collectLeaves(target) : [];
 }
 
+// Deriva pai(father)/filho(child) a partir do category_id, seja ele folha de
+// 2 níveis (ex.: Feminino > Camisola → father=Feminino, child=Camisola) ou de
+// 3 níveis (ex.: Feminino > Plus Size > Pijama curto → father=Feminino,
+// child=Plus Size, e o category_id continua sendo o neto). Antes assumia sempre
+// 3 níveis e derivava errado quando a categoria terminava no 2º nível.
 export function findAncestor(
   rows: CategoryRow[],
   categoryId: string,
 ): { father?: CategoryRow; child?: CategoryRow } {
   const byId = new Map(rows.map((r) => [r.id, r]));
   const current = byId.get(categoryId);
-  if (!current || !current.parent_id) return {};
+  if (!current) return {};
 
-  const child = byId.get(current.parent_id);
-  if (!child || !child.parent_id) return { child };
+  const parent = current.parent_id ? byId.get(current.parent_id) : undefined;
+  // Nível 1 (categoria de topo): só pai, sem filho.
+  if (!parent) return { father: current };
 
-  const father = byId.get(child.parent_id);
-  return { father, child };
+  const grandparent = parent.parent_id ? byId.get(parent.parent_id) : undefined;
+  // Nível 2 (folha): pai = parent, filho = a própria categoria.
+  if (!grandparent) return { father: parent, child: current };
+
+  // Nível 3 (neto): pai = avô, filho = pai imediato (o neto fica no category_id).
+  return { father: grandparent, child: parent };
 }
 
 function collectAllDescendantIds(
