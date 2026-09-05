@@ -1,4 +1,5 @@
 import { api, ApiError } from "@/lib/api/client";
+import { parseDecimal } from "@/lib/parseDecimal";
 import {
     DollarSign,
     Edit,
@@ -188,7 +189,7 @@ export function CouponsPage() {
                                         onChange={(e) =>
                                             setEditing({
                                                 ...editing,
-                                                value: Number.parseFloat(e.target.value) || 0,
+                                                value: parseDecimal(e.target.value) ?? 0,
                                             })
                                         }
                                         className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
@@ -209,7 +210,7 @@ export function CouponsPage() {
                                         onChange={(e) =>
                                             setEditing({
                                                 ...editing,
-                                                min_order_value: Number.parseFloat(e.target.value) || 0,
+                                                min_order_value: parseDecimal(e.target.value) ?? 0,
                                             })
                                         }
                                         className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-[#8C2F39]"
