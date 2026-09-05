@@ -32,8 +32,6 @@ import type { useProductsAdmin } from "../useProductsAdmin";
 
 const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"];
 
-const MEASURE_KEYS = ["busto", "cintura", "quadril"];
-
 // Sugestões de cor exibidas enquanto a cliente digita (não despeja o mestre inteiro).
 const COLOR_SUGGEST_LIMIT = 8;
 
@@ -907,65 +905,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             )}
                         </div>
 
-                        {/* tabela de medidas */}
-                        {sizes.length > 0 && (
-                            <div className="mt-4">
-                                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    Tabela de medidas (cm)
-                                </p>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full border-collapse text-xs">
-                                        <thead>
-                                            <tr className="bg-gray-50">
-                                                <th className="border border-gray-200 px-3 py-2 text-left text-gray-500">
-                                                    Medida
-                                                </th>
-                                                {sizes.map((s) => (
-                                                    <th
-                                                        key={s}
-                                                        className="border border-gray-200 px-3 py-2 text-center font-semibold text-gray-700"
-                                                    >
-                                                        {s}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {MEASURE_KEYS.map((key) => (
-                                                <tr key={key}>
-                                                    <td className="border border-gray-200 px-3 py-2 font-medium capitalize text-gray-500">
-                                                        {key}
-                                                    </td>
-                                                    {sizes.map((size) => (
-                                                        <td
-                                                            key={size}
-                                                            className="border border-gray-200 p-1"
-                                                        >
-                                                            <input
-                                                                type="text"
-                                                                value={editing.size_chart?.[size]?.[key] || ""}
-                                                                onChange={(e) => {
-                                                                    const chart = {
-                                                                        ...(editing.size_chart || {}),
-                                                                    };
-                                                                    chart[size] = {
-                                                                        ...(chart[size] || {}),
-                                                                        [key]: e.target.value,
-                                                                    };
-                                                                    setEditing({ ...editing, size_chart: chart });
-                                                                }}
-                                                                className="w-full rounded border-0 bg-transparent px-1 py-1 text-center text-xs focus:border focus:border-[#8C2F39] focus:bg-white"
-                                                                placeholder="—"
-                                                            />
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
                     </section>
 
                     {/* ── LISTA DE VARIAÇÕES ── */}
@@ -1560,6 +1499,37 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     </select>
                                 );
                             })()}
+
+                            {/* Marcadores como "3º nível" visual da categoria (Feminino →
+                                Camisola → Mais Vendidos). Independentes: dá pra marcar mais
+                                de um. Ficam abaixo da subcategoria/específica. */}
+                            <div className="mt-2 space-y-3 border-t border-gray-100 pt-3">
+                                {badges.map(({ key, label, desc, icon: Icon }) => {
+                                    const val = editing[key as keyof typeof editing] as boolean;
+                                    return (
+                                        <div
+                                            key={key}
+                                            className="flex items-center justify-between gap-3"
+                                        >
+                                            <div className="flex items-start gap-2">
+                                                <Icon size={15} className="mt-0.5 shrink-0 text-gray-400" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-700">
+                                                        {label}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">{desc}</p>
+                                                </div>
+                                            </div>
+                                            <ToggleSwitch
+                                                checked={val}
+                                                onChange={() =>
+                                                    setEditing({ ...editing, [key]: !val })
+                                                }
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </section>
 
@@ -1569,38 +1539,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         sizes={sizes}
                         ownChart={editing.size_chart}
                     />
-
-                    {/* ── APRESENTAÇÃO (SELOS) ── */}
-                    <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 font-semibold text-gray-700">Marcadores</h3>
-                        <div className="space-y-4">
-                            {badges.map(({ key, label, desc, icon: Icon }) => {
-                                const val = editing[key as keyof typeof editing] as boolean;
-                                return (
-                                    <div
-                                        key={key}
-                                        className="flex items-center justify-between gap-3"
-                                    >
-                                        <div className="flex items-start gap-2">
-                                            <Icon size={15} className="mt-0.5 shrink-0 text-gray-400" />
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-700">
-                                                    {label}
-                                                </p>
-                                                <p className="text-xs text-gray-400">{desc}</p>
-                                            </div>
-                                        </div>
-                                        <ToggleSwitch
-                                            checked={val}
-                                            onChange={() =>
-                                                setEditing({ ...editing, [key]: !val })
-                                            }
-                                        />
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </section>
 
                     {/* ── SEO ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
