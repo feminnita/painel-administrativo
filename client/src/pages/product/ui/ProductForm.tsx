@@ -120,6 +120,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [addColor, setAddColor] = useState("");
     const [addSize, setAddSize] = useState("");
+    const [genMsg, setGenMsg] = useState("");
 
     // Aviso ao sair com o formulário aberto (fechar/atualizar a aba).
     useEffect(() => {
@@ -714,13 +715,29 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             </h3>
                             <button
                                 type="button"
-                                onClick={generateVariations}
+                                onClick={() => {
+                                    const n = generateVariations();
+                                    setExpanded(
+                                        new Set(variations.map((s) => s.color)),
+                                    );
+                                    setGenMsg(
+                                        n > 0
+                                            ? `${n} ${n === 1 ? "variação criada" : "variações criadas"} — confira na lista abaixo.`
+                                            : "Nenhuma variação nova — todas as combinações de cor × tamanho já existem.",
+                                    );
+                                }}
                                 disabled={colors.length === 0 || sizes.length === 0}
                                 className="flex items-center gap-1.5 rounded-lg bg-[#8C2F39] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7a2832] disabled:opacity-40"
                             >
                                 <Wand2 size={14} /> GERAR VARIAÇÕES
                             </button>
                         </div>
+
+                        {genMsg && (
+                            <p className="mb-4 -mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+                                {genMsg}
+                            </p>
+                        )}
 
                         {(colors.length === 0 || sizes.length === 0) && (
                             <p className="mb-4 -mt-2 text-xs text-amber-600">
