@@ -1,6 +1,6 @@
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { db } from '../../config/db';
-import { products, productsSkus, productsColors, productColorImages, orderItems } from '../../config/db/schema';
+import { products, productsSkus, productsColors, productColorImages } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
 
 // Coerção defensiva: colunas timestamp do drizzle chamam value.toISOString() na
@@ -90,11 +90,15 @@ export async function saveProductWithRelations(
             if (!colorIdByName.has(name)) throw new Error(`COLOR_NOT_REGISTERED:${name}`);
         }
 
-        const keptSkuIds: string[] = [];
+        // ADITIVO: o save só INSERE/ATUALIZA variações — NUNCA apaga SKU aqui.
+        // Apagar variação é ação explícita na lista (lixeira → DELETE /skus/:id),
+        // com confirmação própria e guarda de "com pedido → desativa". Tirar cor/
+        // tamanho da "Definição de variações" NÃO remove SKU; salvar foto de capa,
+        // preço, nome etc. não toca em variação. (Apagar SKU levaria junto o vínculo
+        // com o Bling que a reconciliação usa pra religar os 3.296 SKUs do backup.)
         for (const item of skus) {
-            // stockQty NUNCA e gravado pelo painel: fonte e o StockHub. Novos SKUs
-            // nascem com o default 0 e o upsert nunca toca stock_qty.
-            const [row] = await tx
+            // stockQty NUNCA é gravado pelo painel: fonte é o StockHub.
+            await tx
                 .insert(productsSkus)
                 .values({
                     productId: savedId,
@@ -120,32 +124,7 @@ export async function saveProductWithRelations(
                         active: item.active ?? true,
                         updatedAt: new Date(),
                     },
-                })
-                .returning({ id: productsSkus.id });
-            keptSkuIds.push(row.id);
-        }
-        // Variacoes retiradas da grade: com pedido -> desativa (historico intacto);
-        // sem pedido -> apaga. Nunca apaga cego.
-        const removedSkus = await tx.query.productsSkus.findMany({
-            where: and(
-                eq(productsSkus.productId, savedId),
-                keptSkuIds.length ? notInArray(productsSkus.id, keptSkuIds) : undefined,
-            ),
-        });
-        for (const orphan of removedSkus) {
-            const [used] = await tx
-                .select({ id: orderItems.id })
-                .from(orderItems)
-                .where(eq(orderItems.skuId, orphan.id))
-                .limit(1);
-            if (used) {
-                await tx
-                    .update(productsSkus)
-                    .set({ active: false, updatedAt: new Date() })
-                    .where(eq(productsSkus.id, orphan.id));
-            } else {
-                await tx.delete(productsSkus).where(eq(productsSkus.id, orphan.id));
-            }
+                });
         }
 
         const keptColorIds = colorImages.map((c) => colorIdByName.get(c.color)!);

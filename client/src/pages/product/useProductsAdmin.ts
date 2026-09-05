@@ -469,25 +469,12 @@ export function useProductsAdmin() {
     }
 
     const payload = buildProductPayload(editing, imagesInput);
-    const activeSizes = new Set(payload.sizes);
     const activeColors = new Set(payload.colors);
 
-    // Save DESTRUTIVO: SKUs cuja cor/tamanho saíram da definição serão APAGADOS
-    // no backend. Confirmar antes — a cliente pode ter esvaziado a definição sem
-    // querer perder as variações (com pedido, viram inativas; sem, somem).
-    if (editing.id) {
-      const removidos = skus.filter(
-        (s) => !(activeSizes.has(s.size) && activeColors.has(s.color)),
-      ).length;
-      if (removidos > 0) {
-        const ok = await confirm({
-          title: "Remover variações?",
-          message: `Salvar assim vai remover ${removidos} variação(ões) que saíram da definição (cor/tamanho). Variações com pedido viram inativas; sem pedido são apagadas. Continuar?`,
-          confirmLabel: `Remover ${removidos} e salvar`,
-        });
-        if (!ok) return;
-      }
-    }
+    // O save é ADITIVO: manda TODOS os SKUs (existentes + gerados) — nunca deixa
+    // um SKU "sair" do payload. Tirar cor/tamanho da definição NÃO apaga variação;
+    // apagar é só pela lixeira da lista Variações (ação explícita, endpoint próprio).
+    // Por isso não há mais confirmação de "remover N variações" no fluxo de salvar.
 
     setSaving(true);
 
@@ -497,7 +484,6 @@ export function useProductsAdmin() {
         product: toApiProduct(payload),
         // stockQty NAO e enviado: estoque e read-only (fonte StockHub).
         skus: skus
-          .filter((s) => activeSizes.has(s.size) && activeColors.has(s.color))
           .map((s) => ({
             size: s.size,
             color: s.color || null,
