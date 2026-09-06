@@ -55,6 +55,13 @@ export function fmtBRL(value: number): string {
   return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 }
 
+// Retirada na fábrica: pedido sem transportadora/etiqueta. Detectado pelo
+// shipping_method (mesma convenção /retir/i usada no push do Bling). Precisa
+// aparecer com destaque na fila para não ser despachado por engano.
+export function isPickupOrder(order: Order): boolean {
+  return /retir/i.test(order.shipping_method || "");
+}
+
 // Etiqueta de sandbox (Melhor Envio) e' de teste e nao serve pra postar.
 export function isSandboxLabel(url: string | null | undefined): boolean {
   return !!url && url.includes("sandbox.melhorenvio.com.br");

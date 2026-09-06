@@ -16,6 +16,7 @@ export async function buyLabel(req: Request, res: Response) {
             error: 'Pedido não encontrado'
         });
 
+        if (message === 'ORDER_IS_PICKUP') return res.status(409).json({ error: 'Pedido de retirada na fábrica: não gera etiqueta de envio' });
         if (message === 'ORDER_NOT_PAID') return res.status(409).json({ error: 'Pedido ainda não foi pago' });
         if (message === 'LABEL_ALREADY_EXISTS') return res.status(409).json({ error: 'Etiqueta já comprada para este pedido' });
         console.error(`Erro ao comprar etiqueta do pedido ${orderId}:`, error);

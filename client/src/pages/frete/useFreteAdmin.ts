@@ -7,6 +7,7 @@ export function useFreteAdmin() {
     const [config, setConfig] = useState<ShippingConfig>({
         freeShipingThreshold: null,
         extraDays: 0,
+        pickup: { enabled: false, address: "", hours: "", note: "" },
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -24,6 +25,12 @@ export function useFreteAdmin() {
                         ? stored.freeShippingThreshold
                         : null,
                 extraDays: Number(stored?.extraDays) || 0,
+                pickup: {
+                    enabled: Boolean(stored?.pickup?.enabled),
+                    address: stored?.pickup?.address ?? "",
+                    hours: stored?.pickup?.hours ?? "",
+                    note: stored?.pickup?.note ?? "",
+                },
             });
         } catch (error) {
             console.error("Erro ao carregar configurações de frete:", error);

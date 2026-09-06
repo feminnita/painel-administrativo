@@ -17,6 +17,7 @@ import {
     deriveFulfillmentStatus,
     fmtBRL,
     FULFILLMENT_STATUS_META,
+    isPickupOrder,
     isSandboxLabel,
     orderPieceCount,
     orderThumbnails,
@@ -220,6 +221,11 @@ export function OrdersPage() {
                                                         >
                                                             {FULFILLMENT_STATUS_META[ful].label}
                                                         </span>
+                                                        {isPickupOrder(order) && (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+                                                                <Package size={11} /> Retirada
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <p className="truncate text-sm text-gray-700">
                                                         {order.customer_name}

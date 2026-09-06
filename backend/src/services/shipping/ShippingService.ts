@@ -7,6 +7,9 @@ export async function buyLabel(orderId: string) {
     const order = await OrdeRepository.findById(orderId);
 
     if (!order) throw new Error('ORDER_NOT_FOUND');
+    // Retirada na fábrica: não tem transportadora, então nunca gera etiqueta.
+    // (mesma convenção /retir/i usada no push do Bling.)
+    if (/retir/i.test(String(order.shippingMethod ?? ''))) throw new Error('ORDER_IS_PICKUP');
     if (order.paymentStatus !== 'paid') throw new Error('ORDER_NOT_PAID');
     if (order.labelUrl) throw new Error('LABEL_ALREADY_EXISTS');
     if (!order.customerId || !order.shippingServiceId) throw new Error('ORDER_MISSING_SHIPPING_DATA');
