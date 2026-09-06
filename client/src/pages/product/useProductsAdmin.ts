@@ -372,16 +372,6 @@ export function useProductsAdmin() {
         ? prev
         : [...prev, newSku(color, size)],
     );
-    // Espelho da exclusão: a variação adicionada tem que ENTRAR na grade daquela
-    // cor. Sem isso, o próximo "Gerar variações" reconstrói a grade sem ela e
-    // apaga da tela a variação que o usuário acabou de adicionar.
-    setColorSizes((prev) => {
-      const key = norm(color);
-      const base = prev[key] !== undefined ? prev[key] : editing?.sizes || [];
-      return base.some((s) => norm(s) === norm(size))
-        ? prev
-        : { ...prev, [key]: [...base, size] };
-    });
   };
 
   // Lixeira da variação: com pedido → desativa; sem pedido → apaga. Confirma antes.
@@ -430,16 +420,15 @@ export function useProductsAdmin() {
     setSkus((prev) =>
       prev.filter((s) => !(s.color === sku.color && s.size === sku.size)),
     );
-    // O tamanho apagado tem que sair TAMBÉM da grade daquela cor. Sem isso o
-    // combo continuava em colorSizes (ou herdado de editing.sizes) e o próximo
-    // "Gerar variações" / adicionar variação RECRIAVA a variação recém-excluída
-    // — só sumia de novo ao fechar e reabrir o produto, quando a grade volta a
-    // ser derivada dos SKUs do banco.
-    setColorSizes((prev) => {
-      const key = norm(sku.color);
-      const base = prev[key] !== undefined ? prev[key] : editing?.sizes || [];
-      return { ...prev, [key]: base.filter((s) => norm(s) !== norm(sku.size)) };
-    });
+    // A exclusão NÃO mexe mais na grade de tamanhos da cor. Ela mexia, para o
+    // excluído não voltar — mas essa memória se acumulava durante a edição e
+    // passava a limitar o "Gerar variações": com 10 cores × 3 tamanhos ele
+    // devolvia 15 em vez de 30, e a Chris tinha que repor uma a uma.
+    //
+    // Agora só o painel "Tamanho por cor · ajustar" define grade por cor. Gerar
+    // volta a significar exatamente o que o nome diz: montar a grade completa.
+    // Se uma variação excluída reaparecer, é porque Gerar foi clicado de novo —
+    // é só apagar de novo, e nada se perde no banco.
   };
 
   const toggleSize = (size: string) => {
