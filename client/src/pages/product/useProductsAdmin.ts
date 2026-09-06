@@ -233,17 +233,20 @@ export function useProductsAdmin() {
       has_orders: s.hasOrders ?? false,
     }));
     setSkus(loadedSkus);
-    // Inicializa o override de tamanho POR COR a partir dos SKUs carregados: para
-    // cada cor (normalizada), os tamanhos DISTINTOS que já têm SKU. Reabrir o 29800
-    // mostra Rosa só com G/GG (as cores que ela apagou não voltam).
-    const cs: Record<string, string[]> = {};
-    for (const s of loadedSkus) {
-      if (!s.color) continue;
-      const key = norm(s.color);
-      if (!cs[key]) cs[key] = [];
-      if (!cs[key].includes(s.size)) cs[key].push(s.size);
-    }
-    setColorSizes(cs);
+    // Abre SEM override de tamanho por cor: o "Gerar variações" precisa entregar a
+    // GRADE COMPLETA (toda cor marcada × todo tamanho marcado), porque é no cadastro
+    // que a Chris preenche o SKU de cada variação — faltar linha significa não ter
+    // onde digitar a referência.
+    //
+    // Antes o override era semeado a partir dos SKUs já existentes, então uma cor
+    // que estava no banco com 1 tamanho ficava presa nesse 1: gerar não completava
+    // e só sobrava adicionar tamanho por tamanho no rodapé.
+    //
+    // A proteção contra recriar variação excluída continua, mas passa a valer
+    // DENTRO da sessão de edição: excluiu e gerou de novo, não volta. Isso basta,
+    // porque excluir esgotado nao e mais necessario — a loja ja esconde sozinha
+    // tamanho sem estoque (visibleSizes) e o estoque vem do Bling.
+    setColorSizes({});
     setColorImages(colorImageData);
   };
 
