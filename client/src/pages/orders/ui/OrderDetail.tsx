@@ -12,6 +12,7 @@ import type { useOrdersAdmin } from "../useOrdersAdmin";
 import {
     derivePaymentStatus,
     fmtBRL,
+    isPickupOrder,
     PAYMENT_LABELS,
     PAYMENT_STATUS_META,
     STATUS_OPTIONS,
@@ -44,7 +45,10 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
 
     if (!selected) return null;
 
+    const pickup = isPickupOrder(selected);
+
     const canBuyLabel =
+        !pickup &&
         !selected.label_url &&
         ["paid", "confirmed", "processing"].includes(selected.status);
 
@@ -71,6 +75,13 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
             </div>
 
             <div className="max-h-[calc(100vh-220px)] space-y-5 overflow-y-auto p-6">
+                {/* Retirada na fábrica: aviso forte para não despachar por engano */}
+                {pickup && (
+                    <div className="flex items-center gap-2 rounded-lg border-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm font-bold uppercase tracking-wide text-amber-700">
+                        <Package size={16} /> Retirada na fábrica — não despachar
+                    </div>
+                )}
+
                 {/* Timeline */}
                 <div>
                     <div className="flex items-center justify-between">
@@ -318,6 +329,13 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                         Etiqueta e rastreio
                     </p>
 
+                    {pickup ? (
+                        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                            Pedido de retirada na fábrica: não gera etiqueta nem
+                            rastreio. O cliente retira no endereço configurado.
+                        </p>
+                    ) : (
+                        <>
                     {canBuyLabel && (
                         <button
                             onClick={buyLabel}
@@ -395,6 +413,8 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                         >
                             <Printer size={12} /> Imprimir etiqueta
                         </a>
+                    )}
+                        </>
                     )}
                 </div>
             </div>

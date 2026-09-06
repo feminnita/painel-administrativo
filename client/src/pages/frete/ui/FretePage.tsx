@@ -130,6 +130,100 @@ export function FretePage() {
                     />
                 </section>
 
+                {/* Retirada na fábrica */}
+                <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-700">
+                                Retirada na fábrica
+                            </p>
+                            <p className="text-xs text-gray-400">
+                                Mostra no checkout uma opção de retirada com custo R$
+                                0,00, para qualquer CEP, junto das cotações de
+                                transportadora. O pedido sai marcado como RETIRADA e
+                                não gera etiqueta.
+                            </p>
+                        </div>
+                        <ToggleSwitch
+                            checked={config.pickup.enabled}
+                            onChange={() =>
+                                setConfig({
+                                    ...config,
+                                    pickup: {
+                                        ...config.pickup,
+                                        enabled: !config.pickup.enabled,
+                                    },
+                                })
+                            }
+                        />
+                    </div>
+
+                    {config.pickup.enabled && (
+                        <div className="mt-4 space-y-4 border-t pt-4">
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-700">
+                                    Endereço de retirada
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.pickup.address}
+                                    onChange={(e) =>
+                                        setConfig({
+                                            ...config,
+                                            pickup: {
+                                                ...config.pickup,
+                                                address: e.target.value,
+                                            },
+                                        })
+                                    }
+                                    className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-[#8C2F39] focus:outline-none"
+                                    placeholder="Rua, número, bairro, cidade/UF"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-700">
+                                    Horário de funcionamento
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.pickup.hours}
+                                    onChange={(e) =>
+                                        setConfig({
+                                            ...config,
+                                            pickup: {
+                                                ...config.pickup,
+                                                hours: e.target.value,
+                                            },
+                                        })
+                                    }
+                                    className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-[#8C2F39] focus:outline-none"
+                                    placeholder="Seg a Sex, 8h às 18h"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-700">
+                                    Observação (opcional)
+                                </label>
+                                <textarea
+                                    value={config.pickup.note}
+                                    onChange={(e) =>
+                                        setConfig({
+                                            ...config,
+                                            pickup: {
+                                                ...config.pickup,
+                                                note: e.target.value,
+                                            },
+                                        })
+                                    }
+                                    rows={2}
+                                    className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-[#8C2F39] focus:outline-none"
+                                    placeholder="Ex.: Avise pelo WhatsApp antes de vir buscar."
+                                />
+                            </div>
+                        </div>
+                    )}
+                </section>
+
                 <p className="text-xs text-gray-400">
                     O CEP de origem e o token do Melhor Envio são configurados no
                     servidor (variáveis de ambiente), não aqui.
