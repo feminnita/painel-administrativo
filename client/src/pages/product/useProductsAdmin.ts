@@ -409,6 +409,16 @@ export function useProductsAdmin() {
     setSkus((prev) =>
       prev.filter((s) => !(s.color === sku.color && s.size === sku.size)),
     );
+    // O tamanho apagado tem que sair TAMBÉM da grade daquela cor. Sem isso o
+    // combo continuava em colorSizes (ou herdado de editing.sizes) e o próximo
+    // "Gerar variações" / adicionar variação RECRIAVA a variação recém-excluída
+    // — só sumia de novo ao fechar e reabrir o produto, quando a grade volta a
+    // ser derivada dos SKUs do banco.
+    setColorSizes((prev) => {
+      const key = norm(sku.color);
+      const base = prev[key] !== undefined ? prev[key] : editing?.sizes || [];
+      return { ...prev, [key]: base.filter((s) => norm(s) !== norm(sku.size)) };
+    });
   };
 
   const toggleSize = (size: string) => {
