@@ -2,9 +2,9 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
     BarChart,
-    BarChart2, BookOpen, Camera, ChevronRight, ExternalLink, Image, LayoutDashboard,
-    LayoutGrid, Link2, LogOut, Mail, Megaphone, Menu, Package, Palette, Ruler, Settings,
-    ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, Users2, X, Zap,
+    BarChart2, ChevronRight, ExternalLink, Image, LayoutDashboard,
+    LayoutGrid, Link2, LogOut, Menu, Package, Palette, Ruler, Settings,
+    ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, X, Zap,
     FileText,
 } from "lucide-react";
 import { api, clearToken } from "@/lib/api/client";
@@ -43,18 +43,7 @@ const navItems: NavEntry[] = [
             { href: "/visitas", label: "Visitas", icon: BarChart2 },
         ],
     },
-    {
-        label: "Marketing", icon: Megaphone,
-        children: [
-            { href: "/marketing", label: "Marketing", icon: Megaphone },
-            { href: "/campanhas", label: "Campanhas", icon: Tag },
-            { href: "/cupons", label: "Cupons", icon: Tag },
-            { href: "/newsletter", label: "Newsletter", icon: Mail },
-            { href: "/afiliados", label: "Afiliados", icon: Users2 },
-            { href: "/lookbook", label: "Lookbook", icon: Camera },
-            { href: "/blog", label: "Blog", icon: BookOpen },
-        ],
-    },
+    { href: "/cupons", label: "Cupons", icon: Tag },
     { href: "/slides", label: "Carrossel Hero", icon: Image },
     { href: "/vitrine", label: "Vitrine", icon: LayoutGrid },
     {
