@@ -23,7 +23,6 @@ import {
     Percent,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
-import { SizeChartPreview } from "./SizeChartPreview";
 import { slugify, normColor, parseDecimal } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
@@ -166,15 +165,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const pairsWithoutPhoto = variations.filter(
         (s) => getColorImages(s.color).length === 0,
     ).length;
-
-    // Slugs das categorias marcadas (pai → filho → específica), p/ resolver a
-    // tabela de medidas herdada.
-    const catPai = categoryTree.find((p) => p.id === selectedCategoryPaiId);
-    const catFilho = catPai?.children.find((f) => f.id === selectedCategoryFilhoId);
-    const catNeto = catFilho?.children.find((n) => n.id === editing.category_id);
-    const categorySlugs = [catPai?.slug, catFilho?.slug, catNeto?.slug].filter(
-        (s): s is string => Boolean(s),
-    );
 
     const colorByName = new Map(productColors.map((c) => [c.name, c]));
 
@@ -1679,12 +1669,10 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         </div>
                     </section>
 
-                    {/* ── TABELA DE MEDIDAS HERDADA (só leitura) ── */}
-                    <SizeChartPreview
-                        categorySlugs={categorySlugs}
-                        sizes={sizes}
-                        ownChart={editing.size_chart}
-                    />
+                    {/* A tabela de medidas NÃO é editada aqui: ela é global por tipo
+                        (Configurações → Tabela de Medidas) e a categoria do produto
+                        decide qual é usada. O bloco só-leitura que existia aqui não
+                        tinha ação nenhuma e só ocupava espaço no cadastro. */}
 
                     {/* ── SEO (colapsado por padrão) ── */}
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
