@@ -541,7 +541,14 @@ export function useProductsAdmin() {
     }
 
     const payload = buildProductPayload(editing, imagesInput);
-    const activeColors = new Set(payload.colors);
+    // A foto por cor é da cor do SKU (a galeria/accordion vem dos SKUs), que pode
+    // estar em caixa diferente de products.colors (ex.: SKU "ROSA" vs colors "Rosa").
+    // Se filtrarmos só por editing.colors, a imagem das cores em caixa alta some no
+    // save. Então o "ativo" inclui TODAS as cores com SKU + as da definição.
+    const activeColors = new Set<string>([
+      ...payload.colors,
+      ...skus.map((s) => s.color).filter((c): c is string => !!c),
+    ]);
 
     // O save é ADITIVO: manda TODOS os SKUs (existentes + gerados) — nunca deixa
     // um SKU "sair" do payload. Tirar cor/tamanho da definição NÃO apaga variação;
