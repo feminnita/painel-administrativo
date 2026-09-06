@@ -364,24 +364,31 @@ export function useProductsAdmin() {
   };
 
   // Lixeira da variação: com pedido → desativa; sem pedido → apaga. Confirma antes.
-  const deleteVariation = async (sku: Sku) => {
-    const willDeactivate = Boolean(sku.id && sku.has_orders);
-    const ok = await confirm(
-      willDeactivate
-        ? {
-            title: "Desativar variação",
-            message: `A variação ${sku.color} ${sku.size} já tem pedidos. Ela será DESATIVADA (sai da loja e para de vender), mas o histórico é mantido.`,
-            confirmLabel: "Desativar",
-            danger: true,
-          }
-        : {
-            title: "Excluir variação",
-            message: `A variação ${sku.color} ${sku.size} será excluída permanentemente.`,
-            confirmLabel: "Excluir",
-            danger: true,
-          },
-    );
-    if (!ok) return;
+  // skipConfirm: usado pela lixeira de COR (apaga todas as variações da cor), que
+  // já confirmou UMA vez no nível da cor — não repete a confirmação por SKU.
+  const deleteVariation = async (
+    sku: Sku,
+    opts?: { skipConfirm?: boolean },
+  ) => {
+    if (!opts?.skipConfirm) {
+      const willDeactivate = Boolean(sku.id && sku.has_orders);
+      const ok = await confirm(
+        willDeactivate
+          ? {
+              title: "Desativar variação",
+              message: `A variação ${sku.color} ${sku.size} já tem pedidos. Ela será DESATIVADA (sai da loja e para de vender), mas o histórico é mantido.`,
+              confirmLabel: "Desativar",
+              danger: true,
+            }
+          : {
+              title: "Excluir variação",
+              message: `A variação ${sku.color} ${sku.size} será excluída permanentemente.`,
+              confirmLabel: "Excluir",
+              danger: true,
+            },
+      );
+      if (!ok) return;
+    }
 
     if (sku.id && editing?.id) {
       try {

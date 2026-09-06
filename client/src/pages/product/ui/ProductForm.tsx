@@ -217,6 +217,10 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         // Só adiciona se não houver equivalente por normalização já no produto.
         if (!findEquivColor(name)) toggleColor(name);
         setColorQuery("");
+        // Revela os chips na hora: a lista de cores é COLAPSADA por padrão ("ver e
+        // editar"), então uma cor recém-adicionada ficava invisível e a dona achava
+        // que não tinha criado. Abrir garante o feedback visual imediato.
+        setShowColors(true);
     };
     const handleCreateColor = async () => {
         // Se já existe equivalente por normalização neste produto, não cria dup —
@@ -235,6 +239,44 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         e.preventDefault();
         if (colorExact) selectColor(colorExact.name);
         else if (canCreateColor) void handleCreateColor();
+    };
+
+    // Contagem de variações (SKUs) de uma cor, casando pelo normalizado (o SKU pode
+    // estar em caixa/acentuação diferente do chip da definição, ex.: "ROSA" vs "Rosa").
+    const countColorVariations = (name: string) => {
+        const key = normColor(name);
+        return variations.filter((s) => normColor(s.color) === key).length;
+    };
+
+    // Tirar o chip de cor da DEFINIÇÃO não apaga variação (save é aditivo). Se a cor
+    // ainda tem SKUs, isso confundia: o chip "voltava" ao reabrir. Agora avisamos e
+    // impedimos a remoção enquanto houver variações — a exclusão real é pela lixeira
+    // da cor na lista de Variações (abaixo).
+    const removeColorChip = (name: string) => {
+        const n = countColorVariations(name);
+        if (n > 0) {
+            window.alert(
+                `Esta cor tem ${n} ${n === 1 ? "variação" : "variações"}. Para removê-la, apague as variações abaixo (use a lixeira da cor na lista de Variações).`,
+            );
+            return;
+        }
+        toggleColor(name);
+    };
+
+    // Lixeira no nível da COR (cabeçalho do card na lista de Variações): apaga TODAS
+    // as variações (SKUs) daquela cor de uma vez. Confirma UMA vez dizendo o número
+    // certo e reutiliza a lógica por SKU (com pedido → desativa; sem pedido → apaga).
+    const deleteColorGroup = async (color: string, colorSkus: Sku[]) => {
+        const n = colorSkus.length;
+        if (
+            !window.confirm(
+                `Apagar a cor ${color} e suas ${n} ${n === 1 ? "variação" : "variações"}?\n\nVariações com pedidos são desativadas (histórico mantido); as demais são excluídas. Esta ação não pode ser desfeita.`,
+            )
+        )
+            return;
+        for (const sku of colorSkus) {
+            await deleteVariation(sku, { skipConfirm: true });
+        }
     };
 
     const cancel = () => {
@@ -918,7 +960,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 {name}
                                                 <button
                                                     type="button"
-                                                    onClick={() => toggleColor(name)}
+                                                    onClick={() => removeColorChip(name)}
                                                     className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-xs text-[#8C2F39]/60 hover:bg-[#8C2F39] hover:text-white"
                                                 >
                                                     ✕
@@ -1179,10 +1221,11 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             className="rounded-lg border border-gray-100"
                                         >
                                             {/* linha da cor (recolhida) */}
+                                            <div className="flex w-full items-center">
                                             <button
                                                 type="button"
                                                 onClick={() => toggleExpand(color)}
-                                                className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+                                                className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left"
                                             >
                                                 <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-gray-100">
                                                     {rowImg && (
@@ -1205,6 +1248,17 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                     className={`shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
                                                 />
                                             </button>
+                                            {/* Lixeira da COR: apaga todas as variações desta cor. */}
+                                            <button
+                                                type="button"
+                                                onClick={() => deleteColorGroup(color, skus)}
+                                                className="mr-2 shrink-0 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                                title={`Apagar a cor ${color} e suas ${skus.length} ${skus.length === 1 ? "variação" : "variações"}`}
+                                                aria-label="Apagar cor"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                            </div>
 
                                             {/* conteúdo expandido */}
                                             {isOpen && (
