@@ -23,7 +23,7 @@ import {
     Percent,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
-import { slugify, normColor, parseDecimal } from "../domain";
+import { slugify, normColor, parseDecimal, sizeRank } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
@@ -149,6 +149,17 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const sizes = getSizes();
     const colors = editing.colors || [];
     const variations = getVariations();
+
+    // Listas do "adicionar variação": precisam oferecer TUDO que está na tela —
+    // as cores/tamanhos marcados no topo E os que só existem nas variações. Uma
+    // cor com card mas sem chip (ex.: "Frozencoroa") não aparecia no menu, então
+    // não dava para acrescentar um tamanho nela.
+    const addColorOptions = [
+        ...new Set([...colors, ...variations.map((s) => s.color).filter(Boolean)]),
+    ];
+    const addSizeOptions = [
+        ...new Set([...sizes, ...variations.map((s) => s.size).filter(Boolean)]),
+    ].sort((a, b) => sizeRank(a) - sizeRank(b));
 
     // Agrupamento por COR: uma linha por cor (accordion), com os tamanhos
     // dentro ao expandir. Apenas reorganização visual — o modelo de dados
@@ -1467,7 +1478,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 className="input"
                                             >
                                                 <option value="">— Cor —</option>
-                                                {colors.map((c) => (
+                                                {addColorOptions.map((c) => (
                                                     <option key={c} value={c}>
                                                         {c}
                                                     </option>
@@ -1482,7 +1493,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 className="input"
                                             >
                                                 <option value="">— Tam —</option>
-                                                {sizes.map((s) => (
+                                                {addSizeOptions.map((s) => (
                                                     <option key={s} value={s}>
                                                         {s}
                                                     </option>
