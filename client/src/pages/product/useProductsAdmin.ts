@@ -361,6 +361,16 @@ export function useProductsAdmin() {
         ? prev
         : [...prev, newSku(color, size)],
     );
+    // Espelho da exclusão: a variação adicionada tem que ENTRAR na grade daquela
+    // cor. Sem isso, o próximo "Gerar variações" reconstrói a grade sem ela e
+    // apaga da tela a variação que o usuário acabou de adicionar.
+    setColorSizes((prev) => {
+      const key = norm(color);
+      const base = prev[key] !== undefined ? prev[key] : editing?.sizes || [];
+      return base.some((s) => norm(s) === norm(size))
+        ? prev
+        : { ...prev, [key]: [...base, size] };
+    });
   };
 
   // Lixeira da variação: com pedido → desativa; sem pedido → apaga. Confirma antes.
