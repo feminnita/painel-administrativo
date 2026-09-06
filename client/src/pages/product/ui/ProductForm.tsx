@@ -27,6 +27,7 @@ import { slugify, normColor, parseDecimal } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"];
 
@@ -78,6 +79,7 @@ function ToggleSwitch({
 }
 
 export function ProductForm({ vm }: { vm: ProductsVM }) {
+    const confirm = useConfirm();
     const {
         editing,
         setEditing,
@@ -219,7 +221,24 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
             setColorQuery("");
             return;
         }
-        // force = cria distinta mesmo se o nome já existir (a cliente clicou "Criar").
+        // Se a cor já existe no CATÁLOGO com outra grafia ("PRETO" x "Preto"), não
+        // cria duplicata em silêncio — pergunta. Era daqui que saíam as cores
+        // repetidas: 179 cadastros a mais, que causaram foto velha na loja
+        // (galeria órfã) e variação repetida no cadastro.
+        if (colorExact) {
+            const criarSeparada = await confirm({
+                title: `Já existe a cor "${colorExact.name}"`,
+                message: `Você digitou "${colorQ}". Se é a mesma cor, use a que já existe — assim a foto e as variações ficam num lugar só. Só crie separada se for uma estampa realmente diferente que por acaso tem o mesmo nome.`,
+                confirmLabel: "Criar cor separada",
+                cancelLabel: `Usar "${colorExact.name}"`,
+            });
+            if (!criarSeparada) {
+                selectColor(colorExact.name);
+                setColorQuery("");
+                return;
+            }
+        }
+        // force = cria distinta mesmo se o nome já existir (a cliente confirmou).
         const created = await createColor(colorQ, true);
         if (created) selectColor(created.name);
     };

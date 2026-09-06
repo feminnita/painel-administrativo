@@ -12,6 +12,9 @@ type ConfirmOptions = {
     title: string;
     message: string;
     confirmLabel?: string;
+    // Rotulo do botao de recusar. Serve para perguntas de DUAS escolhas positivas
+    // (ex.: "Usar a cor existente" x "Criar cor separada"), em que "Cancelar" mente.
+    cancelLabel?: string;
     danger?: boolean;
 };
 
@@ -72,7 +75,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                                 onClick={() => close(false)}
                                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
                             >
-                                Cancelar
+                                {options.cancelLabel ?? "Cancelar"}
                             </button>
                             <button
                                 type="button"
