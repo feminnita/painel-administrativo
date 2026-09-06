@@ -56,6 +56,22 @@ export function ImageGridSection({
 
             <input
               type="text"
+              value={img.name ?? ""}
+              onChange={(e) => updateGridImage(i, { name: e.target.value })}
+              className="mb-2 w-full rounded-lg border px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+              placeholder="Nome da categoria"
+            />
+
+            <input
+              type="text"
+              value={img.href ?? ""}
+              onChange={(e) => updateGridImage(i, { href: e.target.value })}
+              className="mb-2 w-full rounded-lg border px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#8C2F39]"
+              placeholder="Link de destino"
+            />
+
+            <input
+              type="text"
               value={img.alt}
               onChange={(e) => updateGridImage(i, { alt: e.target.value })}
               className="mb-2 w-full rounded-lg border px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#8C2F39]"

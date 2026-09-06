@@ -1,5 +1,6 @@
 import {
     ChevronLeft,
+    ChevronDown,
     Tag,
     Weight,
     Ruler,
@@ -11,18 +12,29 @@ import {
     Star,
     Sparkles,
     TrendingUp,
-    Images,
     Layers,
-    Trash2,
-    EyeOff,
-    ChevronDown,
+    X,
+    SlidersHorizontal,
+    Search,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { slugify } from "../domain";
+import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
+import { VariationCard } from "./VariationCard";
 
 const DEFAULT_SIZES = ["P", "M", "G", "GG", "48", "50", "52"];
 
 const MEASURE_KEYS = ["busto", "cintura", "quadril"];
+
+const EMPTY_IMAGES: string[] = [];
+
+const SKU_PAGE_SIZE = 25;
+
+const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
+
+const normalizeText = (s: string) =>
+    s.normalize("NFD").replace(DIACRITICS, "").toLowerCase();
 
 type ProductsVM = ReturnType<typeof useProductsAdmin>;
 
@@ -48,6 +60,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         deleteSku,
         toggleSkuActive,
         generateVariations,
+        reorderSku,
+        bulkUpdateSkus,
         toggleSize,
         toggleColor,
         getColorImages,
@@ -55,11 +69,69 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         removeColorImage,
     } = vm;
 
+    const [expanded, setExpanded] = useState<Set<number>>(new Set());
+    const [bulkOpen, setBulkOpen] = useState(false);
+    const [colorsOpen, setColorsOpen] = useState(false);
+    const [skuSearch, setSkuSearch] = useState("");
+    const [skuPage, setSkuPage] = useState(0);
+
+    const editingId = editing?.id;
+    // Reset busca/página ao trocar de produto (openEdit)
+    useEffect(() => {
+        setSkuSearch("");
+        setSkuPage(0);
+    }, [editingId]);
+    // Reset página ao mudar a busca
+    useEffect(() => {
+        setSkuPage(0);
+    }, [skuSearch]);
+
     if (editing === null) return null;
 
     const pixPreview = editing.pix_price ?? +(editing.base_price * 0.95).toFixed(2);
     const sizes = getSizes();
     const colors = editing.colors || [];
+
+    const toggleExpand = useCallback((i: number) => {
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            if (next.has(i)) next.delete(i);
+            else next.add(i);
+            return next;
+        });
+    }, []);
+
+    // ── Busca + paginação das variações ──
+    // Mantém o índice REAL no array skus (setSku/reorder/delete dependem dele)
+    const skuQuery = normalizeText(skuSearch.trim());
+    const indexedSkus = skus.map((sku, index) => ({ sku, index }));
+    const filteredSkus = skuQuery
+        ? indexedSkus.filter(
+              ({ sku }) =>
+                  normalizeText(sku.color).includes(skuQuery) ||
+                  normalizeText(sku.size).includes(skuQuery),
+          )
+        : indexedSkus;
+    const skuPageCount = Math.max(
+        1,
+        Math.ceil(filteredSkus.length / SKU_PAGE_SIZE),
+    );
+    const currentSkuPage = Math.min(skuPage, skuPageCount - 1);
+    const skuPageStart = currentSkuPage * SKU_PAGE_SIZE;
+    const pageSkus = filteredSkus.slice(
+        skuPageStart,
+        skuPageStart + SKU_PAGE_SIZE,
+    );
+    const showingFrom = filteredSkus.length === 0 ? 0 : skuPageStart + 1;
+    const showingTo = Math.min(
+        skuPageStart + SKU_PAGE_SIZE,
+        filteredSkus.length,
+    );
+    const pageIndices = pageSkus.map((p) => p.index);
+    const allPageExpanded =
+        pageIndices.length > 0 && pageIndices.every((i) => expanded.has(i));
+    const isFilteredOrPaged =
+        skuQuery !== "" || filteredSkus.length > SKU_PAGE_SIZE;
 
     return (
         <div className="max-w-4xl p-6">
@@ -411,125 +483,112 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
                 {/* ── CORES ── */}
                 <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                    <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
-                        <Palette size={16} /> Cores disponíveis
-                    </h3>
-                    {productColors.length === 0 ? (
-                        <p className="text-sm text-gray-400">
-                            Nenhuma cor cadastrada ainda. Cadastre em Produtos →
-                            Características.
-                        </p>
-                    ) : (
-                        <div className="flex flex-wrap gap-3">
-                            {productColors.map((c) => (
-                                <button
-                                    key={c.id}
-                                    type="button"
-                                    onClick={() => toggleColor(c.name)}
-                                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${colors.includes(c.name)
-                                        ? "border-[#8C2F39] bg-[#8C2F39]/5 text-[#8C2F39]"
-                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                        }`}
-                                >
-                                    <span className="h-6 w-6 shrink-0 overflow-hidden rounded-full border">
-                                        <img
-                                            src={c.image_url}
-                                            alt=""
-                                            className="h-full w-full object-cover"
-                                        />
-                                    </span>
-                                    {c.name}
-                                </button>
-                            ))}
+                    <button
+                        type="button"
+                        onClick={() => setColorsOpen((v) => !v)}
+                        className="flex w-full items-center justify-between gap-2 text-left font-semibold text-gray-700"
+                    >
+                        <span className="flex flex-wrap items-center gap-2">
+                            <Palette size={16} /> Cores disponíveis
+                            <span className="text-sm font-normal text-gray-500">
+                                — {colors.length} cores
+                            </span>
+                        </span>
+                        <ChevronDown
+                            size={18}
+                            className={`shrink-0 text-gray-400 transition-transform ${colorsOpen ? "rotate-180" : ""}`}
+                        />
+                    </button>
+                    {colorsOpen && (
+                        <div className="mt-4">
+                            {productColors.length === 0 ? (
+                                <p className="text-sm text-gray-400">
+                                    Nenhuma cor cadastrada ainda. Cadastre em Produtos →
+                                    Características.
+                                </p>
+                            ) : (
+                                <div className="flex flex-wrap gap-3">
+                                    {productColors.map((c) => (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => toggleColor(c.name)}
+                                            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${colors.includes(c.name)
+                                                ? "border-[#8C2F39] bg-[#8C2F39]/5 text-[#8C2F39]"
+                                                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            <span className="h-6 w-6 shrink-0 overflow-hidden rounded-full border">
+                                                <img
+                                                    src={c.image_url}
+                                                    alt=""
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </span>
+                                            {c.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </section>
-
-                {/* -- Fotos por cor -- */}
-                {colors.length > 0 && (
-                    <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-700">
-                            <Images size={16} /> Fotos por cor
-                        </h3>
-                        <div className="space-y-5">
-                            {colors.map((color) => {
-                                const colorImgs = getColorImages(color);
-                                return (
-                                    <div
-                                        key={color}
-                                        className="rounded-lg border border-gray-100 p-4"
-                                    >
-                                        <p className="mb-2 text-sm font-medium">{color}</p>
-
-                                        {colorImgs.length > 0 && (
-                                            <div className="mb-3 flex flex-wrap gap-2">
-                                                {colorImgs.map((url, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className="group relative h-20 w-16 overflow-hidden rounded-lg bg-gray-100"
-                                                    >
-                                                        <img
-                                                            src={url}
-                                                            alt=""
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeColorImage(color, url)}
-                                                            className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <label
-                                            className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 transition-colors ${uploading
-                                                ? "border-gray-200 bg-gray-50"
-                                                : "border-gray-300 hover:border-[#8C2F39] hover:bg-red-50/30"
-                                                }`}
-                                        >
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                multiple
-                                                className="hidden"
-                                                disabled={uploading}
-                                                onChange={(e) =>
-                                                    e.target.files &&
-                                                    uploadColorImages(color, e.target.files)
-                                                }
-                                            />
-                                            <Upload size={16} className="text-gray-500" />
-                                            <span className="text-sm text-gray-500">
-                                                {uploading
-                                                    ? "Enviando..."
-                                                    : `Enviar fotos de ${color}`}
-                                            </span>
-                                        </label>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </section>
-                )}
 
                 {/* ── VARIAÇÕES (estilo Tray) ── */}
                 {sizes.length > 0 && colors.length > 0 && (
                     <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <h3 className="flex items-center gap-2 font-semibold text-gray-700">
-                                <Layers size={16} /> Variações
+                            <h3 className="flex flex-wrap items-center gap-2 font-semibold text-gray-700">
+                                <Layers size={16} /> Variações geradas ({skus.length})
+                                {isFilteredOrPaged && (
+                                    <span className="text-sm font-normal text-gray-400">
+                                        (mostrando {showingFrom}–{showingTo} de{" "}
+                                        {filteredSkus.length})
+                                    </span>
+                                )}
                             </h3>
-                            <button
-                                type="button"
-                                onClick={generateVariations}
-                                className="rounded-lg border border-[#8C2F39] px-4 py-2 text-sm font-medium text-[#8C2F39] transition-colors hover:bg-[#8C2F39]/5"
-                            >
-                                Gerar variações (cor × tamanho)
-                            </button>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={generateVariations}
+                                    className="rounded-lg border border-[#8C2F39] px-4 py-2 text-sm font-medium text-[#8C2F39] transition-colors hover:bg-[#8C2F39]/5"
+                                >
+                                    Gerar variações
+                                </button>
+                                {skus.length > 0 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setBulkOpen(true)}
+                                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                                        >
+                                            <SlidersHorizontal size={14} /> Atualização em lote
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setExpanded((prev) => {
+                                                    const next = new Set(prev);
+                                                    if (allPageExpanded)
+                                                        pageIndices.forEach((i) =>
+                                                            next.delete(i),
+                                                        );
+                                                    else
+                                                        pageIndices.forEach((i) =>
+                                                            next.add(i),
+                                                        );
+                                                    return next;
+                                                })
+                                            }
+                                            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                                        >
+                                            {allPageExpanded
+                                                ? "Ocultar todos"
+                                                : "Expandir todos"}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         {skus.length === 0 ? (
@@ -538,252 +597,120 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                 para criar uma para cada combinação de cor e tamanho.
                             </p>
                         ) : (
-                            <div className="space-y-6">
-                                {colors.map((color) => {
-                                    const colorSkus = sizes
-                                        .map((size) => ({
-                                            size,
-                                            index: skus.findIndex(
-                                                (s) => s.color === color && s.size === size,
-                                            ),
-                                        }))
-                                        .filter((c) => c.index > -1);
-                                    if (colorSkus.length === 0) return null;
-                                    return (
-                                        <div key={color}>
-                                            <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                                <Palette size={14} /> {color}
-                                            </p>
-                                            <div className="space-y-3">
-                                                {colorSkus.map(({ size, index }) => {
-                                                    const sku = skus[index];
-                                                    const basePrice = editing.base_price;
-                                                    const promoBase = sku.price ?? basePrice;
-                                                    const discount =
-                                                        sku.sale_price && promoBase
-                                                            ? Math.round(
-                                                                (1 - sku.sale_price / promoBase) * 100,
-                                                            )
-                                                            : null;
-                                                    return (
-                                                        <details
-                                                            key={`${color}-${size}`}
-                                                            className="group rounded-lg border border-gray-200"
-                                                        >
-                                                            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
-                                                                <ChevronDown
-                                                                    size={16}
-                                                                    className="text-gray-400 transition-transform group-open:rotate-180"
-                                                                />
-                                                                <span className="font-medium text-gray-700">
-                                                                    {color} · {size}
-                                                                </span>
-                                                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                                                                    Estoque: {sku.stock_qty}
-                                                                </span>
-                                                                {!sku.active && (
-                                                                    <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">
-                                                                        Inativa
-                                                                    </span>
-                                                                )}
-                                                                <span className="ml-auto flex items-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            toggleSkuActive(index);
-                                                                        }}
-                                                                        className="rounded-md border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
-                                                                        title={sku.active ? "Inativar" : "Ativar"}
-                                                                    >
-                                                                        {sku.active ? (
-                                                                            <EyeOff size={14} />
-                                                                        ) : (
-                                                                            <Eye size={14} />
-                                                                        )}
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            deleteSku(index);
-                                                                        }}
-                                                                        className="rounded-md border border-gray-200 p-1.5 text-red-500 hover:bg-red-50"
-                                                                        title="Excluir variação"
-                                                                    >
-                                                                        <Trash2 size={14} />
-                                                                    </button>
-                                                                </span>
-                                                            </summary>
-                                                            <div className="border-t border-gray-100 p-4">
-                                                                <div className="grid gap-4 md:grid-cols-3">
-                                                                    <div>
-                                                                        <label className="label">Estoque</label>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            value={sku.stock_qty}
-                                                                            onChange={(e) =>
-                                                                                setSku(index, {
-                                                                                    stock_qty:
-                                                                                        Number.parseInt(e.target.value) ||
-                                                                                        0,
-                                                                                })
-                                                                            }
-                                                                            className="input"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="label">
-                                                                            Preço de venda (R$)
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            value={sku.price ?? ""}
-                                                                            onChange={(e) =>
-                                                                                setSku(index, {
-                                                                                    price:
-                                                                                        Number.parseFloat(e.target.value) ||
-                                                                                        null,
-                                                                                })
-                                                                            }
-                                                                            className="input"
-                                                                            placeholder={`${basePrice.toFixed(2)} (herda)`}
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="label">
-                                                                            Preço de custo (R$)
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            value={sku.cost_price ?? ""}
-                                                                            onChange={(e) =>
-                                                                                setSku(index, {
-                                                                                    cost_price:
-                                                                                        Number.parseFloat(e.target.value) ||
-                                                                                        null,
-                                                                                })
-                                                                            }
-                                                                            className="input"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="label">Referência</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            value={sku.reference ?? ""}
-                                                                            onChange={(e) =>
-                                                                                setSku(index, {
-                                                                                    reference: e.target.value || null,
-                                                                                })
-                                                                            }
-                                                                            className="input"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="label">EAN / GTIN</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            value={sku.ean ?? ""}
-                                                                            onChange={(e) =>
-                                                                                setSku(index, {
-                                                                                    ean: e.target.value || null,
-                                                                                })
-                                                                            }
-                                                                            className="input"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="label">Estoque mínimo</label>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            value={sku.min_stock ?? ""}
-                                                                            onChange={(e) =>
-                                                                                setSku(index, {
-                                                                                    min_stock:
-                                                                                        Number.parseInt(e.target.value) ||
-                                                                                        0,
-                                                                                })
-                                                                            }
-                                                                            className="input"
-                                                                        />
-                                                                    </div>
-                                                                </div>
+                            <>
+                                {/* Busca por cor / tamanho */}
+                                <div className="mb-4 flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 focus-within:border-[#8C2F39]">
+                                    <Search size={16} className="text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={skuSearch}
+                                        onChange={(e) => setSkuSearch(e.target.value)}
+                                        placeholder="Buscar por cor ou tamanho..."
+                                        className="flex-1 text-sm outline-none"
+                                    />
+                                    {skuSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSkuSearch("")}
+                                            className="rounded-md p-0.5 text-gray-400 hover:bg-gray-100"
+                                            title="Limpar busca"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
 
-                                                                <div className="mt-4 rounded-lg bg-gray-50 p-4">
-                                                                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                                        Promoção
-                                                                    </p>
-                                                                    <div className="grid gap-4 md:grid-cols-3">
-                                                                        <div>
-                                                                            <label className="label">
-                                                                                Preço promocional (R$)
-                                                                            </label>
-                                                                            <input
-                                                                                type="number"
-                                                                                step="0.01"
-                                                                                min="0"
-                                                                                value={sku.sale_price ?? ""}
-                                                                                onChange={(e) =>
-                                                                                    setSku(index, {
-                                                                                        sale_price:
-                                                                                            Number.parseFloat(
-                                                                                                e.target.value,
-                                                                                            ) || null,
-                                                                                    })
-                                                                                }
-                                                                                className="input"
-                                                                            />
-                                                                            {discount != null && (
-                                                                                <p className="mt-1 text-xs text-[#8C2F39]">
-                                                                                    {discount}% de desconto
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="label">Início</label>
-                                                                            <input
-                                                                                type="date"
-                                                                                value={sku.sale_start ?? ""}
-                                                                                onChange={(e) =>
-                                                                                    setSku(index, {
-                                                                                        sale_start:
-                                                                                            e.target.value || null,
-                                                                                    })
-                                                                                }
-                                                                                className="input"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="label">Fim</label>
-                                                                            <input
-                                                                                type="date"
-                                                                                value={sku.sale_end ?? ""}
-                                                                                onChange={(e) =>
-                                                                                    setSku(index, {
-                                                                                        sale_end: e.target.value || null,
-                                                                                    })
-                                                                                }
-                                                                                className="input"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </details>
-                                                    );
-                                                })}
-                                            </div>
+                                {filteredSkus.length === 0 ? (
+                                    <p className="text-sm text-gray-400">
+                                        Nenhuma variação encontrada para "{skuSearch}".
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {pageSkus.map(({ sku, index }) => {
+                                            const rawImgs = getColorImages(sku.color);
+                                            const colorImgs = rawImgs.length
+                                                ? rawImgs
+                                                : EMPTY_IMAGES;
+                                            return (
+                                                <VariationCard
+                                                    key={
+                                                        sku.position ??
+                                                        `${sku.color}-${sku.size}-${index}`
+                                                    }
+                                                    sku={sku}
+                                                    index={index}
+                                                    expanded={expanded.has(index)}
+                                                    isLast={index === skus.length - 1}
+                                                    basePrice={editing.base_price}
+                                                    colorImgs={colorImgs}
+                                                    uploading={uploading}
+                                                    onToggle={toggleExpand}
+                                                    setSku={setSku}
+                                                    deleteSku={deleteSku}
+                                                    toggleSkuActive={toggleSkuActive}
+                                                    reorderSku={reorderSku}
+                                                    uploadColorImages={uploadColorImages}
+                                                    removeColorImage={removeColorImage}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Paginação */}
+                                {skuPageCount > 1 && (
+                                    <div className="mt-4 flex items-center justify-between gap-3">
+                                        <span className="text-xs text-gray-400">
+                                            Mostrando {showingFrom}–{showingTo} de{" "}
+                                            {filteredSkus.length}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setSkuPage((p) => Math.max(0, p - 1))
+                                                }
+                                                disabled={currentSkuPage === 0}
+                                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30"
+                                            >
+                                                Anterior
+                                            </button>
+                                            <span className="text-xs text-gray-500">
+                                                {currentSkuPage + 1} / {skuPageCount}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setSkuPage((p) =>
+                                                        Math.min(skuPageCount - 1, p + 1),
+                                                    )
+                                                }
+                                                disabled={
+                                                    currentSkuPage >= skuPageCount - 1
+                                                }
+                                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30"
+                                            >
+                                                Próxima
+                                            </button>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {bulkOpen && (
+                            <BulkUpdatePanel
+                                colors={colors}
+                                onClose={() => setBulkOpen(false)}
+                                onApply={(patch, scope) =>
+                                    bulkUpdateSkus(
+                                        patch,
+                                        scope === "__all__"
+                                            ? undefined
+                                            : (s: Sku) => s.color === scope,
+                                    )
+                                }
+                            />
                         )}
                     </section>
                 )}
@@ -1042,6 +969,140 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                     ".label{display:block;font-size:.75rem;font-weight:500;color:#374151;margin-bottom:.25rem}.input{width:100%;padding:.5rem 1rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.875rem;outline:none}.input:focus{border-color:#8C2F39;box-shadow:0 0 0 2px rgba(140,47,57,.15)}"
                 }
             </style>
+        </div>
+    );
+}
+
+function BulkUpdatePanel({
+    colors,
+    onClose,
+    onApply,
+}: {
+    colors: string[];
+    onClose: () => void;
+    onApply: (patch: Partial<Sku>, scope: string) => void;
+}) {
+    const [scope, setScope] = useState("__all__");
+    const [price, setPrice] = useState("");
+    const [salePrice, setSalePrice] = useState("");
+    const [saleStart, setSaleStart] = useState("");
+    const [saleEnd, setSaleEnd] = useState("");
+
+    const apply = () => {
+        const patch: Partial<Sku> = {};
+        if (price !== "") patch.price = Number.parseFloat(price) || null;
+        if (salePrice !== "")
+            patch.sale_price = Number.parseFloat(salePrice) || null;
+        if (saleStart !== "") patch.sale_start = saleStart;
+        if (saleEnd !== "") patch.sale_end = saleEnd;
+        onApply(patch, scope);
+        onClose();
+    };
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={onClose}
+        >
+            <div
+                className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="mb-4 flex items-center justify-between">
+                    <h4 className="flex items-center gap-2 font-semibold text-gray-700">
+                        <SlidersHorizontal size={16} /> Atualização em lote
+                    </h4>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-md p-1 text-gray-400 hover:bg-gray-100"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="label">Aplicar em</label>
+                        <select
+                            value={scope}
+                            onChange={(e) => setScope(e.target.value)}
+                            className="input"
+                        >
+                            <option value="__all__">Todas as variações</option>
+                            {colors.map((c) => (
+                                <option key={c} value={c}>
+                                    Cor: {c}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="label">Preço de venda (R$)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                className="input"
+                                placeholder="Não alterar"
+                            />
+                        </div>
+                        <div>
+                            <label className="label">Preço promocional (R$)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={salePrice}
+                                onChange={(e) => setSalePrice(e.target.value)}
+                                className="input"
+                                placeholder="Não alterar"
+                            />
+                        </div>
+                        <div>
+                            <label className="label">Início da promoção</label>
+                            <input
+                                type="date"
+                                value={saleStart}
+                                onChange={(e) => setSaleStart(e.target.value)}
+                                className="input"
+                            />
+                        </div>
+                        <div>
+                            <label className="label">Fim da promoção</label>
+                            <input
+                                type="date"
+                                value={saleEnd}
+                                onChange={(e) => setSaleEnd(e.target.value)}
+                                className="input"
+                            />
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                        Campos vazios não serão alterados nas variações selecionadas.
+                    </p>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg border px-5 py-2 text-sm hover:bg-gray-50"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={apply}
+                        className="rounded-lg bg-[#8C2F39] px-5 py-2 text-sm font-semibold text-white hover:bg-[#7a2832]"
+                    >
+                        Aplicar
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

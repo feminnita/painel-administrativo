@@ -44,6 +44,7 @@ export type ProductFilters = {
 };
 
 export type Sku = {
+  id?: string;
   size: string;
   color: string;
   stock_qty: number;
@@ -56,6 +57,13 @@ export type Sku = {
   sale_start: string | null;
   sale_end: string | null;
   active: boolean;
+  availability: string | null;
+  out_of_stock_action: string | null;
+  weight_g: number | null;
+  height_cm: number | null;
+  width_cm: number | null;
+  length_cm: number | null;
+  position: number | null;
 };
 
 export type ColorImages = {

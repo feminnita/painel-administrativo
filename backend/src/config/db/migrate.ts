@@ -17,7 +17,7 @@ async function runMigrations() {
 
     try {
         await migrate(db, {
-            migrationsFolder: './src/config/db/migrations',
+            migrationsFolder: './src/db/migrations',
         });
         console.log('✅ Migrations aplicadas com sucesso!');
     } catch (error) {

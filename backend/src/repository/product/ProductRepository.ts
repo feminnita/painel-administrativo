@@ -16,6 +16,13 @@ type SkuGridItem = {
     saleStart?: string | null;
     saleEnd?: string | null;
     active?: boolean;
+    availability?: string | null;
+    outOfStockAction?: string | null;
+    weightG?: number | null;
+    heightCm?: string | null;
+    widthCm?: string | null;
+    lengthCm?: string | null;
+    position?: number | null;
 };
 type ColorImagesItem = { color: string; images: string[] };
 
@@ -45,6 +52,7 @@ export async function saveProductWithRelations(
     skus: SkuGridItem[],
     colorImages: ColorImagesItem[],
     productId?: string,
+    deletedSkuIds: string[] = [],
 ) {
     return db.transaction(async (tx) => {
 
@@ -84,7 +92,7 @@ export async function saveProductWithRelations(
                     productId: savedId,
                     size: item.size,
                     colorId: item.color ? colorIdByName.get(item.color)! : null,
-                    stockQty: item.stockQty,
+                    stockQty: 0, // FASE A: estoque vem do Bling; o cadastro NÃO grava estoque
                     price: item.price ?? null,
                     salePrice: item.salePrice ?? null,
                     costPrice: item.costPrice ?? null,
@@ -94,11 +102,18 @@ export async function saveProductWithRelations(
                     saleStart: item.saleStart ?? null,
                     saleEnd: item.saleEnd ?? null,
                     active: item.active ?? true,
+                    availability: item.availability ?? null,
+                    outOfStockAction: item.outOfStockAction ?? null,
+                    weightG: item.weightG ?? null,
+                    heightCm: item.heightCm ?? null,
+                    widthCm: item.widthCm ?? null,
+                    lengthCm: item.lengthCm ?? null,
+                    position: item.position ?? null,
                 })
                 .onConflictDoUpdate({
                     target: [productsSkus.productId, productsSkus.size, productsSkus.colorId],
                     set: {
-                        stockQty: item.stockQty,
+                        // FASE A: estoque NÃO é atualizado pelo cadastro (fonte única = Bling)
                         price: item.price ?? null,
                         salePrice: item.salePrice ?? null,
                         costPrice: item.costPrice ?? null,
@@ -108,30 +123,31 @@ export async function saveProductWithRelations(
                         saleStart: item.saleStart ?? null,
                         saleEnd: item.saleEnd ?? null,
                         active: item.active ?? true,
+                        availability: item.availability ?? null,
+                        outOfStockAction: item.outOfStockAction ?? null,
+                        weightG: item.weightG ?? null,
+                        heightCm: item.heightCm ?? null,
+                        widthCm: item.widthCm ?? null,
+                        lengthCm: item.lengthCm ?? null,
+                        position: item.position ?? null,
                         updatedAt: new Date(),
                     },
                 })
                 .returning({ id: productsSkus.id });
             keptSkuIds.push(row.id);
         }
-        const removedSkus = await tx.query.productsSkus.findMany({
-            where: and(
+        // ⛔ REGRA PERMANENTE: o SAVE NUNCA apaga variação por ausência no payload.
+        // Só faz upsert do que veio (acima); o que não veio fica INTOCADO no banco.
+        // Exclusão de variação só por ação EXPLÍCITA do usuário (lixeira do card) →
+        // vem em `deletedSkuIds` e apaga SOMENTE o que está nessa lista.
+        if (deletedSkuIds.length) {
+            await tx.delete(productsSkus).where(and(
                 eq(productsSkus.productId, savedId),
-                keptSkuIds.length ? sql`${productsSkus.id} NOT IN ${keptSkuIds}` : undefined,
-            ),
-        });
-        for (const orphan of removedSkus) {
-            try {
-                await tx.delete(productsSkus).where(eq(productsSkus.id, orphan.id));
-            } catch {
-                await tx
-                    .update(productsSkus)
-                    .set({ stockQty: 0, updatedAt: new Date() })
-                    .where(eq(productsSkus.id, orphan.id));
-            }
+                inArray(productsSkus.id, deletedSkuIds),
+            ));
         }
 
-        const keptColorIds = colorImages.map((c) => colorIdByName.get(c.color)!);
+        // Imagens por cor: upsert do que veio; NUNCA apaga as que não vieram.
         for (const item of colorImages) {
             await tx
                 .insert(productColorImages)
@@ -146,12 +162,6 @@ export async function saveProductWithRelations(
                     set: { images: item.images, updatedAt: new Date() },
                 });
         }
-        await tx.delete(productColorImages).where(
-            and(
-                eq(productColorImages.productId, savedId),
-                keptColorIds.length ? sql`${productColorImages.colorId} NOT IN ${keptColorIds}` : undefined,
-            ),
-        );
 
         return savedId;
     });

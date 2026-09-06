@@ -77,7 +77,7 @@ export function useHomeBannersAdmin() {
 
     const updateGridImage = (
         index: number,
-        patch: Partial<{ src: string; alt: string }>,
+        patch: Partial<{ src: string; alt: string; name: string; href: string }>,
     ) =>
         setSettings((prev) => ({
             ...prev,

@@ -6,7 +6,7 @@ import { requireAdminAuth } from '../../middleware/AuthMiddleware';
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 10,
+    limit: Number(process.env.LOGIN_RATE_LIMIT ?? 10),
     standardHeaders: true,
     legacyHeaders: false,
     message: {

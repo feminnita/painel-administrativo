@@ -83,6 +83,7 @@ export function mapApiColor(c: Record<string, any>): Color {
 
 export function mapApiSku(s: ApiProduct, color: string): Sku {
   return {
+    id: s.id,
     size: s.size,
     color,
     stock_qty: s.stockQty ?? 0,
@@ -95,6 +96,13 @@ export function mapApiSku(s: ApiProduct, color: string): Sku {
     sale_start: s.saleStart ?? null,
     sale_end: s.saleEnd ?? null,
     active: s.active ?? true,
+    availability: s.availability ?? null,
+    out_of_stock_action: s.outOfStockAction ?? null,
+    weight_g: s.weightG == null ? null : Number(s.weightG),
+    height_cm: s.heightCm == null ? null : Number(s.heightCm),
+    width_cm: s.widthCm == null ? null : Number(s.widthCm),
+    length_cm: s.lengthCm == null ? null : Number(s.lengthCm),
+    position: s.position == null ? null : Number(s.position),
   };
 }
 
@@ -112,5 +120,12 @@ export function toApiSku(s: Sku): Record<string, unknown> {
     saleStart: s.sale_start,
     saleEnd: s.sale_end,
     active: s.active,
+    availability: s.availability,
+    outOfStockAction: s.out_of_stock_action,
+    weightG: s.weight_g,
+    heightCm: s.height_cm,
+    widthCm: s.width_cm,
+    lengthCm: s.length_cm,
+    position: s.position,
   };
 }

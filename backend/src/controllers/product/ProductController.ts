@@ -33,7 +33,7 @@ export async function saveFull(req: Request, res: Response) {
         delete product.createdAt;
 
         const savedId = await ProductService.saveFullProduct(
-            { product, skus: req.body.skus, colorImages: req.body.colorImages },
+            { product, skus: req.body.skus, colorImages: req.body.colorImages, deletedSkuIds: req.body.deletedSkuIds },
             id,
         );
         res.status(id ? 200 : 201).json({ id: savedId });

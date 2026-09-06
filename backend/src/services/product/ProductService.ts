@@ -18,7 +18,7 @@ export async function updateProduct(id: string, values: Record<string, unknown>)
 }
 
 export function saveFullProduct(
-    input: { product: Record<string, unknown>; skus?: unknown; colorImages?: unknown },
+    input: { product: Record<string, unknown>; skus?: unknown; colorImages?: unknown; deletedSkuIds?: unknown },
     productId?: string,
 ) {
     const product = input.product ?? {};
@@ -26,6 +26,12 @@ export function saveFullProduct(
 
     const toMoney = (v: unknown) =>
         v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v).toFixed(2);
+
+    const toDim = (v: unknown) =>
+        v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v).toFixed(2);
+
+    const toInt = (v: unknown) =>
+        v === '' || v == null || !Number.isFinite(Number(v)) ? null : Math.max(0, Math.round(Number(v)));
 
     const skus = Array.isArray(input.skus)
         ? input.skus
@@ -43,6 +49,14 @@ export function saveFullProduct(
                 saleStart: typeof s.saleStart === 'string' && s.saleStart ? (s.saleStart as string) : null,
                 saleEnd: typeof s.saleEnd === 'string' && s.saleEnd ? (s.saleEnd as string) : null,
                 active: s.active == null ? true : Boolean(s.active),
+                availability: typeof s.availability === 'string' && s.availability ? (s.availability as string) : null,
+                outOfStockAction:
+                    typeof s.outOfStockAction === 'string' && s.outOfStockAction ? (s.outOfStockAction as string) : null,
+                weightG: toInt(s.weightG),
+                heightCm: toDim(s.heightCm),
+                widthCm: toDim(s.widthCm),
+                lengthCm: toDim(s.lengthCm),
+                position: toInt(s.position),
             }))
         : [];
 
@@ -55,7 +69,12 @@ export function saveFullProduct(
             }))
         : [];
 
-    return ProductRepository.saveProductWithRelations(product as never, skus, colorImages, productId);
+    // Exclusão explícita de variação (lixeira do card) — SOMENTE os ids listados são apagados.
+    const deletedSkuIds = Array.isArray(input.deletedSkuIds)
+        ? input.deletedSkuIds.filter((x): x is string => typeof x === 'string')
+        : [];
+
+    return ProductRepository.saveProductWithRelations(product as never, skus, colorImages, productId, deletedSkuIds);
 }
 
 export function listColorImages(productId: string) {

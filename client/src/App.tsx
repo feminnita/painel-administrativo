@@ -12,10 +12,13 @@ import { StockPage } from "./pages/stock/ui/StockPage";
 import { CouponsPage } from "./pages/coupons/ui/CouponsPage";
 import { BannersPage } from '@/pages/banners/ui/BannersPage';
 import { IntegracoesPage } from "./pages/integrations/ui/IntegracoesPage";
+import { DbEnvBanner } from "@/components/DbEnvBanner";
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <DbEnvBanner />
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>
@@ -33,6 +36,7 @@ export default function App() {
           <Route path="*" element={<UnderConstructionPage />} />
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }

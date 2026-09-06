@@ -41,6 +41,8 @@ export function useProductsAdmin() {
   const [saving, setSaving] = useState(false);
   const [imagesInput, setImagesInput] = useState("");
   const [skus, setSkus] = useState<Sku[]>([]);
+  // Ids de variações excluídas EXPLICITAMENTE pela lixeira (só essas são apagadas no save)
+  const [deletedSkuIds, setDeletedSkuIds] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "inactive">(
@@ -200,6 +202,7 @@ export function useProductsAdmin() {
 
   const openEdit = async (p: AdminProduct) => {
     setEditing({ ...p });
+    setDeletedSkuIds([]);
     setImagesInput((p.images || []).join("\n"));
 
     const { father, child } = p.category_id
@@ -214,37 +217,48 @@ export function useProductsAdmin() {
     ]);
 
     const colorNameById = new Map(productColors.map((c) => [c.id, c.name]));
-    setSkus(
-      skuRows.map((s) =>
-        mapApiSku(s, s.colorId ? (colorNameById.get(s.colorId) ?? "") : ""),
-      ),
+    const mapped = skuRows.map((s) =>
+      mapApiSku(s, s.colorId ? (colorNameById.get(s.colorId) ?? "") : ""),
     );
+    mapped.sort((a, b) => {
+      const pa = a.position ?? Number.MAX_SAFE_INTEGER;
+      const pb = b.position ?? Number.MAX_SAFE_INTEGER;
+      return pa - pb;
+    });
+    setSkus(mapped.map((s, i) => ({ ...s, position: s.position ?? i })));
     setColorImages(colorImageData);
   };
 
   const getSizes = () => editing?.sizes || [];
 
-  const setSku = (index: number, patch: Partial<Sku>) => {
+  const setSku = useCallback((index: number, patch: Partial<Sku>) => {
     setSkus((prev) => {
       if (index < 0 || index >= prev.length) return prev;
       const next = [...prev];
       next[index] = { ...next[index], ...patch };
       return next;
     });
-  };
+  }, []);
 
-  const deleteSku = (index: number) => {
-    setSkus((prev) => prev.filter((_, i) => i !== index));
-  };
+  const deleteSku = useCallback((index: number) => {
+    setSkus((prev) => {
+      const removed = prev[index];
+      // Só variação já salva (com id) precisa ser apagada no banco; a nova só some da tela.
+      if (removed?.id) {
+        setDeletedSkuIds((ids) => (ids.includes(removed.id!) ? ids : [...ids, removed.id!]));
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
 
-  const toggleSkuActive = (index: number) => {
+  const toggleSkuActive = useCallback((index: number) => {
     setSkus((prev) => {
       if (index < 0 || index >= prev.length) return prev;
       const next = [...prev];
       next[index] = { ...next[index], active: !next[index].active };
       return next;
     });
-  };
+  }, []);
 
   const generateVariations = () => {
     if (!editing) return;
@@ -252,6 +266,7 @@ export function useProductsAdmin() {
     const colors = editing.colors || [];
     setSkus((prev) => {
       const next = [...prev];
+      let pos = next.reduce((m, s) => Math.max(m, s.position ?? -1), -1);
       for (const color of colors) {
         for (const size of sizes) {
           const exists = next.some(
@@ -271,12 +286,39 @@ export function useProductsAdmin() {
               sale_start: null,
               sale_end: null,
               active: true,
+              availability: null,
+              out_of_stock_action: null,
+              weight_g: null,
+              height_cm: null,
+              width_cm: null,
+              length_cm: null,
+              position: ++pos,
             });
           }
         }
       }
       return next;
     });
+  };
+
+  const reorderSku = useCallback((index: number, dir: "up" | "down") => {
+    setSkus((prev) => {
+      const j = index + (dir === "up" ? -1 : 1);
+      if (index < 0 || index >= prev.length || j < 0 || j >= prev.length)
+        return prev;
+      const next = [...prev];
+      [next[index], next[j]] = [next[j], next[index]];
+      return next.map((s, i) => ({ ...s, position: i }));
+    });
+  }, []);
+
+  const bulkUpdateSkus = (
+    patch: Partial<Sku>,
+    filterFn?: (s: Sku) => boolean,
+  ) => {
+    setSkus((prev) =>
+      prev.map((s) => (!filterFn || filterFn(s) ? { ...s, ...patch } : s)),
+    );
   };
 
   const toggleSize = (size: string) => {
@@ -304,27 +346,33 @@ export function useProductsAdmin() {
   const getColorImages = (color: string) =>
     colorImages.find((c) => c.color === color)?.images ?? [];
 
-  const uploadColorImages = async (color: string, files: FileList) => {
-    setUploading(true);
-    try {
-      const { urls } = await api.upload("/api/admin/upload", files);
-      setColorImages((prev) => {
-        const idx = prev.findIndex((c) => c.color === color);
-        if (idx > -1) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], images: [...next[idx].images, ...urls] };
-          return next;
-        }
-        return [...prev, { color, images: urls }];
-      });
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Falha no upload");
-    } finally {
-      setUploading(false);
-    }
-  };
+  const uploadColorImages = useCallback(
+    async (color: string, files: FileList) => {
+      setUploading(true);
+      try {
+        const { urls } = await api.upload("/api/admin/upload", files);
+        setColorImages((prev) => {
+          const idx = prev.findIndex((c) => c.color === color);
+          if (idx > -1) {
+            const next = [...prev];
+            next[idx] = {
+              ...next[idx],
+              images: [...next[idx].images, ...urls],
+            };
+            return next;
+          }
+          return [...prev, { color, images: urls }];
+        });
+      } catch (err) {
+        alert(err instanceof ApiError ? err.message : "Falha no upload");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [],
+  );
 
-  const removeColorImage = (color: string, url: string) => {
+  const removeColorImage = useCallback((color: string, url: string) => {
     setColorImages((prev) =>
       prev.map((c) =>
         c.color === color
@@ -332,7 +380,7 @@ export function useProductsAdmin() {
           : c,
       ),
     );
-  };
+  }, []);
 
   const handleSave = async () => {
     if (!editing || !editing.name) return;
@@ -340,15 +388,30 @@ export function useProductsAdmin() {
 
     try {
       const payload = buildProductPayload(editing, imagesInput);
-      const activeSizes = new Set(payload.sizes);
-      const activeColors = new Set(payload.colors);
+
+      // O que está na tela é o que salva. As listas `colors`/`sizes` do produto servem
+      // para GERAR variações — não para descartar em silêncio o que o usuário editou.
+      // Antes, um card cuja cor divergia da lista (ex.: variação "MARINHO" x produto
+      // "Marinho") tinha imagem e campos jogados fora no save, sem erro nenhum.
+      // Única exclusão: variação sem cor resolvida — o upsert usa product+size+color,
+      // e com color nulo o ON CONFLICT não casa e duplicaria a linha a cada save.
+      const skusToSave = skus.filter((s) => s.color);
+      const savedColors = new Set(skusToSave.map((s) => s.color));
+
+      const semCor = skus.length - skusToSave.length;
+      if (semCor > 0) {
+        alert(
+          `${semCor} variação(ões) estão sem cor e NÃO serão salvas. Exclua pela lixeira do card e cadastre de novo com a cor certa.`,
+        );
+      }
 
       const body = {
         product: toApiProduct(payload),
-        skus: skus
-          .filter((s) => activeSizes.has(s.size) && activeColors.has(s.color))
-          .map(toApiSku),
-        colorImages: colorImages.filter((c) => activeColors.has(c.color)),
+        skus: skusToSave.map(toApiSku),
+        colorImages: colorImages.filter(
+          (c) => savedColors.has(c.color) || payload.colors.includes(c.color),
+        ),
+        deletedSkuIds,
       };
 
       if (editing.id) {
@@ -425,6 +488,8 @@ export function useProductsAdmin() {
     deleteSku,
     toggleSkuActive,
     generateVariations,
+    reorderSku,
+    bulkUpdateSkus,
     toggleSize,
     toggleColor,
     handleSave,
