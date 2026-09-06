@@ -4,7 +4,7 @@
 # NÃO publica sozinho: só vira deploy quando o Chris conectar este Blueprint no Render
 # (Dashboard → New → Blueprint → este repo) OU criar o Static Site manualmente com estes valores.
 #
-# O backend (Express) já roda na Render em: painel-administrativo-rh15.onrender.com — não mexer.
+# O backend (Express) já roda na Render em: painel-administrativo-7lw1.onrender.com — não mexer.
 
 services:
   - type: web
@@ -18,7 +18,7 @@ services:
     # Vite injeta VITE_* em BUILD time — o front precisa saber a URL do backend aqui:
     envVars:
       - key: VITE_API_URL
-        value: https://painel-administrativo-rh15.onrender.com
+        value: https://painel-administrativo-7lw1.onrender.com
     # SPA: qualquer rota cai no index.html
     routes:
       - type: rewrite
