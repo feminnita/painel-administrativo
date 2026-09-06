@@ -320,9 +320,17 @@ export function useProductsAdmin() {
   // apagados — a Chris consolida no recadastro.
   // Tamanhos que EXISTEM naquela cor: o override (colorSizes) se DEFINIDO, senão o
   // padrão do produto (editing.sizes). Cor sem override herda o padrão.
+  // Override VAZIO conta como "sem override" e volta a herdar o padrão. Sem isso,
+  // uma cor que ficou com zero tamanhos — porque as variações dela foram todas
+  // excluídas — travava em zero: o "Gerar variações" pulava essa cor, o chip
+  // aparecia sem nenhuma variação embaixo, e só dava para repor tamanho por
+  // tamanho pelo rodapé. A proteção contra recriar tamanho excluído continua
+  // valendo enquanto sobrar ao menos um tamanho na cor.
   const getColorSizes = (color: string): string[] => {
     const override = colorSizes[norm(color)];
-    return override !== undefined ? override : editing?.sizes || [];
+    return override !== undefined && override.length > 0
+      ? override
+      : editing?.sizes || [];
   };
 
   // Liga/desliga um tamanho SÓ naquela cor. Se ainda não há override, começa do
