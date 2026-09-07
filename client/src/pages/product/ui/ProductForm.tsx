@@ -325,6 +325,21 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         { key: "is_outlet", label: "Outlet", desc: "Exibe o produto na vitrine de Outlet.", icon: Percent },
     ] as const;
 
+    // A vitrine de Outlet só mostra produto com promoção VALENDO — ela anuncia
+    // "até X% OFF", então sem desconto não há o que anunciar. Marcar Outlet sem
+    // preço promocional não fazia nada e não avisava nada: a Chris marcava,
+    // salvava, e a seção continuava sumida sem explicação.
+    const promoValendo = (() => {
+        const de = editing.base_price;
+        const por = editing.sale_price;
+        if (de == null || por == null || !(por < de)) return false;
+        const hoje = new Date().toISOString().slice(0, 10);
+        if (editing.sale_start && editing.sale_start.slice(0, 10) > hoje) return false;
+        if (editing.sale_end && editing.sale_end.slice(0, 10) < hoje) return false;
+        return true;
+    })();
+    const outletSemPromo = Boolean(editing.is_outlet) && !promoValendo;
+
     const expandAll = () =>
         setExpanded(new Set(variationsByColor.map(([color]) => color)));
     const collapseAll = () => setExpanded(new Set());
@@ -1699,6 +1714,15 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                         </div>
                                     );
                                 })}
+                                {outletSemPromo && (
+                                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-800">
+                                        <strong>Outlet marcado, mas o produto não vai aparecer.</strong> A
+                                        vitrine de Outlet anuncia “até X% OFF”, então só entra produto com
+                                        promoção valendo. Preencha o <strong>preço promocional</strong> (menor
+                                        que o preço de venda) — e, se usar datas, confira se hoje está dentro
+                                        do período.
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </section>
