@@ -263,6 +263,16 @@ async function upsertProductFromBling(
     return 'created';
 }
 
+// Uma sincronizacao interrompida (aba fechada, deploy no meio, internet caindo)
+// fica marcada como 'running' para sempre. Como toda nova sincronizacao RETOMA a
+// que esta rodando, essa marca virava uma trava permanente: a de 24/08 parou com
+// 2875 produtos, entao o retomar caia na pagina 116 de um catalogo com 24 —
+// "rodava", nao achava nada e encerrava. Clicar em Sincronizar nao fazia mais
+// efeito nenhum, sem nenhuma mensagem dizendo por que.
+//
+// Retomar so faz sentido logo depois; passado esse prazo a rodada esta morta.
+const PRAZO_PARA_RETOMAR_MS = 6 * 60 * 60 * 1000;
+
 export async function findResumableSync(): Promise<{
     logId: string;
     nextPage: number;
@@ -273,6 +283,18 @@ export async function findResumableSync(): Promise<{
     });
 
     if (!row) return null;
+
+    // Sem data de inicio nao da para saber a idade: trata como abandonada.
+    const inicio = row.startedAt ? new Date(row.startedAt).getTime() : 0;
+    if (Date.now() - inicio > PRAZO_PARA_RETOMAR_MS) {
+        // Encerra a abandonada para nao travar as proximas, e deixa o historico
+        // honesto em vez de mostrar "rodando" para sempre.
+        await db
+            .update(blingSyncLog)
+            .set({ status: 'interrupted', finishedAt: new Date() })
+            .where(eq(blingSyncLog.id, row.id));
+        return null;
+    }
 
     return {
         logId: row.id,
