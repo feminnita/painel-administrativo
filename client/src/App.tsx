@@ -23,6 +23,7 @@ import { FretePage } from "./pages/frete/ui/FretePage";
 import { ReconcilePage } from "./pages/reconcile/ui/ReconcilePage";
 import { SizeChartsPage } from "./pages/tabela-medidas/ui/SizeChartsPage";
 import { ResaleTermPage } from "./pages/resale-term/ui/ResaleTermPage";
+import { NewsletterPage } from "./pages/newsletter/ui/NewsletterPage";
 import { ConfirmProvider } from "./components/confirm/ConfirmProvider";
 import { AvisoVersaoNova } from "./components/AvisoVersaoNova";
 
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/produtos" element={<ProductsPage />} />
+            <Route path="/newsletter" element={<NewsletterPage />} />
             <Route path="/pedidos" element={<OrdersPage />} />
             <Route path="/caracteristicas" element={<CharacteristicsPage />} />
             <Route path="/categorias" element={<CategoryBoard />} />

@@ -48,8 +48,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// Download de arquivo: nao da para usar um link comum porque a rota exige o
+// cabecalho de autenticacao. Busca com o token e devolve o conteudo para o
+// navegador salvar.
+async function requestBlob(path: string): Promise<Blob> {
+  const response = await fetch(`${API_URL}${path}`, { headers: authHeaders() });
+  if (!response.ok) return handleError(response, path);
+  return response.blob();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  getBlob: (path: string) => requestBlob(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body: unknown) =>
