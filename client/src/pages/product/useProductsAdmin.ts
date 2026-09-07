@@ -431,14 +431,31 @@ export function useProductsAdmin() {
     // é só apagar de novo, e nada se perde no banco.
   };
 
+  // Mesma regra da cor: marcar o tamanho já cria a variação dele em cada cor que
+  // segue o padrão do produto. Cor com grade própria ("Tamanho por cor") não é
+  // tocada — ali a Chris definiu à mão quais tamanhos aquela cor tem.
   const toggleSize = (size: string) => {
     if (!editing) return;
     const sizes = editing.sizes || [];
+    const removendo = sizes.includes(size);
+
     setEditing({
       ...editing,
-      sizes: sizes.includes(size)
-        ? sizes.filter((s) => s !== size)
-        : [...sizes, size],
+      sizes: removendo ? sizes.filter((s) => s !== size) : [...sizes, size],
+    });
+
+    setSkus((prev) => {
+      if (removendo) {
+        return prev.filter((s) => !(norm(s.size) === norm(size) && !s.id));
+      }
+      const semGradePropria = (editing.colors || []).filter((cor) => {
+        const override = colorSizes[norm(cor)];
+        return !(override !== undefined && override.length > 0);
+      });
+      const novos = semGradePropria
+        .filter((cor) => !prev.some((s) => norm(s.color) === norm(cor) && norm(s.size) === norm(size)))
+        .map((cor) => newSku(cor, size));
+      return novos.length ? [...prev, ...novos] : prev;
     });
   };
 
@@ -467,14 +484,32 @@ export function useProductsAdmin() {
     }
   };
 
+  // Marcar a cor JÁ CRIA as variações dela. Antes a cor entrava só na lista de
+  // cima e a lista de Variações continuava igual: a Chris adicionava 4 cores,
+  // não aparecia nada embaixo, e precisava clicar em "Gerar variações" ou repor
+  // uma a uma pelo rodapé. Marcar a cor é dizer "este produto tem essa cor" —
+  // as variações são a consequência óbvia disso.
   const toggleColor = (name: string) => {
     if (!editing) return;
     const colors = editing.colors || [];
+    const removendo = colors.includes(name);
+
     setEditing({
       ...editing,
-      colors: colors.includes(name)
-        ? colors.filter((c) => c !== name)
-        : [...colors, name],
+      colors: removendo ? colors.filter((c) => c !== name) : [...colors, name],
+    });
+
+    setSkus((prev) => {
+      if (removendo) {
+        // Desmarcar tira só o que ainda NÃO foi salvo. Variação já gravada some
+        // apenas pela lixeira — ação explícita, com aviso de pedido.
+        return prev.filter((s) => !(norm(s.color) === norm(name) && !s.id));
+      }
+      const tamanhos = [...new Set(getColorSizes(name))];
+      const novos = tamanhos
+        .filter((size) => !prev.some((s) => norm(s.color) === norm(name) && norm(s.size) === norm(size)))
+        .map((size) => newSku(name, size));
+      return novos.length ? [...prev, ...novos] : prev;
     });
   };
 

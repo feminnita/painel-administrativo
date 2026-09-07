@@ -273,7 +273,11 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     // impedimos a remoção enquanto houver variações — a exclusão real é pela lixeira
     // da cor na lista de Variações (abaixo).
     const removeColorChip = (name: string) => {
-        const n = countColorVariations(name);
+        // Conta só variação JÁ SALVA. Como marcar a cor agora cria as variações na
+        // hora, contar as novas travaria a Chris para desmarcar uma cor marcada por
+        // engano — e as novas somem sozinhas quando a cor é desmarcada.
+        const chave = normColor(name);
+        const n = variations.filter((s) => normColor(s.color) === chave && s.id).length;
         if (n > 0) {
             window.alert(
                 `Esta cor tem ${n} ${n === 1 ? "variação" : "variações"}. Para removê-la, apague as variações abaixo (use a lixeira da cor na lista de Variações).`,
