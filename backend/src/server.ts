@@ -22,6 +22,7 @@ import { adminCartRoutes } from './routes/carts/CartRouter';
 import { adminReportRoutes } from './routes/reports/ReportRoutes';
 import { adminCustomerRoutes } from './routes/customers/CustomersRoutes';
 import { adminNewsletterRoutes } from './routes/newsletter/NewsletterRoutes';
+import { adminCampanhasRoutes } from './routes/campanhas/CampanhasRoutes';
 import { adminReconcileRoutes } from './routes/reconcile/ReconcileRoutes';
 
 const app = express();
@@ -73,6 +74,7 @@ app.use('/api/admin/carts', adminCartRoutes);
 app.use('/api/admin/reports', adminReportRoutes);
 app.use('/api/admin/customers', adminCustomerRoutes);
 app.use('/api/admin/newsletter', adminNewsletterRoutes);
+app.use('/api/admin/campanhas', adminCampanhasRoutes);
 app.use('/api/admin/reconcile', adminReconcileRoutes);
 
 // Momento em que este processo subiu — mostra se o deploy reiniciou o servidor.

@@ -43,6 +43,18 @@ export const orders = pgTable('orders', {
     nfeStatus: text('nfe_status'),
     installments: integer('installments'),
     shippingMethod: text('shipping_method'),
+
+    // Origem da visita que virou o pedido. A LOJA grava (colunas ja aplicadas no
+    // banco); o painel so le, para a tela de campanhas. `utmContent` identifica
+    // a ARTE do anuncio — e o que responde qual criativo esta vendendo.
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmContent: text('utm_content'),
+    utmTerm: text('utm_term'),
+    landingPage: text('landing_page'),
+    referrer: text('referrer'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({

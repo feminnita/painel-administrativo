@@ -36,6 +36,7 @@ const navItems: NavEntry[] = [
         // Marketing: reune o que ja funciona mas nao tinha por onde ser visto.
         label: "Marketing", icon: Megaphone,
         children: [
+            { href: "/campanhas", label: "Campanhas", icon: Megaphone },
             { href: "/newsletter", label: "Newsletter", icon: Mail },
         ],
     },
