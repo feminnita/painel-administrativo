@@ -73,8 +73,19 @@ app.use('/api/admin/reports', adminReportRoutes);
 app.use('/api/admin/customers', adminCustomerRoutes);
 app.use('/api/admin/reconcile', adminReconcileRoutes);
 
+// Momento em que este processo subiu — mostra se o deploy reiniciou o servidor.
+const iniciadoEm = new Date().toISOString();
+
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  // `version` diz QUAL codigo esta rodando. Sem isso nao da para saber se um
+  // deploy subiu, e ja aconteceu de testarmos correcao em cima de build velha —
+  // gastando uma rodada inteira atras de um bug que ja estava corrigido.
+  // RENDER_GIT_COMMIT vem pronto do proprio Render.
+  res.json({
+    status: 'ok',
+    version: (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7),
+    startedAt: iniciadoEm,
+  });
 });
 
 const PORT = Number(process.env.PORT) || 3334;
