@@ -24,12 +24,14 @@ import { ReconcilePage } from "./pages/reconcile/ui/ReconcilePage";
 import { SizeChartsPage } from "./pages/tabela-medidas/ui/SizeChartsPage";
 import { ResaleTermPage } from "./pages/resale-term/ui/ResaleTermPage";
 import { ConfirmProvider } from "./components/confirm/ConfirmProvider";
+import { AvisoVersaoNova } from "./components/AvisoVersaoNova";
 
 
 export default function App() {
   return (
 
     <ConfirmProvider>
+      <AvisoVersaoNova />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />

@@ -372,20 +372,32 @@ export function useProductsAdmin() {
     });
   };
 
+  // Gerar variações SÓ ACRESCENTA. Nunca tira nada da tela.
+  //
+  // Antes ele remontava a lista inteira a partir das cores marcadas, e toda
+  // variação de cor fora dessa lista SUMIA da tela. No 26700 isso escondeu 19
+  // variações de uma vez: a Chris tinha acabado de cadastrar, clicou em gerar,
+  // viu tudo desaparecer e achou que havia perdido o trabalho (estava no banco).
+  //
+  // Uma tela que esconde o que existe é pior que uma que falta botão: leva a
+  // pessoa a refazer o que ja estava feito, ou a salvar achando que apagou.
   const generateVariations = (): number => {
     if (!editing) return 0;
     const cols = [...new Set(editing.colors || [])];
     const existing = new Map(skus.map((s) => [`${norm(s.color)}__${norm(s.size)}`, s]));
-    const grid: Sku[] = [];
-    // POR COR: itera os tamanhos que existem NAQUELA cor (override ou padrão), não
-    // a grade cheia. Assim Rosa só gera G/GG e não cria M pra apagar depois.
+    const faltando: Sku[] = [];
+    // POR COR: itera os tamanhos daquela cor (override ou padrão), não a grade
+    // cheia. Assim Rosa só ganha G/GG e não cria M pra apagar depois.
     for (const color of cols)
       for (const size of [...new Set(getColorSizes(color))]) {
-        const found = existing.get(`${norm(color)}__${norm(size)}`);
-        grid.push(found ?? newSku(color, size));
+        const chave = `${norm(color)}__${norm(size)}`;
+        if (!existing.has(chave)) {
+          existing.set(chave, null as unknown as Sku);
+          faltando.push(newSku(color, size));
+        }
       }
-    setSkus(grid);
-    return grid.length;
+    if (faltando.length) setSkus((prev) => [...prev, ...faltando]);
+    return skus.length + faltando.length;
   };
 
   const addVariation = (color: string, size: string) => {
@@ -646,6 +658,16 @@ export function useProductsAdmin() {
       ...payload.colors,
       ...skus.map((s) => s.color).filter((c): c is string => !!c),
     ]);
+
+    // A lista de cores NUNCA pode sair menor do que as cores que tem variacao.
+    // Foi assim que 12 cores do 26700 viraram orfas: ficaram com variacao no
+    // banco e fora da lista, e todo o formulario (marcar tamanho, gerar, tamanho
+    // por cor) trabalha em cima da lista — entao elas ficavam intocaveis.
+    for (const sku of skus) {
+      if (sku.color && !payload.colors.some((c) => norm(c) === norm(sku.color))) {
+        payload.colors = [...payload.colors, sku.color];
+      }
+    }
 
     // O save é ADITIVO: manda TODOS os SKUs (existentes + gerados) — nunca deixa
     // um SKU "sair" do payload. Tirar cor/tamanho da definição NÃO apaga variação;
