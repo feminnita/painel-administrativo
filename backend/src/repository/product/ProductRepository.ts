@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages, productCategories, categories } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
@@ -82,12 +82,44 @@ export async function saveProductWithRelations(
                 ...colorImages.map((c) => c.color),
             ]),
         ];
+        // A tabela de cores é global e acumulou o mesmo nome em grafias diferentes
+        // ("PRETO", "Preto", "preto"). A busca era exata: bastava um card ficar numa
+        // grafia que não existisse letra por letra para o save INTEIRO estourar — e
+        // como tudo roda em UMA transação, o cadastro voltava ao estado anterior,
+        // levando junto as outras edições da mesma sessão.
+        //
+        // Agora: acha exato; senão acha ignorando maiúscula; senão CRIA a cor.
+        // Salvar produto não pode mais falhar porque a cor não estava pré-cadastrada.
         const colorRows = colorNames.length
             ? await tx.select().from(productsColors).where(inArray(productsColors.name, colorNames))
             : [];
         const colorIdByName = new Map(colorRows.map((c) => [c.name, c.id]));
-        for (const name of colorNames) {
-            if (!colorIdByName.has(name)) throw new Error(`COLOR_NOT_REGISTERED:${name}`);
+
+        const faltando = colorNames.filter((n) => !colorIdByName.has(n));
+        if (faltando.length) {
+            // Busca sem distinguir caixa para REAPROVEITAR a cor que já existe em
+            // outra grafia, em vez de criar mais uma duplicada na tabela global.
+            const equivalentes = await tx
+                .select()
+                .from(productsColors)
+                .where(inArray(sql`lower(${productsColors.name})`, faltando.map((n) => n.toLowerCase())));
+            const porMinuscula = new Map(equivalentes.map((c) => [c.name.toLowerCase(), c.id]));
+
+            for (const name of faltando) {
+                const jaExiste = porMinuscula.get(name.toLowerCase());
+                if (jaExiste) {
+                    colorIdByName.set(name, jaExiste);
+                    continue;
+                }
+                const [nova] = await tx
+                    .insert(productsColors)
+                    // Sem imagem: a coluna é NOT NULL e a maioria das 696 cores já
+                    // está assim. A foto da cor é escolhida depois, no cadastro.
+                    .values({ name, imageUrl: '' })
+                    .returning({ id: productsColors.id });
+                colorIdByName.set(name, nova.id);
+                porMinuscula.set(name.toLowerCase(), nova.id);
+            }
         }
 
         // ADITIVO: o save só INSERE/ATUALIZA variações — NUNCA apaga SKU aqui.
