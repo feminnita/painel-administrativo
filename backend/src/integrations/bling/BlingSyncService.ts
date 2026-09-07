@@ -68,9 +68,17 @@ async function ensureProductCategoryLink(
         .onConflictDoNothing();
 }
 
+// Compara cor sem acento E sem caixa. So a caixa nao bastava: no Bling as cores
+// sao MAIUSCULAS ("LILASCORAÇÃO") e no painel sao mistas ("LilásCoração"), entao
+// cada sincronizacao criava uma cor nova — desfazendo aos poucos a limpeza que
+// reduziu 696 cores para 623.
+const SEM_ACENTO_DE = 'ÁÀÂÃÄáàâãäÉÈÊËéèêëÍÌÎÏíìîïÓÒÔÕÖóòôõöÚÙÛÜúùûüÇç';
+const SEM_ACENTO_PARA = 'AAAAAaaaaaEEEEeeeeIIIIiiiiOOOOOoooooUUUUuuuuCc';
+
 async function resolveColorId(name: string): Promise<string> {
     const existing = await db.query.productsColors.findFirst({
-        where: sql`lower(${productsColors.name}) = lower(${name})`,
+        where: sql`lower(translate(${productsColors.name}, ${SEM_ACENTO_DE}, ${SEM_ACENTO_PARA}))
+                 = lower(translate(${name}, ${SEM_ACENTO_DE}, ${SEM_ACENTO_PARA}))`,
     });
     if (existing) return existing.id;
 
@@ -104,12 +112,20 @@ async function syncSkuGrid(
             ),
         });
 
+        // O codigo do SKU vem PRONTO do Bling (v.codigo) e era descartado aqui: a
+        // variacao nascia com estoque e vinculo, mas com o campo de codigo vazio.
+        // Resultado: a Chris digitava a mao, um por um, o que ja existia do outro
+        // lado — 40 codigos so no 26700.
+        //
+        // Na atualizacao so preenche quando esta VAZIO: o que ela digitou a mao
+        // manda, o Bling nao sobrescreve.
         if (existing) {
             await db
                 .update(productsSkus)
                 .set({
                     stockQty: sku.stockQty,
                     blingId: sku.blingId,
+                    reference: existing.reference || sku.skuCode || null,
                     updatedAt: new Date()
                 })
                 .where(eq(productsSkus.id, existing.id));
@@ -123,6 +139,7 @@ async function syncSkuGrid(
                     colorId,
                     stockQty: sku.stockQty,
                     blingId: sku.blingId,
+                    reference: sku.skuCode || null,
                 })
                 .returning({ id: productsSkus.id })
             keptIds.push(created.id);
