@@ -233,6 +233,29 @@ export function useProductsAdmin() {
       has_orders: s.hasOrders ?? false,
     }));
     setSkus(loadedSkus);
+
+    // A lista de cores do produto e as variações podem estar divergentes: variação
+    // que veio do Bling entra com a cor dela sem passar pela lista. No 26700 eram
+    // 5 cores na lista e 17 nas variações.
+    //
+    // Isso paralisa o formulário: marcar tamanho, gerar variações e o painel de
+    // tamanho por cor trabalham TODOS em cima da lista, então as cores de fora
+    // ficam intocáveis — a Chris clica para completar os tamanhos e não acontece
+    // nada, sem nenhuma mensagem.
+    //
+    // A variação é a verdade: se existe variação naquela cor, a cor é do produto.
+    // Reconcilia ao abrir, mantendo a ordem da lista e acrescentando as que faltam.
+    const coresDaLista = p.colors || [];
+    const listaCompleta = [...coresDaLista];
+    for (const sku of loadedSkus) {
+      if (sku.color && !listaCompleta.some((c) => norm(c) === norm(sku.color))) {
+        listaCompleta.push(sku.color);
+      }
+    }
+    if (listaCompleta.length > coresDaLista.length) {
+      setEditing({ ...p, colors: listaCompleta });
+    }
+
     // Abre SEM override de tamanho por cor: o "Gerar variações" precisa entregar a
     // GRADE COMPLETA (toda cor marcada × todo tamanho marcado), porque é no cadastro
     // que a Chris preenche o SKU de cada variação — faltar linha significa não ter

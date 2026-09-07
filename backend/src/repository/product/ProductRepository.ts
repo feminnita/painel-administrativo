@@ -97,16 +97,26 @@ export async function saveProductWithRelations(
 
         const faltando = colorNames.filter((n) => !colorIdByName.has(n));
         if (faltando.length) {
-            // Busca sem distinguir caixa para REAPROVEITAR a cor que já existe em
-            // outra grafia, em vez de criar mais uma duplicada na tabela global.
+            // Busca sem distinguir caixa NEM ACENTO, para REAPROVEITAR a cor que já
+            // existe em outra grafia em vez de criar mais uma duplicada.
+            //
+            // Ignorar só a caixa não bastava: "LILASCORAÇÃO" e "LilásCoração" são a
+            // mesma cor, o painel já as trata como iguais, mas o banco as via como
+            // duas — e a limpeza que reduziu 696 cores para 623 seria desfeita aos
+            // poucos, uma cor nova por vez.
+            const semAcento = (col: unknown) =>
+                sql`lower(translate(${col}, 'ÁÀÂÃÄáàâãäÉÈÊËéèêëÍÌÎÏíìîïÓÒÔÕÖóòôõöÚÙÛÜúùûüÇç', 'AAAAAaaaaaEEEEeeeeIIIIiiiiOOOOOoooooUUUUuuuuCc'))`;
+            const chave = (s: string) =>
+                s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
             const equivalentes = await tx
                 .select()
                 .from(productsColors)
-                .where(inArray(sql`lower(${productsColors.name})`, faltando.map((n) => n.toLowerCase())));
-            const porMinuscula = new Map(equivalentes.map((c) => [c.name.toLowerCase(), c.id]));
+                .where(inArray(semAcento(productsColors.name), faltando.map(chave)));
+            const porMinuscula = new Map(equivalentes.map((c) => [chave(c.name), c.id]));
 
             for (const name of faltando) {
-                const jaExiste = porMinuscula.get(name.toLowerCase());
+                const jaExiste = porMinuscula.get(chave(name));
                 if (jaExiste) {
                     colorIdByName.set(name, jaExiste);
                     continue;
@@ -118,7 +128,7 @@ export async function saveProductWithRelations(
                     .values({ name, imageUrl: '' })
                     .returning({ id: productsColors.id });
                 colorIdByName.set(name, nova.id);
-                porMinuscula.set(name.toLowerCase(), nova.id);
+                porMinuscula.set(chave(name), nova.id);
             }
         }
 
