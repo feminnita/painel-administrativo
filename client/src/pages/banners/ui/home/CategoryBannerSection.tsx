@@ -52,12 +52,24 @@ export function CategoryBannerSection({
                 }
                 className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#8C2F39]"
               >
-                <option value="">Selecione uma categoria…</option>
+                <option value="">Selecione…</option>
+                {/* Outlet, Lançamentos e Mais Vendidos são PÁGINAS, não
+                    categorias — não aparecem na lista de categorias (a de
+                    Outlet, inclusive, está desativada). Mas elas usam este
+                    mesmo cadastro de banner, com desktop e mobile, para a
+                    Chris não ter mais um lugar para procurar. */}
+                <optgroup label="Páginas da loja">
+                  <option value="outlet">Outlet</option>
+                  <option value="lancamentos">Lançamentos</option>
+                  <option value="mais-vendidos">Mais Vendidos</option>
+                </optgroup>
+                <optgroup label="Categorias">
                 {categories.map((c) => (
                   <option key={c.id} value={c.slug}>
                     {c.name}
                   </option>
                 ))}
+                </optgroup>
               </select>
             </div>
 
