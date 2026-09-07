@@ -1,7 +1,16 @@
 import type { BlingContact, BlingProductDetail, BlingProductListItem, BlingStockDeposit, BlingTokenResponse } from './types';
 
 const BLING_BASE = 'https://api.bling.com.br/Api/v3';
-export const BLING_SYNC_PAGE_SIZE = 25;
+
+// Cada produto custa DUAS chamadas ao Bling (detalhe + estoque), e a fila espera
+// 600ms entre chamadas para nao levar bloqueio. Com 25 por pagina, UMA requisicao
+// HTTP passava de 45 segundos — e como o progresso so era gravado no fim, qualquer
+// soluco derrubava a pagina inteira sem gravar nada. Era isso que deixava a
+// sincronizacao marcada como "rodando" com zero produtos.
+//
+// Com 5, cada requisicao leva ~10s. O navegador faz mais chamadas (nao custa
+// nada) e cada pedaco que termina fica gravado.
+export const BLING_SYNC_PAGE_SIZE = 5;
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

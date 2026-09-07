@@ -351,8 +351,10 @@ export async function syncProductsPage(
     const handledParents = new Set<number>();
 
     for (const item of items) {
+        let virou: 'created' | 'updated' | 'skipped' | 'error' = 'error';
         try {
             const result = await upsertProductFromBling(token, item, handledParents);
+            virou = result === 'created' ? 'created' : result === 'updated' ? 'updated' : 'skipped';
             if (result === 'created') created++;
             else if (result === 'updated') updated++;
             else skipped++;
@@ -360,21 +362,29 @@ export async function syncProductsPage(
             console.error(`Bling sync error for product ${item.id}:`, error);
             errors++;
         }
+
+        // Grava o progresso a CADA produto, nao so no fim da pagina. Antes, uma
+        // requisicao que morresse no meio perdia a pagina inteira e deixava o
+        // registro em "rodando" com zero — sem nenhuma pista do que aconteceu.
+        // Agora o pior caso e perder o produto que estava em andamento.
+        await db
+            .update(blingSyncLog)
+            .set({
+                productsSynced: sql`${blingSyncLog.productsSynced} + 1`,
+                productsCreated: sql`${blingSyncLog.productsCreated} + ${virou === 'created' ? 1 : 0}`,
+                productsUpdated: sql`${blingSyncLog.productsUpdated} + ${virou === 'updated' ? 1 : 0}`,
+                errors: sql`${blingSyncLog.errors} + ${virou === 'error' ? 1 : 0}`,
+            })
+            .where(eq(blingSyncLog.id, currentLogId));
     }
 
     const done = items.length < BlingApi.BLING_SYNC_PAGE_SIZE;
 
-    const current = await db.query.blingSyncLog.findFirst({
-        where: eq(blingSyncLog.id, currentLogId),
-    });
-
+    // Os contadores ja foram somados produto a produto no laco acima; aqui só
+    // marca se a sincronizacao acabou.
     await db
         .update(blingSyncLog)
         .set({
-            productsSynced: (current?.productsSynced ?? 0) + items.length,
-            productsCreated: (current?.productsCreated ?? 0) + created,
-            productsUpdated: (current?.productsUpdated ?? 0) + updated,
-            errors: (current?.errors ?? 0) + errors,
             status: done ? 'done' : 'running',
             finishedAt: done ? new Date() : null,
         })
