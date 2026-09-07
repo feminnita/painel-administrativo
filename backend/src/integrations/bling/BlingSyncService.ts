@@ -302,6 +302,57 @@ export async function findResumableSync(): Promise<{
     };
 }
 
+// Sincronizacao COMPLETA rodando no servidor.
+//
+// Antes o laco que percorre as paginas vivia no navegador: a Chris precisava
+// deixar a aba aberta e parada, e bastava uma chamada falhar para tudo parar no
+// meio — foi o que aconteceu tres vezes seguidas, uma delas parando na segunda
+// pagina. Aqui ela clica uma vez, fecha o que quiser, e o servidor termina.
+//
+// O progresso ja e gravado produto a produto, entao a tela acompanha lendo o
+// historico. Se o servidor reiniciar no meio, a proxima rodada retoma de onde
+// parou (findResumableSync).
+let sincronizacaoEmAndamento = false;
+const LIMITE_DE_PAGINAS = 2000; // trava de seguranca contra laco infinito
+
+export function estaSincronizando(): boolean {
+    return sincronizacaoEmAndamento;
+}
+
+export async function runFullSync(): Promise<void> {
+    if (sincronizacaoEmAndamento) return;
+    sincronizacaoEmAndamento = true;
+
+    try {
+        const retomavel = await findResumableSync();
+        let page = retomavel?.nextPage ?? 1;
+        let logId = retomavel?.logId;
+
+        for (let i = 0; i < LIMITE_DE_PAGINAS; i++) {
+            const passo = await syncProductsPage(page, logId);
+            logId = passo.logId;
+            if (passo.done) break;
+            page = passo.nextPage ?? page + 1;
+        }
+    } catch (error) {
+        // Nao deixa a marca 'running' presa: sem isso, a proxima sincronizacao
+        // ficaria travada ate o prazo de 6h passar.
+        console.error('Sincronizacao Bling parou no meio:', error);
+        const emAndamento = await db.query.blingSyncLog.findFirst({
+            where: eq(blingSyncLog.status, 'running'),
+            orderBy: [desc(blingSyncLog.startedAt)],
+        });
+        if (emAndamento) {
+            await db
+                .update(blingSyncLog)
+                .set({ status: 'interrupted', finishedAt: new Date() })
+                .where(eq(blingSyncLog.id, emAndamento.id));
+        }
+    } finally {
+        sincronizacaoEmAndamento = false;
+    }
+}
+
 export async function getSyncLogs(limit = 5) {
     return db.query.blingSyncLog.findMany({
         orderBy: [desc(blingSyncLog.startedAt)],

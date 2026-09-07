@@ -18,11 +18,16 @@ export function useIntegracoesAdmin() {
         }
     }, []);
 
+    // Devolve os registros além de guardá-los: quem acompanha o progresso precisa
+    // olhar o mais recente na hora, sem esperar o React redesenhar a tela.
     const loadLogs = useCallback(async () => {
         try {
-            setLogs(await api.get("/api/admin/bling/sync/logs"));
+            const rows = await api.get<SyncLog[]>("/api/admin/bling/sync/logs");
+            setLogs(rows);
+            return rows;
         } catch {
             setLogs([]);
+            return [] as SyncLog[];
         }
     }, []);
 
@@ -41,6 +46,12 @@ export function useIntegracoesAdmin() {
         }
     }, [loadStatus, loadLogs]);
 
+    // A sincronizacao agora roda NO SERVIDOR. Aqui so damos a partida e ficamos
+    // lendo o historico para mostrar o progresso.
+    //
+    // Antes o laco que percorre as paginas vivia aqui no navegador: era preciso
+    // deixar a aba aberta e parada, e bastava uma chamada falhar para tudo parar
+    // no meio — aconteceu tres vezes seguidas, uma delas parando na 2a pagina.
     const runSync = async () => {
         if (syncing) return;
 
@@ -48,43 +59,30 @@ export function useIntegracoesAdmin() {
         setBanner(null);
         cancelRef.current = false;
 
-        const totals: SyncProgress = {
-            pages: 0,
-            synced: 0,
-            created: 0,
-            updated: 0,
-            skipped: 0,
-            errors: 0,
-            done: false,
-        };
-
         try {
-            let step: SyncStepResult = await api.post("/api/admin/bling/sync/step", {});
-
-            while (true) {
-                totals.pages++;
-                totals.synced += step.syncedInThisPage;
-                totals.created += step.created;
-                totals.updated += step.updated;
-                totals.skipped += step.skipped;
-                totals.errors += step.errors;
-                totals.done = step.done;
-                setProgress({ ...totals });
-
-                if (step.done || cancelRef.current) break;
-
-                step = await api.post("/api/admin/bling/sync/step", {
-                    page: step.nextPage,
-                    logId: step.logId,
-                });
-            }
-
+            await api.post("/api/admin/bling/sync/start", {});
             setBanner({
                 ok: true,
-                message: totals.done
-                    ? `Sincronização concluída: ${totals.created} criados · ${totals.updated} atualizados · ${totals.skipped} variações agrupadas · ${totals.errors} erros`
-                    : "Sincronização pausada — o próximo clique continua de onde parou",
+                message:
+                    "Sincronizacao iniciada no servidor. Pode fechar esta pagina — ela continua sozinha. O historico abaixo atualiza a cada 10 segundos.",
             });
+
+            // Acompanha ate o registro sair de "rodando".
+            for (let i = 0; i < 360 && !cancelRef.current; i++) {
+                await new Promise((r) => setTimeout(r, 10000));
+                const logs = await loadLogs();
+                const atual = logs?.[0];
+                if (atual && atual.status !== "running") {
+                    setBanner({
+                        ok: atual.status === "done",
+                        message:
+                            atual.status === "done"
+                                ? `Sincronizacao concluida: ${atual.productsCreated} criados · ${atual.productsUpdated} atualizados · ${atual.errors} erros`
+                                : "Sincronizacao interrompida — clique de novo para continuar de onde parou",
+                    });
+                    break;
+                }
+            }
         } catch (error) {
             setBanner({
                 ok: false,

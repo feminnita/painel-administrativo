@@ -85,6 +85,17 @@ export async function syncStep(req: Request, res: Response) {
     }
 }
 
+export async function syncStart(_req: Request, res: Response) {
+    if (BlingSyncService.estaSincronizando()) {
+        return res.status(202).json({ started: false, running: true });
+    }
+    // Dispara e responde na hora: quem acompanha e a tela, lendo o historico.
+    // Antes o laco vivia no navegador e a Chris precisava ficar com a aba aberta
+    // e parada — qualquer falha de rede parava tudo no meio.
+    void BlingSyncService.runFullSync();
+    res.status(202).json({ started: true, running: true });
+}
+
 export async function syncLogs(_req: Request, res: Response) {
     res.json(await BlingSyncService.getSyncLogs());
 }
