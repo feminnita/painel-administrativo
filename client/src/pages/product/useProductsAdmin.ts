@@ -602,6 +602,18 @@ export function useProductsAdmin() {
       return;
     }
 
+    // Promoção mais cara que o preço normal é sempre engano — quase sempre os
+    // dois campos trocados. A loja simplesmente ignora essa "promoção", entao o
+    // produto sumia do Outlet sem nenhum aviso.
+    if (editing.sale_price != null && editing.sale_price >= editing.base_price) {
+      alert(
+        `O preço promocional (R$ ${editing.sale_price.toFixed(2).replace(".", ",")}) precisa ser MENOR ` +
+          `que o preço de venda (R$ ${editing.base_price.toFixed(2).replace(".", ",")}). ` +
+          `Confira se os dois não estão trocados.`,
+      );
+      return;
+    }
+
     const payload = buildProductPayload(editing, imagesInput);
     // A foto por cor é da cor do SKU (a galeria/accordion vem dos SKUs), que pode
     // estar em caixa diferente de products.colors (ex.: SKU "ROSA" vs colors "Rosa").

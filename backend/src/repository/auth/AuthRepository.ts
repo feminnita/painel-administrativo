@@ -23,6 +23,13 @@ export function findActiveSessionByTokenHash(tokenHash: string) {
     });
 }
 
+// Empurra o vencimento da sessão de quem está trabalhando. Sem isso a sessão
+// morria 24h depois do LOGIN, mesmo com a pessoa usando o painel no momento —
+// a Chris levou 401 no meio de um cadastro, com o formulário preenchido.
+export function renewSession(tokenHash: string, expiresAt: Date) {
+    return db.update(adminSessions).set({ expiresAt }).where(eq(adminSessions.tokenHash, tokenHash));
+}
+
 export function deleteSessionByTokenHash(tokenHash: string) {
     return db.delete(adminSessions).where(eq(adminSessions.tokenHash, tokenHash));
 }
