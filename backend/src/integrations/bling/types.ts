@@ -47,7 +47,12 @@ export type BlingProductDetail = {
     dimensoes?: {
         altura?: string | number;
         largura?: string | number;
+        // A API v3 devolve `profundidade`. `comprimento` ficou aqui so por
+        // compatibilidade: era o unico nome declarado, e por isso a leitura de
+        // profundidade nunca encontrava nada e caia no valor padrao.
+        profundidade?: string | number;
         comprimento?: string | number;
+        unidadeMedida?: number;
     };
     variacoes?: BlingProductVariation[];
 };

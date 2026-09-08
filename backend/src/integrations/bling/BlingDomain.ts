@@ -85,10 +85,24 @@ function baseNumbers(input: BuildPayloadInput) {
     const basePrice = Number.parseFloat(String(detail.preco ?? item.preco ?? '0')) || 0;
     const promoPrice = Number.parseFloat(String(detail.precoPromocional ?? '0')) || null;
 
-    const weightKg = Number.parseFloat(String(detail.pesoBruto ?? '0.3')) || null;
-    const height = Number.parseFloat(String(detail.dimensoes?.altura ?? '5')) || 5;
-    const width = Number.parseFloat(String(detail.dimensoes?.largura ?? '15')) || 15;
-    const length = Number.parseFloat(String(detail.dimensoes?.comprimento ?? '20')) || 20;
+    // Medida que o Bling nao mandou vira null, e quem grava mantem o valor que
+    // o produto ja tem. Antes cada campo tinha um numero inventado (5, 15, 20):
+    // produto que chegava zerado do Bling ganhava medida de mentira, e essa
+    // medida ia direto para o calculo de frete sem ninguem perceber.
+    //
+    // A armadilha era o `|| default`: parseFloat('0') da 0, que e falso em JS,
+    // entao TODO zero virava o default silenciosamente.
+    const medida = (v: unknown) => {
+        const n = Number.parseFloat(String(v ?? ''));
+        return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
+    const weightKg = medida(detail.pesoBruto);
+    const height = medida(detail.dimensoes?.altura);
+    const width = medida(detail.dimensoes?.largura);
+    // A resposta da API v3 traz `profundidade`; `comprimento` nao existe nela,
+    // entao este campo caia no default 20 em TODOS os produtos.
+    const length = medida(detail.dimensoes?.profundidade ?? detail.dimensoes?.comprimento);
 
 
     return {
@@ -115,10 +129,12 @@ export function buildUpdateValues(input: BuildPayloadInput) {
         pixPrice: calcPixPrice(number.basePrice).toFixed(2),
         salePrice: number.promoPrice ? number.promoPrice.toFixed(2) : null,
         stock: input.stock,
-        weightKg: number.weightKg?.toFixed(3),
-        pkgHeigthCm: number.height.toFixed(2),
-        pkgWidthCm: number.width.toFixed(2),
-        pkgLengthCm: number.length.toFixed(2),
+        // Sem medida vinda do Bling, o campo sai do update: o produto fica com
+        // o que ja tinha, em vez de perder a medida boa que alguem cadastrou.
+        ...(number.weightKg !== null && { weightKg: number.weightKg.toFixed(3) }),
+        ...(number.height !== null && { pkgHeigthCm: number.height.toFixed(2) }),
+        ...(number.width !== null && { pkgWidthCm: number.width.toFixed(2) }),
+        ...(number.length !== null && { pkgLengthCm: number.length.toFixed(2) }),
         colors: input.colors,
         sizes: input.sizes,
         blingId: item.id
