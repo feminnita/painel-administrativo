@@ -16,6 +16,11 @@ const norm = (s: string) =>
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]/g, "");
 
+// Mesma chave usada pela grade (generate/colorSizes) para identificar uma
+// combinação cor+tamanho.
+const chaveVar = (color: string, size: string) =>
+  `${norm(color)}__${norm(size)}`;
+
 export function useProductsAdmin() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categoryRows, setCategoryRows] = useState<CategoryRow[]>([]);
@@ -32,6 +37,18 @@ export function useProductsAdmin() {
   // Tamanho POR COR: override por cor (chave = cor normalizada) dos tamanhos que
   // EXISTEM naquela cor. Ausência da chave = usa o padrão do produto (editing.sizes).
   const [colorSizes, setColorSizes] = useState<Record<string, string[]>>({});
+  // Combinações cor+tamanho que a LIXEIRA apagou nesta edição. Enquanto o
+  // produto estiver aberto, nada que monta grade pode trazê-las de volta:
+  // nem GERAR VARIAÇÕES, nem marcar uma cor, nem marcar um tamanho.
+  //
+  // Sem isto, apagar era só efeito visual: bastava mexer num chip de cor ou
+  // tamanho para a variação reaparecer na tela e o save gravá-la de novo, em
+  // branco (sem preço e sem referência). Diferente da trava antiga, esta NÃO
+  // mexe na grade de tamanhos da cor e zera ao abrir outro produto — o "Gerar"
+  // continua montando a grade completa em tudo que você não apagou.
+  const [apagadasNaEdicao, setApagadasNaEdicao] = useState<Set<string>>(
+    new Set(),
+  );
   const [uploading, setUploading] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "inactive">(
@@ -197,6 +214,7 @@ export function useProductsAdmin() {
     setImagesInput("");
     setSkus([]);
     setColorSizes({});
+    setApagadasNaEdicao(new Set());
     setColorImages([]);
     setSelectedCategoryPaiId(null);
     setSelectedCategoryFilhoId(null);
@@ -204,6 +222,7 @@ export function useProductsAdmin() {
 
   const openEdit = async (p: AdminProduct) => {
     setEditing({ ...p });
+    setApagadasNaEdicao(new Set());
     setImagesInput((p.images || []).join("\n"));
 
     const { father, child } = p.category_id
@@ -390,8 +409,9 @@ export function useProductsAdmin() {
     // cheia. Assim Rosa só ganha G/GG e não cria M pra apagar depois.
     for (const color of cols)
       for (const size of [...new Set(getColorSizes(color))]) {
-        const chave = `${norm(color)}__${norm(size)}`;
-        if (!existing.has(chave)) {
+        const chave = chaveVar(color, size);
+        // Não ressuscita o que a lixeira apagou nesta edição.
+        if (!existing.has(chave) && !apagadasNaEdicao.has(chave)) {
           existing.set(chave, null as unknown as Sku);
           faltando.push(newSku(color, size));
         }
@@ -452,9 +472,36 @@ export function useProductsAdmin() {
         return;
       }
     }
-    setSkus((prev) =>
-      prev.filter((s) => !(s.color === sku.color && s.size === sku.size)),
+    // Memória do que VOCÊ mandou apagar. Vale enquanto o produto está aberto e
+    // impede que gerar grade / marcar cor / marcar tamanho tragam de volta.
+    setApagadasNaEdicao((prev) =>
+      new Set(prev).add(chaveVar(sku.color, sku.size)),
     );
+
+    setSkus((prev) => {
+      const restantes = prev.filter(
+        (s) => !(s.color === sku.color && s.size === sku.size),
+      );
+      // Cor que ficou sem nenhuma variação sai da lista do produto. Se ficasse
+      // marcada, ao reabrir o produto ela geraria a grade dela de novo — e a
+      // variação apagada voltava no dia seguinte, em branco.
+      if (
+        sku.color &&
+        !restantes.some((s) => norm(s.color) === norm(sku.color))
+      ) {
+        setEditing((e) =>
+          e
+            ? {
+                ...e,
+                colors: (e.colors || []).filter(
+                  (c) => norm(c) !== norm(sku.color),
+                ),
+              }
+            : e,
+        );
+      }
+      return restantes;
+    });
     // A exclusão NÃO mexe mais na grade de tamanhos da cor. Ela mexia, para o
     // excluído não voltar — mas essa memória se acumulava durante a edição e
     // passava a limitar o "Gerar variações": com 10 cores × 3 tamanhos ele
@@ -489,6 +536,8 @@ export function useProductsAdmin() {
       });
       const novos = semGradePropria
         .filter((cor) => !prev.some((s) => norm(s.color) === norm(cor) && norm(s.size) === norm(size)))
+        // Marcar um tamanho não pode desfazer a lixeira.
+        .filter((cor) => !apagadasNaEdicao.has(chaveVar(cor, size)))
         .map((cor) => newSku(cor, size));
       return novos.length ? [...prev, ...novos] : prev;
     });
@@ -543,6 +592,8 @@ export function useProductsAdmin() {
       const tamanhos = [...new Set(getColorSizes(name))];
       const novos = tamanhos
         .filter((size) => !prev.some((s) => norm(s.color) === norm(name) && norm(s.size) === norm(size)))
+        // Marcar uma cor não pode desfazer a lixeira.
+        .filter((size) => !apagadasNaEdicao.has(chaveVar(name, size)))
         .map((size) => newSku(name, size));
       return novos.length ? [...prev, ...novos] : prev;
     });
