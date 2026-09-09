@@ -28,6 +28,7 @@ import { BRANDS } from "../types";
 import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { marcarTrabalhoAberto } from "../../../lib/trabalhoAberto";
 
 const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"];
 
@@ -140,7 +141,14 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
             e.returnValue = "";
         };
         window.addEventListener("beforeunload", handler);
-        return () => window.removeEventListener("beforeunload", handler);
+        // Avisa o resto do painel que tem trabalho na mesa. O banner de versão
+        // nova usa isso para NÃO oferecer "Recarregar agora" no meio de um
+        // cadastro — era assim que se perdia o que estava digitado.
+        const baixa = marcarTrabalhoAberto();
+        return () => {
+            window.removeEventListener("beforeunload", handler);
+            baixa();
+        };
     }, []);
 
     if (editing === null) return null;

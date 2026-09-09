@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { observarTrabalhoAberto, temTrabalhoAberto } from "../lib/trabalhoAberto";
 
 // Avisa que existe versão nova do painel no ar.
 //
@@ -32,6 +33,12 @@ async function pacoteNoServidor(): Promise<string | null> {
 
 export function AvisoVersaoNova() {
     const [temVersaoNova, setTemVersaoNova] = useState(false);
+    // Com formulário aberto, recarregar apaga o que está digitado. O aviso
+    // continua aparecendo — a informação é útil — mas sem o botão que empurra
+    // para o prejuízo.
+    const [trabalhoAberto, setTrabalhoAberto] = useState(temTrabalhoAberto);
+
+    useEffect(() => observarTrabalhoAberto(() => setTrabalhoAberto(temTrabalhoAberto())), []);
 
     useEffect(() => {
         const meu = pacoteDestaAba();
@@ -62,24 +69,27 @@ export function AvisoVersaoNova() {
         <div className="fixed bottom-4 left-1/2 z-[100] w-[min(92vw,30rem)] -translate-x-1/2 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-lg">
             <p className="text-sm font-semibold text-amber-900">Existe uma versão nova do painel</p>
             <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                Esta aba está rodando a versão antiga. Salve o que estiver aberto e recarregue —
-                trabalhar na versão antiga pode mostrar informação desatualizada.
+                {trabalhoAberto
+                    ? "Esta aba está rodando a versão antiga. Você tem um produto aberto — termine e salve primeiro. NÃO recarregue agora: o que está digitado seria perdido."
+                    : "Esta aba está rodando a versão antiga. Recarregue para pegar a nova — trabalhar na versão antiga pode mostrar informação desatualizada."}
             </p>
             <div className="mt-3 flex gap-2">
-                <button
-                    type="button"
-                    onClick={() => window.location.reload()}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#8C2F39] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#7a2832]"
-                >
-                    <RefreshCw size={14} />
-                    Recarregar agora
-                </button>
+                {!trabalhoAberto && (
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#8C2F39] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#7a2832]"
+                    >
+                        <RefreshCw size={14} />
+                        Recarregar agora
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={() => setTemVersaoNova(false)}
                     className="rounded-lg px-3 py-2 text-xs text-amber-800 underline hover:text-amber-900"
                 >
-                    Agora não
+                    {trabalhoAberto ? "Entendi" : "Agora não"}
                 </button>
             </div>
         </div>
