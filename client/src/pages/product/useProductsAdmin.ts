@@ -654,10 +654,17 @@ export function useProductsAdmin() {
     // estar em caixa diferente de products.colors (ex.: SKU "ROSA" vs colors "Rosa").
     // Se filtrarmos só por editing.colors, a imagem das cores em caixa alta some no
     // save. Então o "ativo" inclui TODAS as cores com SKU + as da definição.
-    const activeColors = new Set<string>([
-      ...payload.colors,
-      ...skus.map((s) => s.color).filter((c): c is string => !!c),
-    ]);
+    //
+    // Comparação por NORMALIZADO, não por string exata: incluir as cores do SKU
+    // não bastava. A linha de foto podia estar gravada numa terceira grafia
+    // ("LARANJA URSO" x "Laranja Urso") e caía fora do payload assim mesmo — e
+    // até hoje o backend entendia payload vazio como "apague todas".
+    const activeColors = new Set<string>(
+      [
+        ...payload.colors,
+        ...skus.map((s) => s.color).filter((c): c is string => !!c),
+      ].map(norm),
+    );
 
     // A lista de cores NUNCA pode sair menor do que as cores que tem variacao.
     // Foi assim que 12 cores do 26700 viraram orfas: ficaram com variacao no
@@ -693,7 +700,7 @@ export function useProductsAdmin() {
             minStock: s.min_stock,
             active: s.active,
           })),
-        colorImages: colorImages.filter((c) => activeColors.has(c.color)),
+        colorImages: colorImages.filter((c) => activeColors.has(norm(c.color))),
       };
 
       if (editing.id) {

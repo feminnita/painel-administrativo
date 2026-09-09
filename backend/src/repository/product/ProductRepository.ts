@@ -169,7 +169,9 @@ export async function saveProductWithRelations(
                 });
         }
 
-        const keptColorIds = colorImages.map((c) => colorIdByName.get(c.color)!);
+        const keptColorIds = colorImages
+            .map((c) => colorIdByName.get(c.color))
+            .filter((id): id is string => Boolean(id));
         for (const item of colorImages) {
             await tx
                 .insert(productColorImages)
@@ -184,12 +186,27 @@ export async function saveProductWithRelations(
                     set: { images: item.images, updatedAt: new Date() },
                 });
         }
-        await tx.delete(productColorImages).where(
-            and(
-                eq(productColorImages.productId, savedId),
-                keptColorIds.length ? notInArray(productColorImages.colorId, keptColorIds) : undefined,
-            ),
-        );
+        // Só apaga foto de cor QUANDO veio alguma no payload — e apaga apenas as
+        // que ficaram de fora.
+        //
+        // Antes isto era um `and(eq(...), keptColorIds.length ? notInArray(...) :
+        // undefined)`. O drizzle DESCARTA condição undefined, então com a lista
+        // vazia o WHERE virava só `product_id = savedId` e o save APAGAVA TODAS as
+        // fotos por cor do produto. Bastava o filtro do front errar o nome da cor
+        // (comparação era por string exata, sem normalizar) para o payload chegar
+        // vazio e varrer tudo. Foi o que levou as fotos do 26900.
+        //
+        // Payload vazio nao significa "apague tudo": significa que nao ha o que
+        // reconciliar. Limpar as fotos de UMA cor continua funcionando pelo upsert
+        // acima, que grava a lista vazia naquela cor.
+        if (keptColorIds.length) {
+            await tx.delete(productColorImages).where(
+                and(
+                    eq(productColorImages.productId, savedId),
+                    notInArray(productColorImages.colorId, keptColorIds),
+                ),
+            );
+        }
 
         // AUTOSSUFICIENTE: sincroniza product_categories = FOLHA + ANCESTRAIS a partir
         // do category_id salvo (a loja filtra por essa M:N). O form grava a FOLHA em
