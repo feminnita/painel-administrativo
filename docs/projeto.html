@@ -1,0 +1,286 @@
+<title>Mapa da Operação Feminnita</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#FBF8F7; --panel:#FFFFFF; --ink:#241C1D; --ink-2:#5A4B4C;
+    --muted:#8A7778; --line:#EADFDF; --line-2:#F3EBEB;
+    --accent:#8C2F39; --accent-soft:#F7EDEE;
+    --ok:#2E6B4F; --ok-bg:#E9F2ED;
+    --warn:#A8631B; --warn-bg:#FAF0E4;
+    --crit:#A32C2C; --crit-bg:#FAEAEA;
+    --block:#5B5470; --block-bg:#EFEDF4;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#171213; --panel:#1F191A; --ink:#F2E9E9; --ink-2:#C4B4B5;
+      --muted:#958384; --line:#332A2B; --line-2:#271F20;
+      --accent:#E0919A; --accent-soft:#2A1F21;
+      --ok:#7FC4A2; --ok-bg:#1B2A23;
+      --warn:#E0A863; --warn-bg:#2B2117;
+      --crit:#E48B8B; --crit-bg:#2C1B1B;
+      --block:#ADA4C6; --block-bg:#221F2B;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#171213; --panel:#1F191A; --ink:#F2E9E9; --ink-2:#C4B4B5;
+    --muted:#958384; --line:#332A2B; --line-2:#271F20;
+    --accent:#E0919A; --accent-soft:#2A1F21;
+    --ok:#7FC4A2; --ok-bg:#1B2A23;
+    --warn:#E0A863; --warn-bg:#2B2117;
+    --crit:#E48B8B; --crit-bg:#2C1B1B;
+    --block:#ADA4C6; --block-bg:#221F2B;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:940px; margin:0 auto; padding:40px 24px 80px;
+        display:flex; flex-direction:column; gap:44px}
+
+  header{display:flex; flex-direction:column; gap:14px;
+         border-bottom:2px solid var(--ink); padding-bottom:22px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12px;
+           letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
+  h1{font-family:Archivo,sans-serif; font-weight:700; font-size:clamp(30px,5vw,46px);
+     line-height:1.05; margin:0; letter-spacing:-.02em; text-wrap:balance}
+  .sub{color:var(--ink-2); max-width:64ch; margin:0; font-size:17px}
+
+  section{display:flex; flex-direction:column; gap:16px}
+  h2{font-family:Archivo,sans-serif; font-weight:600; font-size:22px; margin:0;
+     letter-spacing:-.01em; display:flex; align-items:baseline; gap:12px}
+  h2 .n{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--accent);
+        font-weight:500}
+  h3{font-family:Archivo,sans-serif; font-weight:600; font-size:16px; margin:18px 0 0}
+  p{margin:0; max-width:70ch}
+  .lead{color:var(--ink-2)}
+
+  .call{border-left:3px solid var(--accent); background:var(--accent-soft);
+        padding:16px 20px; display:flex; flex-direction:column; gap:8px;
+        border-radius:0 6px 6px 0}
+  .call strong{font-weight:600}
+
+  table{width:100%; border-collapse:collapse; font-size:14.5px}
+  .scroll{overflow-x:auto; border:1px solid var(--line); border-radius:8px;
+          background:var(--panel)}
+  th{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.09em;
+     text-transform:uppercase; color:var(--muted); text-align:left; font-weight:500;
+     padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap}
+  td{padding:11px 14px; border-bottom:1px solid var(--line-2); vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.code{font-family:"IBM Plex Mono",monospace; font-size:13px; white-space:nowrap}
+  td.num{font-variant-numeric:tabular-nums; text-align:right}
+
+  .pill{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:11px;
+        letter-spacing:.05em; padding:3px 9px; border-radius:99px; white-space:nowrap;
+        font-weight:500}
+  .p-ok{background:var(--ok-bg); color:var(--ok)}
+  .p-warn{background:var(--warn-bg); color:var(--warn)}
+  .p-crit{background:var(--crit-bg); color:var(--crit)}
+  .p-block{background:var(--block-bg); color:var(--block)}
+
+  ul{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px;
+     max-width:70ch}
+  code{font-family:"IBM Plex Mono",monospace; font-size:13.5px;
+       background:var(--line-2); padding:1px 5px; border-radius:3px}
+
+  .grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+  .box{background:var(--panel); border:1px solid var(--line); border-radius:8px;
+       padding:16px 18px; display:flex; flex-direction:column; gap:6px}
+  .box .k{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.09em;
+          text-transform:uppercase; color:var(--muted)}
+  .box .v{font-family:Archivo,sans-serif; font-size:27px; font-weight:600;
+          font-variant-numeric:tabular-nums; line-height:1}
+  .box .d{font-size:13px; color:var(--ink-2)}
+
+  footer{border-top:1px solid var(--line); padding-top:20px; color:var(--muted);
+         font-size:13.5px}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Levantamento · 11 de setembro de 2026</div>
+  <h1>Mapa da operação: o que existe, o que quebrou, o que falta</h1>
+  <p class="sub">Duas frentes — as telas de marketing no painel próprio e a IA de
+  atendimento. Levantado na fonte, com correção do que eu havia afirmado errado.</p>
+</header>
+
+<section>
+  <h2><span class="n">01</span> Correção</h2>
+  <div class="call">
+    <p><strong>Eu disse que não existia IA de atendimento. Estava errado.</strong>
+    Procurei nos repositórios de WhatsApp e no StockHub, não achei, e concluí. A Lia
+    está no <code>Feminnita-Marketing</code> — repositório que eu tinha classificado
+    como "landing page" por causa da descrição dele.</p>
+    <p>Foi a terceira conclusão apressada do dia. As outras duas: dei um resultado de
+    Amazon como válido quando o filtro da API estava sendo ignorado, e afirmei que
+    464 vínculos estavam quebrados olhando só as primeiras páginas.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">02</span> O que já existe da Lia</h2>
+  <p class="lead">Bem mais do que "um início". É um sistema montado, com banco,
+  agentes e painéis.</p>
+
+  <div class="grid">
+    <div class="box"><span class="k">Agentes</span><span class="v">56</span>
+      <span class="d">Alice · Gabi · Luiza · Isabela · Duda · Sofia · Luna · Maya · Nina · Zara</span></div>
+    <div class="box"><span class="k">Painéis de WhatsApp</span><span class="v">6</span>
+      <span class="d">Setup da IA, treinamento, funil, disparos, notificações</span></div>
+    <div class="box"><span class="k">Tabelas da IA</span><span class="v">3</span>
+      <span class="d">base de conhecimento, histórico, configurações</span></div>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Peça</th><th>Onde</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td>Agente de WhatsApp com IA</td><td class="code">whatsapp-ai-agent.ts</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Funil de WhatsApp</td><td class="code">whatsapp-funnel-agent.ts</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Resposta a comentários</td><td class="code">sofia-comments-agent.ts</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Webhook que recebe mensagem</td><td class="code">server/webhooks/whatsapp.ts</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Painel de configuração da IA</td><td class="code">WhatsAppAISetupPage.tsx</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Painel de treinamento</td><td class="code">AITrainingDashboardPage.tsx</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Central de conhecimento</td><td class="code">KnowledgeCenterPage.tsx</td><td><span class="pill p-ok">existe</span></td></tr>
+        <tr><td>Está ligado e respondendo?</td><td>—</td><td><span class="pill p-warn">não verificado</span></td></tr>
+        <tr><td>Base abastecida com o catálogo?</td><td>—</td><td><span class="pill p-warn">não verificado</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Sobre a Sofia, que responde os comentários</h3>
+  <p>Ela já trabalha com filtro, e o desenho é bom: elogio e pergunta simples ela
+  responde sozinha, com atraso de 2 a 5 minutos para parecer humano. Reclamação vai
+  para uma fila de aprovação sua. Spam e ofensa ela ignora em silêncio.</p>
+</section>
+
+<section>
+  <h2><span class="n">03</span> Suas duas perguntas, respondidas</h2>
+
+  <h3>"Quero um painel para ela"</h3>
+  <p>Já existe — três telas: configuração, treinamento e central de conhecimento.
+  O trabalho não é construir, é <strong>abrir, ver o que está ligado e completar
+  o que faltar</strong>.</p>
+
+  <h3>"Dá para treinar com cada modelo do site, para mandar link e falar do produto?"</h3>
+  <p>Dá — e a arquitetura para isso <strong>já está pronta</strong>. E melhor: não é
+  treinar modelo. Treinar sairia caro, demoraria, e desatualizaria a cada produto novo.</p>
+  <p>O que está montado é busca no catálogo na hora da resposta. A tabela
+  <code>knowledge_base</code> tem exatamente os campos necessários:</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Campo</th><th>Para que serve</th></tr></thead>
+      <tbody>
+        <tr><td class="code">contentType</td><td>separa produto de FAQ, política e promoção</td></tr>
+        <tr><td class="code">url</td><td>o link do produto que ela manda para a cliente</td></tr>
+        <tr><td class="code">embedding</td><td>busca semântica — acha o produto certo pela pergunta, não pela palavra exata</td></tr>
+        <tr><td class="code">tags, category</td><td>filtro por tipo de peça</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Falta uma coisa só: <strong>abastecer com o seu catálogo</strong>. Como ela
+  consulta na hora, o preço e o estoque que ela informa são sempre os de agora.</p>
+
+  <h3>Sobre alimentar com as conversas do WhatsApp</h3>
+  <p>É a melhor fonte de perguntas frequentes que existe — ninguém inventa dúvida
+  melhor que a cliente real. Dois cuidados: conversa tem nome, telefone, endereço e
+  valor de pedido, então passa por anonimização antes de virar base; e o que interessa
+  é a <em>pergunta</em>, não quem perguntou.</p>
+</section>
+
+<section>
+  <h2><span class="n">04</span> Marketing no painel</h2>
+  <p class="lead">São 21 telas distintas nas abas da Tray que você mandou. Elas não
+  são a mesma coisa, e o esforço de cada grupo é muito diferente.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Grupo</th><th class="num">Telas</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr><td>Já existem no seu painel<br><span style="color:var(--muted);font-size:13px">Carrinhos, Cupons, Newsletter, Visitas, Campanhas</span></td><td class="num">5</td><td><span class="pill p-ok">talvez só acabamento</span></td></tr>
+        <tr><td>Funcionalidade de loja<br><span style="color:var(--muted);font-size:13px">Descontos, Brindes, Promoção em lote, Produtos em espera, Cashback, Afiliados, Live Shop</span></td><td class="num">7</td><td><span class="pill p-warn">exige mexer na vitrine</span></td></tr>
+        <tr><td>Relatório<br><span style="color:var(--muted);font-size:13px">Visitas e conversão, Categorias, Busca com e sem resultado, Descontos</span></td><td class="num">5</td><td><span class="pill p-block">sem rastreamento</span></td></tr>
+        <tr><td>Integração de anúncio<br><span style="color:var(--muted);font-size:13px">Google, Meta, Facebook/Instagram, TikTok Ads</span></td><td class="num">4</td><td><span class="pill p-ok">não replicar</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Os 4 de anúncio você já resolve melhor por fora</strong> — pelas skills de
+  Meta Ads, TikTok e GA4, direto na API oficial. Refazer dentro do painel seria
+  trabalho grande para ganhar menos controle.</p>
+  <div class="call">
+    <p><strong>Nada de relatório funciona hoje.</strong> Não existe tabela de eventos
+    no banco. O único dado de audiência é um contador simples por produto, sem data e
+    sem sessão: 173 visualizações acumuladas em 36 produtos, desde sempre. Construir
+    essas telas agora entregaria cinco páginas vazias.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">05</span> Ordem de execução</h2>
+  <p class="lead">Nada é dado como pronto sem teste que prove o efeito na fonte real.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>#</th><th>Item</th><th>Concluído quando</th></tr></thead>
+      <tbody>
+        <tr><td class="code">1.1</td><td>Tabela de eventos e endpoint</td><td>evento gravado e lido de volta no banco</td></tr>
+        <tr><td class="code">1.2</td><td>Vitrine enviando os eventos</td><td>evento real chega vindo do site no ar</td></tr>
+        <tr><td class="code">1.3</td><td>Tela "Busca sem resultado"</td><td>mostra termo real que uma visitante buscou</td></tr>
+        <tr><td class="code">2.1</td><td>Abrir os painéis da Lia</td><td>sei o que está ligado e o que não está</td></tr>
+        <tr><td class="code">2.2</td><td>Abastecer a base com o catálogo</td><td>pergunta sobre produto real recebe preço e link corretos</td></tr>
+        <tr><td class="code">2.3</td><td>Perguntas frequentes das conversas</td><td>extraídas do histórico real, anonimizadas</td></tr>
+        <tr><td class="code">3.1</td><td>Descontos</td><td>desconto aplicado aparece no pedido</td></tr>
+        <tr><td class="code">3.2</td><td>Visitas e conversão</td><td>número bate com os eventos do bloco 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">06</span> Pendências com você</h2>
+  <p class="lead">Anotadas para resolvermos juntos. As três primeiras travam trabalho.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>#</th><th>Pendência</th><th>Trava</th></tr></thead>
+      <tbody>
+        <tr><td class="code">P1</td><td>Autorizar mexer no repositório da vitrine (<code>site-feminnita</code>)</td><td>todo o rastreamento</td></tr>
+        <tr><td class="code">P2</td><td>A Lia está rodando? Em qual servidor?</td><td>tudo da IA</td></tr>
+        <tr><td class="code">P3</td><td>O que a Lia <strong>não</strong> pode fazer — dar desconto? prometer prazo?</td><td>soltar ela para clientes</td></tr>
+        <tr><td class="code">P4</td><td>Abas <strong>Tráfego</strong> e <strong>Engajamento</strong> da Tray</td><td>fechar o escopo</td></tr>
+        <tr><td class="code">P5</td><td>Qual número de WhatsApp tem o histórico de conversas</td><td>base de perguntas frequentes</td></tr>
+        <tr><td class="code">P6</td><td>Amazon: vincular <strong>253</strong> ou <strong>175</strong>?</td><td>plano pronto, nada escrito</td></tr>
+        <tr><td class="code">P7</td><td>Mensagem do Bling: 300 KB ou 300 pixels?</td><td>conserto das imagens</td></tr>
+        <tr><td class="code">P8</td><td>O estoque do <code>59200PANTERAG</code> chegou no TikTok?</td><td>trocar o clique por API</td></tr>
+        <tr><td class="code">P9</td><td>Canal TIK TOK do Bling A está conectado?</td><td>idem</td></tr>
+        <tr><td class="code">P10</td><td>Token do TikTok da <strong>Feminnita</strong> — os dois arquivos apontam para a FNT</td><td>qualquer coisa de TikTok</td></tr>
+        <tr><td class="code">P11</td><td>Trocar a imagem quadrada do <code>22700</code> na vitrine</td><td>ela aparece pequena no site</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">07</span> Riscos que ficam anotados</h2>
+  <ul>
+    <li><strong>Escrita em produção.</strong> Meu <code>PUT</code> no Bling apagou 24
+    imagens do produto 39740 ontem. Os arquivos foram recuperados para
+    <code>C:\StockHub\resgate_39740</code>, mas o retrabalho foi seu. Regra daqui em
+    diante: escrita em sistema externo só com retrato antes e conferência depois.</li>
+    <li><strong>A API do Bling não tem endpoint de imagem.</strong> Comprovado nos três
+    caminhos. Imagem só entra pela tela — não dá para automatizar por API.</li>
+    <li><strong>Segredos em texto puro.</strong> Credenciais do Bling A e a senha root
+    da VPS estão escritas em arquivos versionados em git. Precisam sair para variável
+    de ambiente, e o segredo precisa ser trocado.</li>
+    <li><strong>Dados pessoais</strong> nas conversas de WhatsApp — anonimizar antes
+    de usar como base de treinamento.</li>
+  </ul>
+</section>
+
+<footer>
+  Levantado em 10 e 11 de setembro de 2026, direto nas fontes: repositórios,
+  banco do painel, APIs do Bling, Amazon e TikTok, e as páginas no ar.
+</footer>
+
+</div>

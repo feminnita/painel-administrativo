@@ -1,0 +1,12 @@
+import pg from 'pg';
+const { Client } = pg;
+const c = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+await c.connect();
+const idx = await c.query(`SELECT indexname, indexdef FROM pg_indexes WHERE tablename='hero_slides';`);
+console.log('INDEXES:', JSON.stringify(idx.rows, null, 1));
+const con = await c.query(`SELECT conname, pg_get_constraintdef(oid) def FROM pg_constraint WHERE conrelid='hero_slides'::regclass;`);
+console.log('CONSTRAINTS:', JSON.stringify(con.rows, null, 1));
+const rows = await c.query(`SELECT id, type, (src IS NOT NULL AND src<>'') AS has_src, order_index, active, created_at FROM hero_slides ORDER BY order_index, created_at;`);
+console.log('COUNT:', rows.rowCount);
+console.log('ROWS:', JSON.stringify(rows.rows.map(r=>({t:r.type,has_src:r.has_src,oi:r.order_index,a:r.active})), null, 1));
+await c.end();

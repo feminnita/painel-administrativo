@@ -1,0 +1,7 @@
+# Config local do editor/agente — nunca versionar
+.claude/
+
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
