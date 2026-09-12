@@ -29,6 +29,7 @@ import type { Sku } from "../types";
 import type { useProductsAdmin } from "../useProductsAdmin";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { marcarTrabalhoAberto } from "../../../lib/trabalhoAberto";
+import { miniatura } from "@/lib/miniatura";
 
 const DEFAULT_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG", "48", "50", "52"];
 
@@ -607,7 +608,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 className="group relative h-24 w-20 cursor-move overflow-hidden rounded-lg bg-gray-100"
                                             >
                                                 <img
-                                                    src={url.trim()}
+                                                    src={miniatura(url, 200)}
                                                     alt=""
                                                     className="absolute inset-0 h-full w-full object-cover"
                                                 />
@@ -997,7 +998,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 <span className="h-6 w-6 shrink-0 overflow-hidden rounded-full border bg-gray-100">
                                                     {c?.image_url && (
                                                         <img
-                                                            src={c.image_url}
+                                                            src={miniatura(c.image_url, 160)}
                                                             alt=""
                                                             loading="lazy"
                                                             className="h-full w-full object-cover"
@@ -1050,7 +1051,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                     <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full border bg-gray-100">
                                                         {c.image_url && (
                                                             <img
-                                                                src={c.image_url}
+                                                                src={miniatura(c.image_url, 160)}
                                                                 alt=""
                                                                 loading="lazy"
                                                                 className="h-full w-full object-cover"
@@ -1277,7 +1278,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-gray-100">
                                                     {rowImg && (
                                                         <img
-                                                            src={rowImg}
+                                                            src={miniatura(rowImg, 160)}
                                                             alt=""
                                                             loading="lazy"
                                                             className="h-full w-full object-cover"
@@ -1342,7 +1343,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                                     className="group relative h-24 w-20 cursor-move overflow-hidden rounded-lg bg-gray-100"
                                                                 >
                                                                     <img
-                                                                        src={url}
+                                                                        src={miniatura(url, 160)}
                                                                         alt=""
                                                                         className="absolute inset-0 h-full w-full object-cover"
                                                                     />

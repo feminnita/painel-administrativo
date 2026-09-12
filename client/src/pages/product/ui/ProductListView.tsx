@@ -1,6 +1,7 @@
 import type { useProductsAdmin } from "../useProductsAdmin";
 
 import {
+import { miniatura } from "@/lib/miniatura";
     Download,
     Plus,
     Search,
@@ -267,7 +268,7 @@ export function ProductListView({ vm }: { vm: ProductsVM }) {
                                             <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                                 {imgs[0] ? (
                                                     <img
-                                                        src={imgs[0]}
+                                                        src={miniatura(imgs[0], 160)}
                                                         alt={product.name}
                                                         className="absolute inset-0 h-full w-full object-cover"
                                                     />
@@ -391,7 +392,7 @@ export function ProductListView({ vm }: { vm: ProductsVM }) {
                                     </button>
                                     {imgs[0] ? (
                                         <img
-                                            src={imgs[0]}
+                                            src={miniatura(imgs[0], 160)}
                                             alt={product.name}
                                             className="absolute inset-0 h-full w-full object-cover"
                                         />
