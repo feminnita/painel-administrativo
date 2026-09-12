@@ -5,7 +5,7 @@ import {
     BarChart2, ChevronRight, ExternalLink, Image, LayoutDashboard,
     LayoutGrid, Link2, LogOut, Menu, Package, Palette, Ruler, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, X, Zap, Megaphone, Mail,
-    FileText,
+    FileText, SearchX,
 } from "lucide-react";
 import { api, clearToken } from "@/lib/api/client";
 
@@ -49,6 +49,7 @@ const navItems: NavEntry[] = [
             { href: "/estoque", label: "Estoque SKU", icon: Package },
             { href: "/caracteristicas", label: "Características", icon: Palette },
             { href: "/visitas", label: "Visitas", icon: BarChart2 },
+            { href: "/buscas", label: "Buscas", icon: SearchX },
         ],
     },
     { href: "/cupons", label: "Cupons", icon: Tag },

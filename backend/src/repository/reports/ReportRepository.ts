@@ -101,3 +101,46 @@ export async function productVisits(limit = 50) {
     `);
     return rows;
 }
+// O que as clientes procuraram na loja e NAO acharam.
+//
+// Vem da tabela store_events, que a vitrine passou a alimentar em 12/09/2026.
+// Antes disso o unico rastro era products.view_count — um contador sem data e
+// sem sessao, que nao responde "o que ela queria e nao tinha".
+//
+// Cada linha aqui e um pedido de compra que a loja recusou por falta de
+// cadastro: ou a peca nao existe (e e demanda), ou existe com outro nome (e e
+// problema de nome). As duas leituras valem dinheiro.
+export async function buscasSemResultado(dias = 30, limite = 50) {
+    const { rows } = await db.execute(sql`
+        SELECT
+            term                                AS termo,
+            COUNT(*)::int                       AS vezes,
+            COUNT(DISTINCT session_id)::int     AS visitas,
+            MAX(created_at)                     AS ultima
+        FROM store_events
+        WHERE type = 'search'
+          AND result_count = 0
+          AND term IS NOT NULL
+          AND created_at >= now() - make_interval(days => ${dias}::int)
+        GROUP BY term
+        ORDER BY vezes DESC, visitas DESC
+        LIMIT ${limite}
+    `);
+    return rows;
+}
+
+// Quantas buscas houve no periodo e quantas terminaram em nada.
+// Sem esse denominador a lista acima nao diz se e um problema grande ou um caso
+// isolado: "12 buscas sem resultado" pesa diferente em 20 ou em 2000 buscas.
+export async function resumoDeBuscas(dias = 30) {
+    const { rows } = await db.execute(sql`
+        SELECT
+            COUNT(*)::int                                        AS total,
+            COUNT(*) FILTER (WHERE result_count = 0)::int        AS sem_resultado,
+            COUNT(DISTINCT session_id)::int                      AS visitas_que_buscaram
+        FROM store_events
+        WHERE type = 'search'
+          AND created_at >= now() - make_interval(days => ${dias}::int)
+    `);
+    return rows[0] ?? { total: 0, sem_resultado: 0, visitas_que_buscaram: 0 };
+}

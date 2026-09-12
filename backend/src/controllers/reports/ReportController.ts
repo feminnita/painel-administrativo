@@ -43,3 +43,16 @@ export async function visits(req: Request, res: Response) {
         res.status(500).json({ error: 'Erro ao gerar relatório de visitisas' });
     }
 }
+export async function searches(req: Request, res: Response) {
+    try {
+        const dias = Math.min(Math.max(Number(req.query.dias) || 30, 1), 365);
+        const [termos, resumo] = await Promise.all([
+            ReportRepository.buscasSemResultado(dias),
+            ReportRepository.resumoDeBuscas(dias),
+        ]);
+        res.json({ dias, resumo, termos });
+    } catch (error) {
+        console.error('Falha no relatorio de buscas:', error);
+        res.status(500).json({ error: 'Não foi possível carregar o relatório de buscas.' });
+    }
+}
