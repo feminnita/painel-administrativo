@@ -20,6 +20,7 @@ import { VendasPage } from "./pages/vendas/ui/VendasPage";
 import { CustomersPage } from "./pages/customers/ui/CustomersPage";
 import { VisitasPage } from "./pages/visitas/ui/VisitasPage";
 import { BuscasPage } from "./pages/buscas/ui/BuscasPage";
+import { AfiliadasPage } from "./pages/afiliadas/ui/AfiliadasPage";
 import { FretePage } from "./pages/frete/ui/FretePage";
 import { ReconcilePage } from "./pages/reconcile/ui/ReconcilePage";
 import { SizeChartsPage } from "./pages/tabela-medidas/ui/SizeChartsPage";
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/clientes" element={<CustomersPage />} />
             <Route path="/visitas" element={<VisitasPage />} />
             <Route path="/buscas" element={<BuscasPage />} />
+            <Route path="/afiliadas" element={<AfiliadasPage />} />
             <Route path="/frete" element={<FretePage />} />
             <Route path="/tabela-medidas" element={<SizeChartsPage />} />
             <Route path="/reconciliar-bling" element={<ReconcilePage />} />

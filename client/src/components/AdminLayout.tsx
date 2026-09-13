@@ -5,7 +5,7 @@ import {
     BarChart2, ChevronRight, ExternalLink, Image, LayoutDashboard,
     LayoutGrid, Link2, LogOut, Menu, Package, Palette, Ruler, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, X, Zap, Megaphone, Mail,
-    FileText, SearchX,
+    FileText, SearchX, HandCoins,
 } from "lucide-react";
 import { api, clearToken } from "@/lib/api/client";
 
@@ -38,6 +38,7 @@ const navItems: NavEntry[] = [
         children: [
             { href: "/campanhas", label: "Campanhas", icon: Megaphone },
             { href: "/newsletter", label: "Newsletter", icon: Mail },
+            { href: "/afiliadas", label: "Afiliadas", icon: HandCoins },
         ],
     },
     {
