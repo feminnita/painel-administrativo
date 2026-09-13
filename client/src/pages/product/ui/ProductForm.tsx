@@ -101,6 +101,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         getVariations,
         updateVariation,
         generateVariations,
+        previewVariations,
         getColorSizes,
         toggleColorSize,
         addVariation,
@@ -914,6 +915,33 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    // Mostra ANTES o que vai criar. A memoria do que
+                                    // foi apagado morre ao fechar o produto, entao
+                                    // sem este aviso o botao ressuscitava variacao
+                                    // apagada em outro dia, em branco e sem avisar.
+                                    const novas = previewVariations();
+                                    if (!novas.length) {
+                                        setGenMsg("A grade já está completa — nada a criar.");
+                                        return;
+                                    }
+                                    const amostra = novas
+                                        .slice(0, 12)
+                                        .map((v) => `• ${v.color} ${v.size}`)
+                                        .join("
+");
+                                    const resto =
+                                        novas.length > 12 ? `
+… e mais ${novas.length - 12}` : "";
+                                    if (
+                                        !window.confirm(
+                                            `Criar ${novas.length} ${novas.length === 1 ? "variação" : "variações"}?
+
+${amostra}${resto}
+
+Se alguma dessas você já apagou antes, clique em Cancelar — ela voltaria em branco.`,
+                                        )
+                                    )
+                                        return;
                                     const n = generateVariations();
                                     setExpanded(new Set(colors));
                                     setGenMsg(

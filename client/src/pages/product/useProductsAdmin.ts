@@ -400,6 +400,34 @@ export function useProductsAdmin() {
   //
   // Uma tela que esconde o que existe é pior que uma que falta botão: leva a
   // pessoa a refazer o que ja estava feito, ou a salvar achando que apagou.
+  /**
+   * O que "Gerar variacoes" CRIARIA — sem criar nada. A tela pergunta antes.
+   *
+   * Existe porque a memoria do que foi apagado (apagadasNaEdicao) vive so
+   * enquanto o produto esta ABERTO. Apagar hoje, reabrir amanha e clicar em
+   * Gerar trazia tudo de volta em branco, sem aviso: no 24520 foram 23 linhas
+   * sem referencia e sem bling_id, criadas em duas levas no mesmo dia.
+   *
+   * Memoria maior nao resolve — nao existe onde gravar "esta combinacao nao
+   * deve existir", porque a grade e implicita (cor x tamanho). Entao o conserto
+   * e parar de criar calado: quem confere e quem esta olhando a tela.
+   */
+  const previewVariations = (): Array<{ color: string; size: string }> => {
+    if (!editing) return [];
+    const cols = [...new Set(editing.colors || [])];
+    const existing = new Set(skus.map((s) => `${norm(s.color)}__${norm(s.size)}`));
+    const novas: Array<{ color: string; size: string }> = [];
+    for (const color of cols)
+      for (const size of [...new Set(getColorSizes(color))]) {
+        const chave = chaveVar(color, size);
+        if (!existing.has(chave) && !apagadasNaEdicao.has(chave)) {
+          existing.add(chave);
+          novas.push({ color, size });
+        }
+      }
+    return novas;
+  };
+
   const generateVariations = (): number => {
     if (!editing) return 0;
     const cols = [...new Set(editing.colors || [])];
@@ -836,6 +864,7 @@ export function useProductsAdmin() {
     getVariations,
     updateVariation,
     generateVariations,
+    previewVariations,
     colorSizes,
     getColorSizes,
     toggleColorSize,
