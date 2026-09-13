@@ -927,8 +927,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     const amostra = novas
                                         .slice(0, 12)
                                         .map((v) => `• ${v.color} ${v.size}`)
-                                        .join("
-");
+                                        .join("\n");
                                     const resto =
                                         novas.length > 12 ? `
 … e mais ${novas.length - 12}` : "";

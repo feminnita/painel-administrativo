@@ -1,7 +1,7 @@
 import type { useProductsAdmin } from "../useProductsAdmin";
+import { miniatura } from "@/lib/miniatura";
 
 import {
-import { miniatura } from "@/lib/miniatura";
     Download,
     Plus,
     Search,
