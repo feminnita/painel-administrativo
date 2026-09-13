@@ -448,8 +448,28 @@ export function useProductsAdmin() {
     return skus.length + faltando.length;
   };
 
-  const addVariation = (color: string, size: string) => {
+  const addVariation = async (color: string, size: string) => {
     if (!color || !size) return;
+
+    // Adicionar de propósito TIRA a marca de apagada no servidor. Sem isto, uma
+    // variação apagada um dia nunca mais poderia voltar: o save a recusaria
+    // para sempre, o que seria pior que o problema que a marca resolve.
+    if (editing?.id) {
+      await api
+        .post(`/api/admin/products/${editing.id}/skus/liberar`, { color, size })
+        .catch(() => {
+          /* se falhar, o save vai ignorar esta linha — melhor que gravar
+             escondido o que a Chris mandou apagar. Ela vê e tenta de novo. */
+        });
+    }
+
+    // Também tira da memória da sessão, senão a grade continua pulando ela.
+    setApagadasNaEdicao((prev) => {
+      const nova = new Set(prev);
+      nova.delete(chaveVar(color, size));
+      return nova;
+    });
+
     setSkus((prev) =>
       prev.some((s) => s.color === color && s.size === size)
         ? prev

@@ -2,6 +2,7 @@ import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages, productCategories, categories } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
+import * as Apagadas from './VariacoesApagadasRepository';
 
 // Coerção defensiva: colunas timestamp do drizzle chamam value.toISOString() na
 // serialização — uma STRING de data crua estoura "value.toISOString is not a
@@ -138,7 +139,18 @@ export async function saveProductWithRelations(
         // tamanho da "Definição de variações" NÃO remove SKU; salvar foto de capa,
         // preço, nome etc. não toca em variação. (Apagar SKU levaria junto o vínculo
         // com o Bling que a reconciliação usa pra religar os 3.296 SKUs do backup.)
+        // O que a Chris mandou apagar NAO volta. A lixeira registrou em
+        // product_deleted_variations; aqui o save se recusa a recriar, mesmo que
+        // a tela mande — e ela manda, porque a grade e reconstruida por "Gerar
+        // variacoes", marcar cor e marcar tamanho. A trava no SERVIDOR e o que
+        // faz valer daqui a um mes, quando a memoria da tela ja morreu.
+        const bloqueadas = await Apagadas.bloqueadas(savedId);
+
         for (const item of skus) {
+            if (bloqueadas.size) {
+                const chave = `${Apagadas.chaveVariacao(item.color)}__${Apagadas.chaveVariacao(item.size)}`;
+                if (bloqueadas.has(chave)) continue;
+            }
             // stockQty NUNCA é gravado pelo painel: fonte é o StockHub.
             await tx
                 .insert(productsSkus)
