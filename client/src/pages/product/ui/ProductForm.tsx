@@ -226,9 +226,16 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         const key = normColor(name);
         return colors.find((c) => normColor(c) === key);
     };
-    const selectColor = (name: string) => {
-        // Só adiciona se não houver equivalente por normalização já no produto.
-        if (!findEquivColor(name)) toggleColor(name);
+    const selectColor = (name: string, opts?: { force?: boolean }) => {
+        // force = a Chris pediu ESTA grafia de propósito (clicou na sugestão ou
+        // confirmou "criar separada"). Sem ele, a de-dup por normalização calava o
+        // pedido: "Marinhourso" sumia porque o produto já tinha "Marinho Urso".
+        // A guarda do texto idêntico fica: toggleColor ALTERNA, e sem ela o force
+        // em cima de uma cor já marcada REMOVERIA a cor em vez de adicionar.
+        const jaEstaComEsteTexto = colors.includes(name);
+        if (!jaEstaComEsteTexto && (opts?.force || !findEquivColor(name))) {
+            toggleColor(name);
+        }
         setColorQuery("");
         // Revela os chips na hora: a lista de cores é COLAPSADA por padrão ("ver e
         // editar"), então uma cor recém-adicionada ficava invisível e a dona achava
@@ -236,39 +243,49 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         setShowColors(true);
     };
     const handleCreateColor = async () => {
-        // Se já existe equivalente por normalização neste produto, não cria dup —
-        // usa a que já está (loja não mostra duas bolinhas pra mesma cor).
-        if (findEquivColor(colorQ)) {
+        // Texto IDÊNTICO ao de uma cor já marcada no produto: não há o que criar,
+        // ela já está lá.
+        const equivNoProduto = findEquivColor(colorQ);
+        if (equivNoProduto === colorQ) {
             setColorQuery("");
             return;
         }
-        // Se a cor já existe no CATÁLOGO com outra grafia ("PRETO" x "Preto"), não
-        // cria duplicata em silêncio — pergunta. Era daqui que saíam as cores
-        // repetidas: 179 cadastros a mais, que causaram foto velha na loja
-        // (galeria órfã) e variação repetida no cadastro.
-        if (colorExact) {
+        // Texto IDÊNTICO ao de uma cor do catálogo: reaproveita. products_colors.name
+        // é UNIQUE — inserir o mesmo texto de novo estouraria no banco.
+        if (colorExact?.name === colorQ) {
+            selectColor(colorExact.name, { force: true });
+            return;
+        }
+        // Daqui pra baixo a grafia é NOVA. Só pergunta se ela colide pelo
+        // normalizado com uma cor que já existe ("Marinho Urso" x "Marinhourso") —
+        // e quem decide é a Chris, não o painel.
+        //
+        // Antes, colidir com uma cor JÁ MARCADA no produto saía em SILÊNCIO: o campo
+        // limpava, nada era criado e nada era dito. Era o "digito e não acontece
+        // nada". A de-dup continua valendo — mas como pergunta, não como veto.
+        const conflito = equivNoProduto ?? colorExact?.name;
+        if (conflito) {
             const criarSeparada = await confirm({
-                title: `Já existe a cor "${colorExact.name}"`,
-                message: `Você digitou "${colorQ}". Se é a mesma cor, use a que já existe — assim a foto e as variações ficam num lugar só. Só crie separada se for uma estampa realmente diferente que por acaso tem o mesmo nome.`,
+                title: `Já existe a cor "${conflito}"`,
+                message: `Você digitou "${colorQ}". Para o painel as duas escritas são a mesma cor. Se for a MESMA, use a que já existe — assim a foto e as variações ficam num lugar só. Só crie separada se for uma estampa realmente diferente.`,
                 confirmLabel: "Criar cor separada",
-                cancelLabel: `Usar "${colorExact.name}"`,
+                cancelLabel: `Usar "${conflito}"`,
             });
             if (!criarSeparada) {
-                selectColor(colorExact.name);
-                setColorQuery("");
+                selectColor(conflito, { force: true });
                 return;
             }
         }
         // force = cria distinta mesmo se o nome já existir (a cliente confirmou).
         const created = await createColor(colorQ, true);
-        if (created) selectColor(created.name);
+        if (created) selectColor(created.name, { force: true });
     };
-    // Enter: casa exato → vincula à cor existente (compartilha); senão → cria.
+    // Enter: mesmo caminho do botão "Criar". Antes o Enter vinculava direto à cor
+    // parecida do catálogo, trocando por baixo o que a Chris tinha escrito.
     const onColorQueryKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
-        if (colorExact) selectColor(colorExact.name);
-        else if (canCreateColor) void handleCreateColor();
+        if (canCreateColor) void handleCreateColor();
     };
 
     // Contagem de variações (SKUs) de uma cor, casando pelo normalizado (o SKU pode
@@ -1072,7 +1089,10 @@ Se alguma dessas você já apagou antes, clique em Cancelar — ela voltaria em 
                                                 <button
                                                     key={c.id}
                                                     type="button"
-                                                    onClick={() => selectColor(c.name)}
+                                                    // force: clicar na sugestão é pedir ESTA cor.
+                                                    // A lista já esconde as que estão no produto,
+                                                    // então o clique nunca é um toggle disfarçado.
+                                                    onClick={() => selectColor(c.name, { force: true })}
                                                     className="flex w-full items-center gap-3 border-b border-gray-50 px-3 py-2 text-left last:border-0 hover:bg-gray-50"
                                                 >
                                                     <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full border bg-gray-100">
