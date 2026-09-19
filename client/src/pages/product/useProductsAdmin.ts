@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
+import { apagarRascunho, lerRascunho, quandoFoi, salvarRascunho } from "@/lib/rascunho";
 import { buildTree, findAncestor, listGrandchildCategories } from "@/lib/categories";
 import type { CategoryRow } from "@/lib/categories";
 import { buildProductPayload, emptyProduct, filterAndSortProducts, sizeRank } from "./domain";
@@ -66,6 +67,96 @@ export function useProductsAdmin() {
     string | null
   >(null);
   const confirm = useConfirm();
+
+  // ---------------------------------------------------------------------
+  // Rascunho: o que está na tela fica gravado no navegador enquanto ela
+  // digita. Sem isto, um "Salvar" que volta erro (ou uma aba fechada sem
+  // querer) custa horas de trabalho num produto de muitas variações —
+  // porque o formulário só existe na memória do React.
+  //
+  // `baseRef` guarda o estado de quando o produto abriu. Só grava rascunho
+  // quando o que está na tela DIFERE disso — assim a pergunta "recuperar?"
+  // só aparece quando existe mesmo alteração pendente.
+  // ---------------------------------------------------------------------
+  const baseRef = useRef<string | null>(null);
+
+  const montarRascunho = () => ({
+    editing,
+    imagesInput,
+    skus,
+    colorSizes,
+    colorImages,
+    apagadas: [...apagadasNaEdicao],
+    categoriaPaiId: selectedCategoryPaiId,
+    categoriaFilhoId: selectedCategoryFilhoId,
+  });
+  type DadosRascunho = ReturnType<typeof montarRascunho>;
+
+  const aplicarRascunho = (d: DadosRascunho) => {
+    setEditing(d.editing);
+    setImagesInput(d.imagesInput ?? "");
+    setSkus(d.skus ?? []);
+    setColorSizes(d.colorSizes ?? {});
+    setColorImages(d.colorImages ?? []);
+    setApagadasNaEdicao(new Set(d.apagadas ?? []));
+    setSelectedCategoryPaiId(d.categoriaPaiId ?? null);
+    setSelectedCategoryFilhoId(d.categoriaFilhoId ?? null);
+  };
+
+  /**
+   * Chamado no fim de abrir um produto: fixa a base e, se houver rascunho
+   * pendente daquele produto, pergunta se recupera.
+   */
+  const conferirRascunho = async (
+    produtoId: string | undefined,
+    base: DadosRascunho,
+  ) => {
+    baseRef.current = JSON.stringify(base);
+
+    const guardado = lerRascunho<DadosRascunho>(produtoId);
+    if (!guardado) return;
+    if (JSON.stringify(guardado.dados) === baseRef.current) {
+      apagarRascunho(produtoId);
+      return;
+    }
+
+    const recuperar = await confirm({
+      title: "Tem trabalho não salvo aqui",
+      message:
+        `Você mexeu neste produto ${quandoFoi(guardado.salvoEm)} e não chegou a salvar. ` +
+        `Quer continuar de onde parou?`,
+      confirmLabel: "Continuar de onde parei",
+      cancelLabel: "Começar do que está salvo",
+    });
+
+    if (recuperar) aplicarRascunho(guardado.dados);
+    else apagarRascunho(produtoId);
+  };
+
+  // Grava o rascunho enquanto ela trabalha. Espera 1s parada para não escrever
+  // a cada tecla num produto com centenas de variações.
+  useEffect(() => {
+    if (editing === null || baseRef.current === null) return;
+    const atual = montarRascunho();
+    const texto = JSON.stringify(atual);
+    if (texto === baseRef.current) {
+      apagarRascunho(editing.id);
+      return;
+    }
+    const id = setTimeout(() => salvarRascunho(editing.id, atual), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    editing,
+    imagesInput,
+    skus,
+    colorSizes,
+    colorImages,
+    apagadasNaEdicao,
+    selectedCategoryPaiId,
+    selectedCategoryFilhoId,
+  ]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -210,7 +301,14 @@ export function useProductsAdmin() {
   };
 
   const openNew = () => {
-    setEditing(emptyProduct());
+    // Zera a base ANTES de montar a tela: enquanto ela estiver nula o gravador
+    // de rascunho fica parado. Sem isso ele compararia o produto que está
+    // abrindo com a base do produto ANTERIOR e gravaria um rascunho de algo
+    // que ninguém alterou.
+    baseRef.current = null;
+
+    const vazio = emptyProduct();
+    setEditing(vazio);
     setImagesInput("");
     setSkus([]);
     setColorSizes({});
@@ -218,9 +316,23 @@ export function useProductsAdmin() {
     setColorImages([]);
     setSelectedCategoryPaiId(null);
     setSelectedCategoryFilhoId(null);
+
+    void conferirRascunho(undefined, {
+      editing: vazio,
+      imagesInput: "",
+      skus: [],
+      colorSizes: {},
+      colorImages: [],
+      apagadas: [],
+      categoriaPaiId: null,
+      categoriaFilhoId: null,
+    });
   };
 
   const openEdit = async (p: AdminProduct) => {
+    // Gravador parado até a tela terminar de carregar (ver openNew).
+    baseRef.current = null;
+
     setEditing({ ...p });
     setApagadasNaEdicao(new Set());
     setImagesInput((p.images || []).join("\n"));
@@ -290,6 +402,23 @@ export function useProductsAdmin() {
     // tamanho sem estoque (visibleSizes) e o estoque vem do Bling.
     setColorSizes({});
     setColorImages(colorImageData);
+
+    // Base fixada com o produto já reconciliado: é contra ISTO que o rascunho
+    // é comparado, senão a reconciliação de cores contaria como alteração e a
+    // pergunta apareceria em todo produto que tem variação vinda do Bling.
+    void conferirRascunho(p.id, {
+      editing:
+        listaCompleta.length > coresDaLista.length
+          ? { ...p, colors: listaCompleta }
+          : { ...p },
+      imagesInput: (p.images || []).join("\n"),
+      skus: loadedSkus,
+      colorSizes: {},
+      colorImages: colorImageData,
+      apagadas: [],
+      categoriaPaiId: father?.id ?? null,
+      categoriaFilhoId: child?.id ?? null,
+    });
   };
 
   const getSizes = () => editing?.sizes || [];
@@ -807,6 +936,11 @@ export function useProductsAdmin() {
       } else {
         await api.post("/api/admin/products/full", body);
       }
+
+      // Gravou no servidor: o rascunho cumpriu o papel e sai de cena. Só aqui —
+      // num erro ele TEM que continuar, que é justamente quando ela precisa.
+      apagarRascunho(editing.id);
+      baseRef.current = null;
 
       setEditing(null);
       load();

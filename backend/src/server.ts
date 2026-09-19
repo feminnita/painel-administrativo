@@ -29,7 +29,11 @@ import { adminReconcileRoutes } from './routes/reconcile/ReconcileRoutes';
 const app = express();
 
 app.set('trust proxy', 1);
-app.use(express.json());
+// Limite alto de propósito: o padrão do express é 100 KB, e o save de produto
+// manda TODAS as variações de uma vez. Um produto com 100+ cores × tamanhos
+// passa de 100 KB fácil — e o corpo era recusado ANTES de chegar no controller,
+// derrubando o cadastro inteiro sem explicação nenhuma na tela.
+app.use(express.json({ limit: '25mb' }));
 app.use(cookieParser());
 
 const allowedOrigins = process.env.CORS_ORIGINS
