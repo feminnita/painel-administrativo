@@ -2,7 +2,7 @@ import * as OrdeRepository from '../../repository/orders/OrderRepository';
 import * as MelhorEnvio from '../../integrations/melhorEnvio/service/MelhorEnvio';
 import { combinePackage } from '../../integrations/melhorEnvio/domain/MelhorEnvioDomain';
 
-export async function buyLabel(orderId: string) {
+export async function sendToCart(orderId: string) {
 
     const order = await OrdeRepository.findById(orderId);
 
@@ -21,7 +21,9 @@ export async function buyLabel(orderId: string) {
     const packableItems = await OrdeRepository.findItemsWithProducts(orderId);
     const pkg = combinePackage(packableItems);
 
-    const label = await MelhorEnvio.buyLabelForOrder({
+    if (order.meOrderId) throw new Error('ALREADY_IN_CART');
+
+    const noCarrinho = await MelhorEnvio.addOrderToCart({
         orderNumber: order.orderNumber,
         serviceId: order.shippingServiceId,
         total: order.total,
@@ -34,6 +36,26 @@ export async function buyLabel(orderId: string) {
             unitaryValue: item.unitPrice,
         }))
     });
+
+    return OrdeRepository.saveMeOrderId(orderId, noCarrinho.meOrderId);
+}
+
+/**
+ * Gera a etiqueta de um envio que a Chris ja pagou no Melhor Envio.
+ *
+ * O painel nao paga nada: ela paga o carrinho por la, com PIX. Se ainda nao
+ * pagou, o Melhor Envio recusa e a mensagem dele sobe inteira para a tela —
+ * e a unica que diz o que realmente falta.
+ */
+export async function generateLabel(orderId: string) {
+    const order = await OrdeRepository.findById(orderId);
+
+    if (!order) throw new Error('ORDER_NOT_FOUND');
+    if (!order.meOrderId) throw new Error('ORDER_NOT_IN_CART');
+    if (order.labelUrl) throw new Error('LABEL_ALREADY_EXISTS');
+
+    const label = await MelhorEnvio.generateLabelForCart(order.meOrderId);
+
     return OrdeRepository.saveLabelInfo(orderId, label);
 }
 

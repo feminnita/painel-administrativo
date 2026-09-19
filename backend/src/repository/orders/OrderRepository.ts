@@ -107,6 +107,18 @@ export function findCustomerForShipping(id: string) {
     });
 }
 
+// Guarda so a referencia do carrinho do Melhor Envio. Ainda nao ha etiqueta:
+// ela so existe depois que a Chris paga o carrinho por la.
+export async function saveMeOrderId(orderId: string, meOrderId: string) {
+    const [order] = await db
+        .update(orders)
+        .set({ meOrderId, updatedAt: new Date() })
+        .where(eq(orders.id, orderId))
+        .returning();
+
+    return order;
+}
+
 export async function saveLabelInfo(orderId: string, info: {
     meOrderId: string;
     labelUrl: string;

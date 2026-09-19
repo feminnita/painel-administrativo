@@ -37,7 +37,8 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
         setTrackingInput,
         saveTracking,
         savingTracking,
-        buyLabel,
+        sendToCart,
+        generateLabel,
         buyingLabel,
         refreshTracking,
         refreshingTracking,
@@ -47,10 +48,11 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
 
     const pickup = isPickupOrder(selected);
 
-    const canBuyLabel =
-        !pickup &&
-        !selected.label_url &&
-        ["paid", "confirmed", "processing"].includes(selected.status);
+    const pedidoPago = ["paid", "confirmed", "processing"].includes(selected.status);
+    // Sem etiqueta e sem carrinho: o envio ainda nao foi montado.
+    const podeMandarProCarrinho = !pickup && !selected.label_url && !selected.me_order_id && pedidoPago;
+    // Ja esta no carrinho do Melhor Envio, esperando a Chris pagar por la.
+    const esperandoPagamento = !pickup && !selected.label_url && !!selected.me_order_id;
 
     return (
         <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm lg:sticky lg:top-4">
@@ -336,15 +338,39 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                         </p>
                     ) : (
                         <>
-                    {canBuyLabel && (
+                    {podeMandarProCarrinho && (
                         <button
-                            onClick={buyLabel}
+                            onClick={sendToCart}
                             disabled={buyingLabel}
                             className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#8C2F39] px-3 py-2 text-sm font-medium text-white hover:bg-[#7a2832] disabled:opacity-50"
                         >
                             <Truck size={14} />
-                            {buyingLabel ? "Comprando etiqueta..." : "Comprar etiqueta (Melhor Envio)"}
+                            {buyingLabel ? "Enviando..." : "Enviar ao carrinho do Melhor Envio"}
                         </button>
+                    )}
+
+                    {esperandoPagamento && (
+                        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                            <p className="text-xs text-amber-900">
+                                No carrinho do Melhor Envio, esperando pagamento.
+                            </p>
+                            <a
+                                href="https://melhorenvio.com.br/carrinho"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 inline-block text-xs font-medium text-amber-900 underline"
+                            >
+                                Abrir o carrinho e pagar
+                            </a>
+                            <button
+                                onClick={generateLabel}
+                                disabled={buyingLabel}
+                                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#8C2F39] px-3 py-2 text-sm font-medium text-white hover:bg-[#7a2832] disabled:opacity-50"
+                            >
+                                <Truck size={14} />
+                                {buyingLabel ? "Gerando..." : "Já paguei — gerar etiqueta"}
+                            </button>
+                        </div>
                     )}
 
                     {selected.tracking_code ? (

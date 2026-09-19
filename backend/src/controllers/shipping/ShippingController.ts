@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import * as ShippingService from '../../services/shipping/ShippingService';
 
-export async function buyLabel(req: Request, res: Response) {
+export async function sendToCart(req: Request, res: Response) {
     const orderId = req.params.orderId as string;
 
     try {
-        const order = await ShippingService.buyLabel(orderId);
+        const order = await ShippingService.sendToCart(orderId);
 
-        res.json({ lebelUrl: order.labelUrl, trackingCode: order.trackingCode });
+        res.json({ meOrderId: order.meOrderId });
 
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao comprar Etiqueta';
@@ -19,7 +19,27 @@ export async function buyLabel(req: Request, res: Response) {
         if (message === 'ORDER_IS_PICKUP') return res.status(409).json({ error: 'Pedido de retirada na fábrica: não gera etiqueta de envio' });
         if (message === 'ORDER_NOT_PAID') return res.status(409).json({ error: 'Pedido ainda não foi pago' });
         if (message === 'LABEL_ALREADY_EXISTS') return res.status(409).json({ error: 'Etiqueta já comprada para este pedido' });
-        console.error(`Erro ao comprar etiqueta do pedido ${orderId}:`, error);
+        if (message === 'ALREADY_IN_CART') return res.status(409).json({ error: 'Este pedido já está no carrinho do Melhor Envio' });
+        console.error(`Erro ao enviar o pedido ${orderId} para o carrinho:`, error);
+        res.status(502).json({ error: message });
+    }
+}
+
+export async function generateLabel(req: Request, res: Response) {
+    const orderId = req.params.orderId as string;
+
+    try {
+        const order = await ShippingService.generateLabel(orderId);
+        res.json({ labelUrl: order.labelUrl, trackingCode: order.trackingCode });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao gerar etiqueta';
+
+        if (message === 'ORDER_NOT_FOUND') return res.status(404).json({ error: 'Pedido não encontrado' });
+        if (message === 'ORDER_NOT_IN_CART') return res.status(409).json({ error: 'Envie o pedido ao carrinho do Melhor Envio primeiro' });
+        if (message === 'LABEL_ALREADY_EXISTS') return res.status(409).json({ error: 'Etiqueta já gerada para este pedido' });
+        // A mensagem do Melhor Envio sobe inteira: e ela que diz se falta pagar
+        // o carrinho ou se foi outra coisa.
+        console.error(`Erro ao gerar etiqueta do pedido ${orderId}:`, error);
         res.status(502).json({ error: message });
     }
 }

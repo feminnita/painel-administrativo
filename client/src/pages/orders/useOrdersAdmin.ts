@@ -82,14 +82,30 @@ export function useOrdersAdmin() {
     }
   };
 
-  const buyLabel = async () => {
+  // Passo 1: manda o envio para o carrinho do Melhor Envio. O painel NAO paga:
+  // a Chris paga o carrinho la, com PIX, e nunca deixa saldo em carteira.
+  const sendToCart = async () => {
     if (!selected) return;
     setBuyingLabel(true);
     try {
       await api.post(`/api/admin/orders/${selected.id}/shipping/label`);
       await load(selected.id);
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Erro ao comprar etiqueta");
+      alert(err instanceof ApiError ? err.message : "Erro ao enviar para o carrinho");
+    } finally {
+      setBuyingLabel(false);
+    }
+  };
+
+  // Passo 2: depois de pago no Melhor Envio, gera e imprime a etiqueta.
+  const generateLabel = async () => {
+    if (!selected) return;
+    setBuyingLabel(true);
+    try {
+      await api.post(`/api/admin/orders/${selected.id}/shipping/label/gerar`);
+      await load(selected.id);
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Erro ao gerar etiqueta");
     } finally {
       setBuyingLabel(false);
     }
@@ -142,7 +158,8 @@ export function useOrdersAdmin() {
     changeStatus,
     saveTracking,
     buyingLabel,
-    buyLabel,
+    sendToCart,
+    generateLabel,
     refreshingTracking,
     refreshTracking,
     pushingBlingId,

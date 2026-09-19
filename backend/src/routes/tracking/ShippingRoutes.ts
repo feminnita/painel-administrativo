@@ -5,5 +5,8 @@ import { requireAdminAuth } from '../../middleware/AuthMiddleware';
 export const adminShippingRoutes = Router({ mergeParams: true });
 adminShippingRoutes.use(requireAdminAuth);
 
-adminShippingRoutes.post('/label', ShippingController.buyLabel);
+// Dois passos, porque a Chris paga o carrinho no Melhor Envio (PIX), e o
+// painel nunca paga nada.
+adminShippingRoutes.post('/label', ShippingController.sendToCart);
+adminShippingRoutes.post('/label/gerar', ShippingController.generateLabel);
 adminShippingRoutes.post('/tracking', ShippingController.refreshTracking);
