@@ -173,19 +173,28 @@ export function IntegracoesPage() {
                                             ` — ${Math.round((new Date(log.finishedAt).getTime() - new Date(log.startedAt).getTime()) / 1000)}s`}
                                     </p>
                                 </div>
+                                {/* Cada situação tem rótulo próprio. Antes só "done" e
+                                    "error" eram tratados e TODO o resto virava
+                                    "Rodando / pausado" — então uma sincronização
+                                    interrompida há semanas aparecia como se ainda
+                                    estivesse trabalhando. */}
                                 <span
                                     className={`rounded-full px-2 py-1 text-xs font-medium ${log.status === "done"
                                         ? "bg-green-100 text-green-700"
                                         : log.status === "error"
                                             ? "bg-red-100 text-red-700"
-                                            : "bg-blue-100 text-blue-700"
+                                            : log.status === "running"
+                                                ? "bg-blue-100 text-blue-700"
+                                                : "bg-gray-100 text-gray-600"
                                         }`}
                                 >
                                     {log.status === "done"
                                         ? "Concluído"
                                         : log.status === "error"
                                             ? "Erro"
-                                            : "Rodando / pausado"}
+                                            : log.status === "running"
+                                                ? "Rodando"
+                                                : "Interrompida"}
                                 </span>
                             </div>
                         ))}
