@@ -19,8 +19,30 @@ export function findById(id: string) {
     return db.query.orders.findFirst({ where: eq(orders.id, id) })
 }
 
-export function findItemsByOrderId(orderId: string) {
-    return db.query.orderItems.findMany({ where: eq(orderItems.orderId, orderId) })
+// O CODIGO do produto vem junto: a lista de separacao se le pelo codigo, nao
+// pelo nome. "Pijama Curto Feminino Suede Premium Short e Blusa Verao" nao
+// distingue nada na prateleira; 53320 distingue.
+export async function findItemsByOrderId(orderId: string) {
+    const linhas = await db
+        .select({
+            id: orderItems.id,
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            skuId: orderItems.skuId,
+            productName: orderItems.productName,
+            productImage: orderItems.productImage,
+            color: orderItems.color,
+            size: orderItems.size,
+            quantity: orderItems.quantity,
+            unitPrice: orderItems.unitPrice,
+            totalPrice: orderItems.totalPrice,
+            productCode: products.code,
+        })
+        .from(orderItems)
+        .leftJoin(products, eq(products.id, orderItems.productId))
+        .where(eq(orderItems.orderId, orderId));
+
+    return linhas;
 }
 
 

@@ -1,5 +1,8 @@
 export type OrderItem = {
     id: string;
+    // Vem do produto, por junção — a linha do pedido guarda o nome, não o
+    // código. É por ele que se separa a peça na prateleira.
+    product_code?: string | null;
     product_name: string;
     product_image: string;
     color: string | null;

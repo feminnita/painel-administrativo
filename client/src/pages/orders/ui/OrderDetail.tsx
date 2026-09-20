@@ -19,6 +19,7 @@ import {
     timelineStep,
     TIMELINE_STEPS,
 } from "../domain";
+import { abrirFolhaDeSeparacao } from "../separacao";
 
 type OrdersVM = ReturnType<typeof useOrdersAdmin>;
 
@@ -68,6 +69,17 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    {/* Folha de separacao: o papel que vai para o estoque buscar
+                        as pecas. Fica no topo porque e a primeira coisa que se
+                        faz com um pedido pago — antes de etiqueta e rastreio.
+                        Nao confundir com "Imprimir etiqueta", que e o envio. */}
+                    <button
+                        onClick={() => abrirFolhaDeSeparacao(selected)}
+                        title="Imprimir folha de separação"
+                        className="flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                        <Printer size={14} /> Separação
+                    </button>
                     <button
                         onClick={() => select(null)}
                         className="rounded-lg border p-2 hover:bg-gray-50"
