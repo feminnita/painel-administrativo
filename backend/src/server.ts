@@ -19,6 +19,7 @@ import { startBlingAutoPush } from './integrations/bling/BlingAutoPush';
 import { melhorEnvioRoutes } from './routes/integrations/MelhorEnvioRoutes';
 import { startMeTokenRefreshJob } from './integrations/melhorEnvio/RefreshJob';
 import { startBlingTokenRefreshJob } from './integrations/bling/RefreshJob';
+import { startEnvioAutomatico } from './jobs/envioAutomatico.Job';
 import { adminCartRoutes } from './routes/carts/CartRouter';
 import { adminReportRoutes } from './routes/reports/ReportRoutes';
 import { adminAfiliadaRoutes } from './routes/afiliadas/AfiliadaRoutes';
@@ -107,6 +108,7 @@ app.listen(PORT, HOST, () => {
   startBlingAutoPush();
   startMeTokenRefreshJob();
   startBlingTokenRefreshJob();
+  startEnvioAutomatico();
 });
 
 export default app;

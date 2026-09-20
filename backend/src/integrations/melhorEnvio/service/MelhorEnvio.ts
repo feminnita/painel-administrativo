@@ -99,6 +99,23 @@ export async function generateLabelForCart(meOrderId: string) {
     };
 }
 
+/**
+ * Situacao do envio dentro do Melhor Envio.
+ *
+ * Serve para o painel saber QUANDO pode gerar a etiqueta sem perguntar nada a
+ * Chris: enquanto o carrinho nao foi pago o envio fica "pending"; depois do
+ * pagamento vira "released", e so ai a geracao funciona.
+ */
+export async function getOrderStatus(meOrderId: string): Promise<string | null> {
+    try {
+        const pedido = await MelhorEnvio.getOrder(meOrderId);
+        return pedido?.status ?? null;
+    } catch (error) {
+        console.error(`[MELHOR ENVIO] nao consegui ler o envio ${meOrderId}:`, error);
+        return null;
+    }
+}
+
 export async function getTrackingCode(meOrderId: string): Promise<string | null> {
     const trackingInfo = await MelhorEnvio.tracking([meOrderId]);
     return trackingInfo[meOrderId]?.tracking ?? null;

@@ -1,4 +1,4 @@
-import { desc, eq, sql, and, inArray, isNull, ne, gte, lte, ilike, or, type SQL } from 'drizzle-orm';
+import { desc, eq, sql, and, inArray, isNull, isNotNull, ne, gte, lte, ilike, or, type SQL } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { orders, orderItems, productsSkus, coupons, customers, products } from '../../config/db/schema';
 
@@ -283,6 +283,53 @@ export function findPaidOrdersToPush() {
             eq(orders.paymentStatus, 'paid'),
             isNull(orders.blingOrderId),
             or(isNull(orders.blingPushStatus), eq(orders.blingPushStatus, 'pending')),
+        ))
+        .orderBy(desc(orders.createdAt))
+        .limit(20);
+}
+
+// As tres filas do envio automatico. Retirada na fabrica fica de fora em todas:
+// nao tem transportadora, nao tem etiqueta, nao tem rastreio.
+const NAO_E_RETIRADA = sql`coalesce(${orders.shippingMethod}, '') !~* 'retir'`;
+
+// 1. Pago e ainda nem foi para o carrinho do Melhor Envio.
+export function findPaidOrdersToCart() {
+    return db
+        .select({ id: orders.id, orderNumber: orders.orderNumber })
+        .from(orders)
+        .where(and(
+            eq(orders.paymentStatus, 'paid'),
+            isNull(orders.meOrderId),
+            isNull(orders.labelUrl),
+            NAO_E_RETIRADA,
+        ))
+        .orderBy(desc(orders.createdAt))
+        .limit(20);
+}
+
+// 2. Esta no carrinho e ainda nao tem etiqueta — esperando a Chris pagar.
+export function findCartOrdersWithoutLabel() {
+    return db
+        .select({ id: orders.id, orderNumber: orders.orderNumber, meOrderId: orders.meOrderId })
+        .from(orders)
+        .where(and(
+            isNotNull(orders.meOrderId),
+            isNull(orders.labelUrl),
+            NAO_E_RETIRADA,
+        ))
+        .orderBy(desc(orders.createdAt))
+        .limit(20);
+}
+
+// 3. Tem etiqueta e ainda nao tem rastreio.
+export function findLabeledOrdersWithoutTracking() {
+    return db
+        .select({ id: orders.id, orderNumber: orders.orderNumber, meOrderId: orders.meOrderId })
+        .from(orders)
+        .where(and(
+            isNotNull(orders.labelUrl),
+            isNull(orders.trackingCode),
+            NAO_E_RETIRADA,
         ))
         .orderBy(desc(orders.createdAt))
         .limit(20);
