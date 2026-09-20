@@ -29,8 +29,30 @@ type SkuGridItem = {
 };
 type ColorImagesItem = { color: string; images: string[] };
 
-export function findAll() {
-    return db.query.products.findMany();
+export async function findAll() {
+    const linhas = await db.query.products.findMany();
+
+    // O estoque que o painel mostra e a soma das variacoes DA LOJA.
+    //
+    // A coluna products.stock so e escrita pela sincronizacao do Bling, e ela
+    // grava o total da grade inteira de la — inclusive as variacoes que a Chris
+    // excluiu daqui, e inclusive saldo negativo. Dava numero que nao existe em
+    // lugar nenhum: o 24400 aparecia como -6 tendo 1.435 pecas, o 32400 como
+    // 13.401 tendo 393. Quem abre a lista para decidir reposicao le isso.
+    //
+    // Nao mexemos na coluna nem no cadastro: so paramos de acreditar nela na
+    // leitura. A verdade do que a loja vende esta nas variacoes.
+    const somas = await db
+        .select({
+            productId: productsSkus.productId,
+            total: sql<number>`coalesce(sum(${productsSkus.stockQty}), 0)::int`,
+        })
+        .from(productsSkus)
+        .groupBy(productsSkus.productId);
+
+    const porProduto = new Map(somas.map((s) => [s.productId, Number(s.total)]));
+
+    return linhas.map((p) => ({ ...p, stock: porProduto.get(p.id) ?? 0 }));
 }
 
 export function findById(id: string) {
