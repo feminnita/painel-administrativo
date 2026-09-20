@@ -16,6 +16,11 @@ export function IntegracoesPage() {
         useIntegracoesAdmin();
 
     const isConnected = Boolean(status?.connected);
+    // Tres estados, nao dois. Token vencido nao e "nao conectado" — ela ja
+    // autorizou uma vez, e o que falta e RECONECTAR. Ficou verde a noite
+    // inteira dizendo "Conectado" com o token morto desde as 17:40, e a Chris
+    // so descobriu porque a venda nao subiu para o Bling.
+    const expirado = Boolean((status as { expired?: boolean } | null)?.expired);
 
     return (
         <div className="max-w-3xl p-8">
@@ -39,14 +44,21 @@ export function IntegracoesPage() {
                         </div>
                     </div>
                     <div
-                        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${isConnected
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-500"
-                            }`}
+                        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                            isConnected
+                                ? "bg-green-100 text-green-700"
+                                : expirado
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-gray-100 text-gray-500"
+                        }`}
                     >
                         {isConnected ? (
                             <>
                                 <CheckCircle size={13} /> Conectado
+                            </>
+                        ) : expirado ? (
+                            <>
+                                <AlertCircle size={13} /> Acesso vencido — reconecte
                             </>
                         ) : (
                             <>
@@ -98,7 +110,7 @@ export function IntegracoesPage() {
                             className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
                         >
                             <ExternalLink size={15} />
-                            {isConnected ? "Reconectar Bling" : "Conectar Bling"}
+                            {isConnected || expirado ? "Reconectar Bling" : "Conectar Bling"}
                         </a>
                         {isConnected && !syncing && (
                             <button

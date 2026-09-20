@@ -50,14 +50,38 @@ export async function saveInitialTokens(code: string): Promise<void> {
     await upsertTokenRow(token);
 }
 
+
+/**
+ * Uma renovacao por vez, por processo.
+ *
+ * O refresh_token e de uso UNICO: quem usa primeiro recebe um par novo e
+ * invalida o antigo. Com dois relogios no mesmo servidor — o que empurra
+ * pedidos e o que renova o token — os dois acordavam juntos na hora em que o
+ * token estava vencendo, pediam com o mesmo refresh_token, e o segundo levava
+ * "invalid_grant". Dai em diante nao havia mais como renovar: so reconectando
+ * na mao.
+ *
+ * Com esta trava, o primeiro que chega faz a chamada e os outros esperam a
+ * MESMA promessa. Ninguem gasta o refresh_token duas vezes.
+ */
+let renovacaoEmCurso: Promise<string> | null = null;
+
 async function refreshStoredToken(refreshToken: string): Promise<string> {
-    const token = await OAuthApi.refreshAccessToken(
-        refreshToken,
-        env.melhorEnvio.clientId,
-        env.melhorEnvio.clientSecret,
-    );
-    await upsertTokenRow(token);
-    return token.access_token;
+    if (renovacaoEmCurso) return renovacaoEmCurso;
+
+    renovacaoEmCurso = (async () => {
+        const token = await OAuthApi.refreshAccessToken(
+            refreshToken,
+            env.melhorEnvio.clientId,
+            env.melhorEnvio.clientSecret,
+        );
+        await upsertTokenRow(token);
+        return token.access_token;
+    })().finally(() => {
+        renovacaoEmCurso = null;
+    });
+
+    return renovacaoEmCurso;
 }
 
 export async function getAccessToken(): Promise<string | null> {
