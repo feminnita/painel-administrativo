@@ -198,6 +198,15 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
     return {
         data: new Date(order.createdAt ?? now).toISOString().slice(0, 10),
         dataSaida: today,
+        // O numero do pedido DA LOJA (FEM-1018) viaja junto. O Bling numera os
+        // pedidos dele em sequencia propria — sem isto, achar no Bling a venda
+        // que a cliente reclamou virava caca por valor e data.
+        //
+        // Nao e canal de venda: o site nao aparece na lista de lojas virtuais
+        // porque o Bling so cria canal pelas integracoes que ele proprio
+        // oferece, e a API nao deixa criar (responde 404). Isto e o que da para
+        // fazer hoje: a venda entra identificada, mesmo sem origem.
+        numeroLoja: order.orderNumber,
         contato: { id: contactId },
         desconto: {
             valor: Number(order.discount ?? 0),
