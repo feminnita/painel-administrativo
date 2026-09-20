@@ -79,7 +79,11 @@ export function tracking(meOrderIds: string[]) {
 // Um envio especifico, para saber se ja foi pago ("released") e se ja tem
 // rastreio. E a pergunta que o job faz de tres em tres minutos.
 export function getOrder(meOrderId: string) {
-    return request<{ id: string; status: string; tracking: string | null }>(
-        `/me/orders/${meOrderId}`,
-    );
+    return request<{
+        id: string;
+        status: string;
+        tracking: string | null;
+        self_tracking: string | null;
+        generated_at: string | null;
+    }>(`/me/orders/${meOrderId}`);
 }

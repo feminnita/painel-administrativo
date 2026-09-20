@@ -116,7 +116,26 @@ export async function getOrderStatus(meOrderId: string): Promise<string | null> 
     }
 }
 
+/**
+ * Codigo de rastreio do envio.
+ *
+ * Lido em /me/orders/{id}, e NAO no /me/shipment/tracking, porque os dois
+ * endereços do Melhor Envio discordam entre si: com a etiqueta ja gerada as
+ * 10:57 e o rastreio 888030936042561 vivo no primeiro, o segundo ainda
+ * respondia tracking: null e generated_at: null. O pedido ficou 40 minutos
+ * sem rastreio por causa disso — e a cliente, sem o e-mail de "pedido
+ * enviado".
+ *
+ * self_tracking e a rede: e o rastreio do proprio Melhor Envio, que existe
+ * quando o da transportadora ainda nao saiu. Melhor um codigo que a cliente
+ * consegue acompanhar do que nenhum.
+ */
 export async function getTrackingCode(meOrderId: string): Promise<string | null> {
-    const trackingInfo = await MelhorEnvio.tracking([meOrderId]);
-    return trackingInfo[meOrderId]?.tracking ?? null;
+    try {
+        const pedido = await MelhorEnvio.getOrder(meOrderId);
+        return pedido?.tracking || pedido?.self_tracking || null;
+    } catch (error) {
+        console.error(`[MELHOR ENVIO] nao consegui ler o rastreio de ${meOrderId}:`, error);
+        return null;
+    }
 }
