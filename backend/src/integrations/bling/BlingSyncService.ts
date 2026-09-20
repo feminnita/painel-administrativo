@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { blingSyncLog, categories, productCategories, products, productsColors, productsSkus } from '../../config/db/schema';
+import * as Apagadas from '../../repository/product/VariacoesApagadasRepository';
 import * as BlingApi from './BlingApi';
 import * as BlingDomain from './BlingDomain';
 import * as TokenService from './TokenService';
@@ -98,9 +99,26 @@ async function syncSkuGrid(
 
     const keptIds: string[] = [];
 
+    // Variacao que a Chris apagou NAO volta — nem pelo Bling.
+    //
+    // O save do painel ja respeitava isto; a sincronizacao nao. Entao o ciclo
+    // era: ela apaga a variacao, alguem roda a sincronizacao, o Bling manda a
+    // grade inteira de novo e a variacao ressuscita. Ela refazendo o mesmo
+    // trabalho toda vez, sem entender por que volta.
+    //
+    // A regra e dela e vale para todo mundo: se a variacao nao esta no produto,
+    // e porque nao e para estar. O Bling e a fonte do ESTOQUE, nao a fonte da
+    // decisao de o que a loja vende.
+    const bloqueadas = await Apagadas.bloqueadas(productId);
+
     for (const sku of skus) {
         const size = normalizeSize(sku.size);
         if (!size) continue;
+
+        if (bloqueadas.size) {
+            const chave = `${Apagadas.chaveVariacao(sku.color)}__${Apagadas.chaveVariacao(size)}`;
+            if (bloqueadas.has(chave)) continue;
+        }
 
         const colorId = sku.color ? await resolveColorId(sku.color) : null;
 
@@ -169,7 +187,13 @@ async function syncSkuGrid(
     }
 }
 
-async function upsertProductFromBling(
+/**
+ * Importa UM produto do Bling. Exportada para dar conta do caso "esse produto
+ * especifico precisa entrar na loja agora": a sincronizacao normal varre tudo
+ * pagina por pagina, e esperar a varredura inteira para trazer um item so e
+ * caro e lento. Mesmo caminho, mesmo resultado — so que direcionado.
+ */
+export async function upsertProductFromBling(
     token: string,
     item: BlingProductListItem,
     handledParents: Set<number>,
