@@ -37,6 +37,27 @@ export async function remove(req: Request, res: Response) {
 }
 
 /**
+ * O que ja foi apagado neste produto, para a tela nao oferecer de novo.
+ *
+ * Sem isto a tela so lembra enquanto o produto esta aberto: fecha, reabre, e a
+ * grade implicita (cor x tamanho) monta tudo outra vez. A Chris apagava,
+ * reabria, via tudo de volta e apagava de novo — o banco ja estava certo, a
+ * tela e que nao perguntava.
+ */
+export async function apagadas(req: Request, res: Response) {
+    try {
+        const productId = String(req.params.productId ?? req.params.id ?? '');
+        if (!productId) return res.status(400).json({ error: 'Informe o produto.' });
+        res.json(await Apagadas.chavesDaTela(productId));
+    } catch (error) {
+        console.error('Falha ao listar variacoes apagadas:', error);
+        // Lista vazia em vez de erro: a tela de produto nao pode deixar de
+        // abrir porque esta consulta falhou.
+        res.json([]);
+    }
+}
+
+/**
  * Libera uma combinacao cor+tamanho que estava marcada como apagada.
  * Usado pelo "+ adicionar variacao": e o ato deliberado de trazer de volta.
  */

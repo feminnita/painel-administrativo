@@ -48,6 +48,25 @@ export async function desmarcar(
     );
 }
 
+/**
+ * As combinacoes bloqueadas no formato que a TELA usa: "cor__tamanho".
+ *
+ * A tela guardava o que foi apagado so enquanto o produto estava aberto.
+ * Fechava e reabria, a memoria zerava, e a grade — que e implicita (toda cor
+ * marcada x todo tamanho marcado) — oferecia tudo de novo, como se nunca
+ * tivesse sido apagado. A Chris apagava, reabria, via tudo de volta e
+ * apagava outra vez, sem saber que o banco ja estava certo.
+ *
+ * O servidor sabe desde que esta tabela existe. Faltava a tela perguntar.
+ */
+export async function chavesDaTela(productId: string): Promise<string[]> {
+    const linhas = await db
+        .select({ c: variacoesApagadas.colorKey, s: variacoesApagadas.sizeKey })
+        .from(variacoesApagadas)
+        .where(eq(variacoesApagadas.productId, productId));
+    return linhas.map((l) => `${l.c}__${l.s}`);
+}
+
 /** As combinacoes bloqueadas de um produto, prontas para consulta rapida. */
 export async function bloqueadas(productId: string): Promise<Set<string>> {
     const linhas = await db

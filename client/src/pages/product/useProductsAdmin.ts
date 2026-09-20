@@ -343,10 +343,25 @@ export function useProductsAdmin() {
     setSelectedCategoryPaiId(father?.id ?? null);
     setSelectedCategoryFilhoId(child?.id ?? null);
 
-    const [skuRows, colorImageData] = await Promise.all([
+    // O que ja foi apagado vem do SERVIDOR, junto com as variacoes.
+    //
+    // apagadasNaEdicao morria ao fechar o produto, e a grade e implicita (toda
+    // cor marcada x todo tamanho marcado): reabrir oferecia tudo de novo, como
+    // se nunca tivesse sido apagado. A Chris apagava, reabria, via tudo de
+    // volta e apagava outra vez — o banco ja estava certo desde o primeiro
+    // apagar; era a tela que nao perguntava.
+    //
+    // Continua saindo da lista quando ela adiciona a variacao de proposito:
+    // o "+ adicionar" chama /liberar, que tira a marca no banco.
+    const [skuRows, colorImageData, jaApagadas] = await Promise.all([
       api.get<Record<string, any>[]>(`/api/admin/products/${p.id}/skus`),
       api.get<ColorImages[]>(`/api/admin/products/${p.id}/color-images`),
+      api
+        .get<string[]>(`/api/admin/products/${p.id}/skus/apagadas`)
+        .catch(() => [] as string[]),
     ]);
+
+    setApagadasNaEdicao(new Set(jaApagadas ?? []));
 
     const colorNameById = new Map(productColors.map((c) => [c.id, c.name]));
     const loadedSkus: Sku[] = skuRows.map((s) => ({

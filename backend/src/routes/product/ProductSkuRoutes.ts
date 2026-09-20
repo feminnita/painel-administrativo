@@ -6,6 +6,11 @@ export const adminProductSkuRoutes = Router({ mergeParams: true });
 adminProductSkuRoutes.use(requireAdminAuth);
 
 adminProductSkuRoutes.get('/', ProductSkuController.list);
+
+// Antes de '/:id' nao faz diferenca aqui (o :id so existe em PUT e DELETE),
+// mas fica junto do list porque e a mesma pergunta: o que este produto tem, e
+// o que ele deliberadamente NAO tem.
+adminProductSkuRoutes.get('/apagadas', ProductSkuController.apagadas);
 adminProductSkuRoutes.post('/', ProductSkuController.create);
 adminProductSkuRoutes.put('/:id', ProductSkuController.update);
 adminProductSkuRoutes.delete('/:id', ProductSkuController.remove);
