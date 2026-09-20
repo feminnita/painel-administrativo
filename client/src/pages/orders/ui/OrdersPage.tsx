@@ -26,6 +26,7 @@ import {
     STATUS_OPTIONS,
 } from "../domain";
 import { OrderDetail } from "./OrderDetail";
+import { abrirFolhaDeSeparacao } from "../separacao";
 
 export function OrdersPage() {
     const vm = useOrdersAdmin();
@@ -293,29 +294,26 @@ export function OrdersPage() {
                                                                 <MessageCircle size={13} />
                                                             </button>
                                                         )}
-                                                        {order.label_url ? (
-                                                            /* Etiqueta sandbox e' de teste: nao mostra o botao. */
-                                                            !isSandboxLabel(order.label_url) && (
-                                                                <a
-                                                                    href={order.label_url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                    title="Imprimir etiqueta"
-                                                                    className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
-                                                                >
-                                                                    <Printer size={13} />
-                                                                </a>
-                                                            )
-                                                        ) : (
-                                                            <button
-                                                                disabled
-                                                                title="Etiqueta ainda não gerada"
-                                                                className="cursor-not-allowed rounded-lg border p-1.5 text-gray-300"
-                                                            >
-                                                                <Printer size={13} />
-                                                            </button>
-                                                        )}
+                                                        {/* A impressora da LISTA imprime o PEDIDO — a folha de
+                                                            separacao, que e o que se busca ao mandar imprimir um
+                                                            pedido. Antes ela abria a etiqueta do Melhor Envio: a
+                                                            Chris clicava esperando a folha do estoque e caia na
+                                                            pagina de etiqueta, as vezes no login deles. Dois
+                                                            icones de impressora para coisas diferentes, e o mais
+                                                            visivel fazendo o menos esperado.
+
+                                                            A etiqueta continua existindo, dentro do pedido, junto
+                                                            do envio — que e o momento em que ela e usada. */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                abrirFolhaDeSeparacao(order);
+                                                            }}
+                                                            title="Imprimir folha de separação"
+                                                            className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
+                                                        >
+                                                            <Printer size={13} />
+                                                        </button>
                                                         {order.bling_order_id ? (
                                                             <span
                                                                 title={`Pedido no Bling (#${order.bling_order_id})`}
