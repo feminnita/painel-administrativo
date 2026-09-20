@@ -49,10 +49,11 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
     const pickup = isPickupOrder(selected);
 
     const pedidoPago = ["paid", "confirmed", "processing"].includes(selected.status);
+    const noCarrinhoDoME = selected.me_order_id ?? selected.meOrderId ?? null;
     // Sem etiqueta e sem carrinho: o envio ainda nao foi montado.
-    const podeMandarProCarrinho = !pickup && !selected.label_url && !selected.me_order_id && pedidoPago;
+    const podeMandarProCarrinho = !pickup && !selected.label_url && !noCarrinhoDoME && pedidoPago;
     // Ja esta no carrinho do Melhor Envio, esperando a Chris pagar por la.
-    const esperandoPagamento = !pickup && !selected.label_url && !!selected.me_order_id;
+    const esperandoPagamento = !pickup && !selected.label_url && !!noCarrinhoDoME;
 
     return (
         <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm lg:sticky lg:top-4">

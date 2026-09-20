@@ -36,6 +36,11 @@ export type Order = {
     tracking_code: string | null;
     tracking_url: string | null;
     label_url: string | null;
+    // A API devolve as colunas do banco; dependendo da rota vem em snake_case ou
+    // camelCase. Os dois declarados para a tela nao quebrar de um jeito nem do
+    // outro — foi assim que o deploy do painel falhou uma vez.
+    me_order_id?: string | null;
+    meOrderId?: string | null;
     bling_order_id: number | null;
     notes: string | null;
     created_at: string;
