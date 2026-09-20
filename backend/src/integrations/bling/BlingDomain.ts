@@ -127,7 +127,18 @@ export function buildUpdateValues(input: BuildPayloadInput) {
         code: code || null,
         basePrice: number.basePrice.toFixed(2),
         pixPrice: calcPixPrice(number.basePrice).toFixed(2),
-        salePrice: number.promoPrice ? number.promoPrice.toFixed(2) : null,
+        // Preco promocional NAO vem do Bling, e nunca e apagado por ele.
+        //
+        // Esta linha gravava null quando o Bling nao tinha promocao — e o Bling
+        // nunca tem, porque promocao e decisao da loja. Uma sincronizacao
+        // zerou a promocao de 2.802 variacoes e deixou as DATAS para tras: o
+        // site passou a mostrar preco cheio com promocao ativa na etiqueta, e a
+        // Chris teria que reeditar tudo a mao.
+        //
+        // Tres linhas abaixo, peso e medida ja faziam o certo: campo sem valor
+        // no Bling sai do update em vez de apagar o que a loja tem. Promocao
+        // agora segue a mesma regra — so entra se o Bling tiver um preco.
+        ...(number.promoPrice ? { salePrice: number.promoPrice.toFixed(2) } : {}),
         stock: input.stock,
         // Sem medida vinda do Bling, o campo sai do update: o produto fica com
         // o que ja tinha, em vez de perder a medida boa que alguem cadastrou.
