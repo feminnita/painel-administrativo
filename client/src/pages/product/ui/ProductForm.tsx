@@ -626,7 +626,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 className="group relative h-24 w-20 cursor-move overflow-hidden rounded-lg bg-gray-100"
                                             >
                                                 <img
-                                                    src={miniatura(url, 200)}
+                                                    src={miniatura(url, 160)}
                                                     alt=""
                                                     className="absolute inset-0 h-full w-full object-cover"
                                                 />

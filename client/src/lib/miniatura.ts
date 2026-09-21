@@ -23,6 +23,18 @@ const MARCA = "/image/upload/";
 // Um segmento como "v1789049358" e versao, e pode ficar depois da nossa.
 const JA_TEM_TRANSFORMACAO = /^[a-z]{1,2}_/;
 
+/**
+ * Uma largura so para o painel inteiro: 160.
+ *
+ * Cada largura pedida vira uma imagem derivada NOVA no Cloudinary, e cada
+ * derivada conta como transformacao — e o f_auto ainda multiplica por formato
+ * (webp, avif, jpg). Pedir 160 num lugar e 200 no outro dobrava a conta para
+ * mostrar a mesma miniatura. As transformacoes foram 13,6 dos 32,49 creditos
+ * que estouraram o plano gratuito.
+ *
+ * Se um dia precisar de outro tamanho, pense duas vezes: o barato e reusar a
+ * largura que ja existe.
+ */
 export function miniatura(url: string | null | undefined, largura = 160): string {
     if (!url) return "";
     const limpa = url.trim();
