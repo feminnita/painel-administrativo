@@ -39,6 +39,8 @@ export function OrdersPage() {
         setSearch,
         statusFilter,
         setStatusFilter,
+        aviso,
+        setAviso,
         dateFrom,
         setDateFrom,
         dateTo,
@@ -101,7 +103,29 @@ export function OrdersPage() {
                                 className="w-full rounded-lg border py-2 pl-9 pr-4 text-sm focus:ring-2 focus:ring-[#8C2F39]"
                             />
                         </div>
-                        <div className="relative">
+                        {aviso && (
+                    /* Cancelar tira o pedido da fila e ele some da lista. Sem
+                       este recado, parece que o sistema apagou. */
+                    <div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        <span>{aviso}</span>
+                        <div className="flex shrink-0 items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setStatusFilter("cancelled");
+                                    setAviso("");
+                                }}
+                                className="font-semibold underline"
+                            >
+                                Ver cancelados
+                            </button>
+                            <button type="button" onClick={() => setAviso("")} aria-label="Fechar">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                )}
+                <div className="relative">
                             <Filter
                                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                                 size={15}

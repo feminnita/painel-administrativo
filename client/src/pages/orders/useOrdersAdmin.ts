@@ -8,6 +8,8 @@ export function useOrdersAdmin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  // Recado curto na tela depois de uma acao que muda o que a lista mostra.
+  const [aviso, setAviso] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
@@ -60,8 +62,19 @@ export function useOrdersAdmin() {
 
   const changeStatus = async (id: string, status: string) => {
     try {
+      const numero = orders.find((o) => o.id === id)?.order_number ?? "";
       await api.put(`/api/admin/orders/${id}/status`, { status });
       await load(id);
+
+      // Cancelar faz o pedido SUMIR da lista, porque a visao padrao e a fila de
+      // trabalho e ela esconde cancelados. Sem aviso isso parece exclusao: a
+      // Chris cancelou dois pedidos de teste e achou que o sistema os tinha
+      // apagado. Nada e apagado — muda de gaveta, e agora a tela diz qual.
+      if (status === "cancelled" && statusFilter === "all") {
+        setAviso(
+          `${numero} foi cancelado e saiu da fila. Ele continua guardado — para vê-lo, mude o filtro para "Cancelado".`,
+        );
+      }
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Erro ao mudar status");
     }
@@ -145,6 +158,8 @@ export function useOrdersAdmin() {
     search,
     setSearch,
     statusFilter,
+    aviso,
+    setAviso,
     setStatusFilter,
     dateFrom,
     setDateFrom,
