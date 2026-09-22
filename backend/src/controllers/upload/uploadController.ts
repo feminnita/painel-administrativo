@@ -31,6 +31,13 @@ export async function uploadImages(req: Request, res: Response) {
                 error: 'O servidor está sem as chaves do Cloudflare R2 (R2_ACCESS_KEY_ID e R2_SECRET_ACCESS_KEY).',
             });
         }
+        // Chave errada na fonte responde igual a foto ruim, e manda a Chris
+        // trocar de imagem quando o defeito e a credencial. Diz o que e.
+        if (err instanceof Error && /SignatureDoesNotMatch|InvalidAccessKeyId/i.test(err.name + err.message)) {
+            return res.status(500).json({
+                error: 'A Cloudflare recusou a credencial do R2. Confira R2_ACCESS_KEY_ID e R2_SECRET_ACCESS_KEY no servidor — um espaço ou aspas colados junto ao valor bastam para invalidar.',
+            });
+        }
         res.status(502).json({ error: 'Falha ao enviar imagem' });
     }
 }

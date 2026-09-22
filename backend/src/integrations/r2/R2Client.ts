@@ -35,8 +35,13 @@ let cliente: S3Client | null = null;
 function conectar(): S3Client {
     if (cliente) return cliente;
 
-    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+    // trim: a chave e colada a mao no painel do Render, e um espaco ou uma
+    // quebra de linha que venha junto nao aparece na tela — mas entra na
+    // assinatura. O R2 entao devolve SignatureDoesNotMatch, que do lado de ca
+    // chega como "Falha ao enviar imagem", sem nenhuma pista de que o problema
+    // e um caractere invisivel. Aconteceu em 22/09/2026.
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
     if (!accessKeyId || !secretAccessKey) {
         throw new Error('R2_SEM_CHAVES');
     }
