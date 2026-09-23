@@ -116,11 +116,11 @@ export function abrirFolhaDeSeparacao(order: Order) {
   /* 54px: o texto e a quantidade mandam no tamanho da folha, e a foto e quem
      paga a conta quando tem de caber em duas paginas. Ainda da para reconhecer
      a estampa de relance, que e o que ela serve para fazer. */
-  .foto { width: 58px; }
-  .foto img { width: 50px; height: 50px; object-fit: cover;
+  .foto { width: 54px; }
+  .foto img { width: 46px; height: 46px; object-fit: cover;
               border: 1px solid #e4e4e7; border-radius: 4px; display: block;
               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .semfoto { width: 50px; height: 50px; border: 1px dashed #d4d4d8; border-radius: 4px;
+  .semfoto { width: 46px; height: 46px; border: 1px dashed #d4d4d8; border-radius: 4px;
              color: #a1a1aa; font-size: 9px; display: flex; align-items: center;
              justify-content: center; }
 
@@ -134,8 +134,8 @@ export function abrirFolhaDeSeparacao(order: Order) {
   .valor { text-align: right; width: 124px; white-space: nowrap; }
   .cada { color: #71717a; font-size: 11px; font-weight: 400; }
 
-  .totais { margin-top: 16px; margin-left: auto; width: 300px; }
-  .totais div { display: flex; justify-content: space-between; padding: 5px 0; }
+  .totais { margin-top: 10px; margin-left: auto; width: 300px; }
+  .totais div { display: flex; justify-content: space-between; padding: 3px 0; }
   .totais .fechamento { border-top: 2px solid #18181b; margin-top: 4px;
                         padding-top: 8px; font-size: 17px; font-weight: 700; }
 
@@ -149,7 +149,16 @@ export function abrirFolhaDeSeparacao(order: Order) {
   .envio { margin: 6px 0 14px; padding: 6px 12px; border: 2px solid #000;
            font-size: 16px; font-weight: 700; display: inline-block; }
 
-  @media print { body { margin: 10mm; } }
+  /*
+   * A margem do PAPEL se declara aqui, e nao no body.
+   *
+   * Antes eram duas margens somadas: a do navegador (que ele poe sozinho) mais
+   * a do body. Juntas comiam quase 4cm de altura, e o pedido que cabia em duas
+   * folhas na conta saia em tres na impressora — a terceira so com os totais.
+   * Com @page o controle e nosso e o numero bate com o que se mede.
+   */
+  @page { size: A4; margin: 8mm; }
+  @media print { body { margin: 0; } }
 </style>
 </head>
 <body>
