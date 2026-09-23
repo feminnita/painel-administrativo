@@ -44,6 +44,16 @@ export function abrirFolhaDeSeparacao(order: Order) {
           ].join("<br>")
         : "Retirada na fábrica";
 
+    /**
+     * Pedido grande aperta a folha; pedido pequeno fica confortavel.
+     *
+     * Um pedido de 5 itens cabe sobrando, e ali a foto grande ajuda a
+     * conferir a estampa. Um de 23 — como o FEM-1028 — sai em duas ou tres
+     * folhas, e virar pagina com a peca na mao e onde se erra a separacao.
+     * O limite de 15 e onde a folha comum comeca a estourar a pagina.
+     */
+    const compacta = itens.length > 15;
+
     const linhas = itens
         .map((item) => {
             const foto = item.product_image
@@ -62,10 +72,10 @@ export function abrirFolhaDeSeparacao(order: Order) {
               <td class="foto">${foto}</td>
               <td>
                 <div class="nome">${escapar(item.product_name)}</div>
-                <div class="detalhe">${variacao}</div>
-                <div class="detalhe"><strong>Código:</strong>
-                  <span class="codigo">${escapar(item.product_code ?? "—")}</span>
-                </div>
+                <!-- Variacao e codigo na MESMA linha: eram duas, e duas linhas
+                     por item viram meia folha a mais num pedido de 23. A
+                     informacao e a mesma; o que muda e o papel. -->
+                <div class="detalhe">${variacao} · <span class="codigo">${escapar(item.product_code ?? "—")}</span></div>
               </td>
               <td class="qtd">${item.quantity}</td>
               <td class="valor">
@@ -83,52 +93,74 @@ export function abrirFolhaDeSeparacao(order: Order) {
 <title>Pedido ${escapar(order.order_number)}</title>
 <style>
   * { box-sizing: border-box; }
+  /* Tamanhos apertados de proposito: um pedido de atacado tem 20, 30 itens
+     (o FEM-1028 tem 23), e a folha estava saindo em tres paginas. Papel a mais
+     nao ajuda quem separa — atrapalha, porque obriga a virar folha com a peca
+     na mao. Tudo aqui cabe em uma pagina ate ~26 itens. */
   body { font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-         margin: 24px; color: #18181b; font-size: 13px; }
-  h1 { font-size: 22px; margin: 0 0 2px; }
-  .data { color: #52525b; font-size: 12px; margin-bottom: 18px; }
+         margin: 16px; color: #18181b; font-size: 11px; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .data { color: #52525b; font-size: 10px; margin-bottom: 8px; }
 
-  .blocos { display: flex; gap: 24px; margin-bottom: 20px; align-items: flex-start; }
+  .blocos { display: flex; gap: 16px; margin-bottom: 10px; align-items: flex-start; }
   .bloco { flex: 1; }
-  .rotulo { font-weight: 700; font-size: 12px; margin-bottom: 4px;
-            border-bottom: 1px solid #d4d4d8; padding-bottom: 3px; }
-  .bloco div:not(.rotulo) { color: #3f3f46; line-height: 1.5; }
+  .rotulo { font-weight: 700; font-size: 10px; margin-bottom: 2px;
+            border-bottom: 1px solid #d4d4d8; padding-bottom: 2px; }
+  .bloco div:not(.rotulo) { color: #3f3f46; line-height: 1.35; }
 
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 11px; font-weight: 700;
-       border-bottom: 2px solid #18181b; padding: 0 8px 6px; }
-  td { padding: 10px 8px; border-bottom: 1px solid #e4e4e7; vertical-align: top; }
+  th { text-align: left; font-size: 10px; font-weight: 700;
+       border-bottom: 2px solid #18181b; padding: 0 6px 4px; }
+  td { padding: 4px 6px; border-bottom: 1px solid #e4e4e7; vertical-align: middle; }
 
   /* A foto é o que identifica a peça antes do nome. print-color-adjust
      obriga o navegador a imprimir a imagem, que ele senão descarta. */
-  .foto { width: 74px; }
-  .foto img { width: 66px; height: 66px; object-fit: cover;
-              border: 1px solid #e4e4e7; border-radius: 4px; display: block;
+  /* 46px em vez de 66: ainda da para reconhecer a estampa de relance, que e
+     para isso que ela existe, e devolve 20px por linha. */
+  .foto { width: 52px; }
+  .foto img { width: 46px; height: 46px; object-fit: cover;
+              border: 1px solid #e4e4e7; border-radius: 3px; display: block;
               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .semfoto { width: 66px; height: 66px; border: 1px dashed #d4d4d8; border-radius: 4px;
-             color: #a1a1aa; font-size: 9px; display: flex; align-items: center;
+  .semfoto { width: 46px; height: 46px; border: 1px dashed #d4d4d8; border-radius: 3px;
+             color: #a1a1aa; font-size: 8px; display: flex; align-items: center;
              justify-content: center; }
 
-  .nome { font-weight: 600; line-height: 1.35; }
-  .detalhe { color: #52525b; font-size: 12px; margin-top: 3px; }
-  .codigo { font-family: ui-monospace, Consolas, monospace; font-size: 14px;
+  .nome { font-weight: 600; line-height: 1.25; }
+  .detalhe { color: #52525b; font-size: 10px; margin-top: 1px; }
+  .codigo { font-family: ui-monospace, Consolas, monospace; font-size: 12px;
             font-weight: 700; color: #18181b; }
-  .qtd { text-align: center; width: 54px; font-size: 20px; font-weight: 700; }
-  .valor { text-align: right; width: 118px; white-space: nowrap; }
-  .cada { color: #71717a; font-size: 11px; font-weight: 400; }
+  /* A quantidade continua grande: e o numero que se erra, e errar quantidade
+     e mandar pedido incompleto para a revendedora. */
+  .qtd { text-align: center; width: 44px; font-size: 17px; font-weight: 700; }
+  .valor { text-align: right; width: 96px; white-space: nowrap; }
+  .cada { color: #71717a; font-size: 9px; font-weight: 400; }
 
-  .totais { margin-top: 16px; margin-left: auto; width: 290px; }
-  .totais div { display: flex; justify-content: space-between; padding: 5px 0; }
-  .totais .fechamento { border-top: 2px solid #18181b; margin-top: 4px;
-                        padding-top: 8px; font-size: 16px; font-weight: 700; }
+  .totais { margin-top: 10px; margin-left: auto; width: 240px; }
+  .totais div { display: flex; justify-content: space-between; padding: 2px 0; }
+  .totais .fechamento { border-top: 2px solid #18181b; margin-top: 3px;
+                        padding-top: 5px; font-size: 13px; font-weight: 700; }
 
   tr { break-inside: avoid; }
-  .envio { margin: 6px 0 12px; padding: 6px 10px; border: 2px solid #000;
-           font-size: 15px; font-weight: 700; display: inline-block; }
-  @media print { body { margin: 10mm; } }
+  .envio { margin: 4px 0 8px; padding: 3px 8px; border: 2px solid #000;
+           font-size: 12px; font-weight: 700; display: inline-block; }
+
+  /* Modo compacto: so entra em pedido grande. Reduz a foto e o respiro das
+     linhas ate o pedido inteiro caber numa folha. A quantidade nao encolhe. */
+  body.compacta td { padding: 1px 6px; }
+  body.compacta .blocos { margin-bottom: 6px; }
+  body.compacta .data { margin-bottom: 4px; }
+  body.compacta .nome { line-height: 1.15; }
+  body.compacta .foto { width: 36px; }
+  body.compacta .foto img,
+  body.compacta .semfoto { width: 30px; height: 30px; }
+  body.compacta .semfoto { font-size: 7px; }
+  body.compacta .detalhe { font-size: 9px; }
+  body.compacta .qtd { font-size: 15px; }
+
+  @media print { body { margin: 8mm; } }
 </style>
 </head>
-<body>
+<body class="${compacta ? "compacta" : ""}">
   <h1>Pedido #${escapar(order.order_number)} — LOJA VIRTUAL</h1>
   <div class="data">${dataPorExtenso}</div>
 
