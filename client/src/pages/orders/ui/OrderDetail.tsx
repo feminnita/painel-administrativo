@@ -3,11 +3,13 @@ import {
     ExternalLink,
     MessageCircle,
     Package,
+    Pencil,
     Printer,
     RefreshCw,
     Truck,
     X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { useOrdersAdmin } from "../useOrdersAdmin";
 import {
     derivePaymentStatus,
@@ -44,6 +46,18 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
         refreshTracking,
         refreshingTracking,
     } = vm;
+
+    // Rastreio preenchido virava texto fixo, sem jeito de trocar pelo painel. Um
+    // codigo errado ali e grave: o FEM-1028 ficou com o rastreio do FEM-1030, e a
+    // cliente recebeu por e-mail o codigo da encomenda de outra pessoa. Corrigir
+    // exigia mexer no banco. Agora o lapis abre o campo de novo.
+    const [corrigindoRastreio, setCorrigindoRastreio] = useState(false);
+
+    // Trocar de pedido fecha o modo de correcao: sem isso, o campo do pedido
+    // anterior continuaria aberto sobre o novo, com o codigo do anterior dentro.
+    useEffect(() => {
+        setCorrigindoRastreio(false);
+    }, [selected?.id]);
 
     if (!selected) return null;
 
@@ -386,7 +400,7 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                         </div>
                     )}
 
-                    {selected.tracking_code ? (
+                    {selected.tracking_code && !corrigindoRastreio ? (
                         <div className="flex items-center gap-2">
                             <span className="flex-1 rounded-lg border bg-gray-50 px-3 py-2 font-mono text-sm">
                                 {selected.tracking_code}
@@ -396,6 +410,16 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                                 className="rounded-lg border p-2 hover:bg-gray-50"
                             >
                                 <Copy size={13} className="text-gray-400" />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setTrackingInput(selected.tracking_code ?? "");
+                                    setCorrigindoRastreio(true);
+                                }}
+                                title="Corrigir o código de rastreio"
+                                className="rounded-lg border p-2 hover:bg-gray-50"
+                            >
+                                <Pencil size={13} className="text-gray-400" />
                             </button>
                             {selected.tracking_url && (
                                 <a
@@ -408,7 +432,7 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                                 </a>
                             )}
                         </div>
-                    ) : selected.label_url ? (
+                    ) : !selected.tracking_code && selected.label_url ? (
                         <button
                             onClick={refreshTracking}
                             disabled={refreshingTracking}
@@ -434,12 +458,23 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                                 className="flex-1 rounded-lg border px-3 py-2 font-mono text-sm focus:ring-2 focus:ring-[#8C2F39]"
                             />
                             <button
-                                onClick={saveTracking}
+                                onClick={async () => {
+                                    await saveTracking();
+                                    setCorrigindoRastreio(false);
+                                }}
                                 disabled={savingTracking || !trackingInput.trim()}
                                 className="rounded-lg bg-[#8C2F39] px-3 py-2 text-sm text-white hover:bg-[#7a2832] disabled:opacity-50"
                             >
                                 {savingTracking ? "..." : "Salvar"}
                             </button>
+                            {corrigindoRastreio && (
+                                <button
+                                    onClick={() => setCorrigindoRastreio(false)}
+                                    className="rounded-lg border px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                            )}
                         </div>
                     )}
 
