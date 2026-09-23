@@ -98,9 +98,9 @@ export function abrirFolhaDeSeparacao(order: Order) {
   body { font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
          margin: 20px; color: #18181b; font-size: 14px; }
   h1 { font-size: 22px; margin: 0 0 2px; }
-  .data { color: #52525b; font-size: 13px; margin-bottom: 14px; }
+  .data { color: #52525b; font-size: 13px; margin-bottom: 10px; }
 
-  .blocos { display: flex; gap: 22px; margin-bottom: 18px; align-items: flex-start; }
+  .blocos { display: flex; gap: 22px; margin-bottom: 12px; align-items: flex-start; }
   .bloco { flex: 1; }
   .rotulo { font-weight: 700; font-size: 13px; margin-bottom: 4px;
             border-bottom: 1px solid #d4d4d8; padding-bottom: 3px; }
@@ -109,16 +109,19 @@ export function abrirFolhaDeSeparacao(order: Order) {
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: 12px; font-weight: 700;
        border-bottom: 2px solid #18181b; padding: 0 8px 6px; }
-  td { padding: 10px 8px; border-bottom: 1px solid #e4e4e7; vertical-align: middle; }
+  td { padding: 4px 8px; border-bottom: 1px solid #e4e4e7; vertical-align: middle; }
 
   /* A foto é o que identifica a peça antes do nome. print-color-adjust
      obriga o navegador a imprimir a imagem, que ele senão descarta. */
-  .foto { width: 80px; }
-  .foto img { width: 72px; height: 72px; object-fit: cover;
+  /* 54px: o texto e a quantidade mandam no tamanho da folha, e a foto e quem
+     paga a conta quando tem de caber em duas paginas. Ainda da para reconhecer
+     a estampa de relance, que e o que ela serve para fazer. */
+  .foto { width: 58px; }
+  .foto img { width: 50px; height: 50px; object-fit: cover;
               border: 1px solid #e4e4e7; border-radius: 4px; display: block;
               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .semfoto { width: 72px; height: 72px; border: 1px dashed #d4d4d8; border-radius: 4px;
-             color: #a1a1aa; font-size: 10px; display: flex; align-items: center;
+  .semfoto { width: 50px; height: 50px; border: 1px dashed #d4d4d8; border-radius: 4px;
+             color: #a1a1aa; font-size: 9px; display: flex; align-items: center;
              justify-content: center; }
 
   .nome { font-weight: 600; font-size: 15px; line-height: 1.3; }
