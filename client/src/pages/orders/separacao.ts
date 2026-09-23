@@ -20,15 +20,6 @@ export function abrirFolhaDeSeparacao(order: Order) {
     const itens = order.items ?? [];
     const totalPecas = itens.reduce((t, i) => t + (i.quantity || 0), 0);
 
-    /**
-     * Pedido grande aperta a folha; pedido pequeno fica confortavel.
-     *
-     * Um pedido de 5 itens cabe sobrando, e ali a foto grande ajuda a conferir
-     * a estampa. Um de 23 — como o FEM-1028 — estourava a pagina por 12px, e
-     * os totais iam sozinhos para uma segunda folha. Virar pagina com a peca
-     * na mao e onde se erra a separacao.
-     */
-    const compacta = itens.length > 15;
 
     const dataPorExtenso = new Date(order.created_at).toLocaleString("pt-BR", {
         day: "2-digit",
@@ -45,11 +36,7 @@ export function abrirFolhaDeSeparacao(order: Order) {
     const e = order.shipping_address;
     const entrega = e
         ? [
-              // "Aos cuidados: <nome>" repete o nome que ja esta no bloco do
-              // cliente, ao lado. Em pedido grande essa linha e o que empurra
-              // os totais para uma segunda folha — e folha a mais nao ajuda
-              // quem separa.
-              ...(compacta ? [] : [`Aos cuidados: ${escapar(order.customer_name ?? "")}`]),
+              `Aos cuidados: ${escapar(order.customer_name ?? "")}`,
               `${escapar(e.street)}, ${escapar(e.number)}${
                   e.complement ? `, ${escapar(e.complement)}` : ""
               }`,
@@ -97,82 +84,72 @@ export function abrirFolhaDeSeparacao(order: Order) {
 <title>Pedido ${escapar(order.order_number)}</title>
 <style>
   * { box-sizing: border-box; }
-  /* Tamanhos apertados de proposito: um pedido de atacado tem 20, 30 itens
-     (o FEM-1028 tem 23), e a folha estava saindo em tres paginas. Papel a mais
-     nao ajuda quem separa — atrapalha, porque obriga a virar folha com a peca
-     na mao. Tudo aqui cabe em uma pagina ate ~26 itens. */
+  /*
+   * GRANDE de proposito. Nao economize papel aqui.
+   *
+   * Esta folha ja foi apertada para caber numa pagina so, e a Chris mandou
+   * desfazer com a razao que encerra o assunto: "o risco de ir produtos
+   * faltando e enorme". Uma folha a mais custa centavos; um pedido que chega
+   * incompleto na revendedora custa a revendedora.
+   *
+   * Quem separa le de pe, com a peca numa mao e o papel na outra, muitas
+   * vezes com a luz do galpao. Se precisar de duas ou tres folhas, que use.
+   */
   body { font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-         margin: 16px; color: #18181b; font-size: 11px; }
-  h1 { font-size: 16px; margin: 0 0 2px; }
-  .data { color: #52525b; font-size: 10px; margin-bottom: 8px; }
+         margin: 20px; color: #18181b; font-size: 14px; }
+  h1 { font-size: 22px; margin: 0 0 2px; }
+  .data { color: #52525b; font-size: 13px; margin-bottom: 14px; }
 
-  .blocos { display: flex; gap: 16px; margin-bottom: 10px; align-items: flex-start; }
+  .blocos { display: flex; gap: 22px; margin-bottom: 18px; align-items: flex-start; }
   .bloco { flex: 1; }
-  .rotulo { font-weight: 700; font-size: 10px; margin-bottom: 2px;
-            border-bottom: 1px solid #d4d4d8; padding-bottom: 2px; }
-  .bloco div:not(.rotulo) { color: #3f3f46; line-height: 1.35; }
+  .rotulo { font-weight: 700; font-size: 13px; margin-bottom: 4px;
+            border-bottom: 1px solid #d4d4d8; padding-bottom: 3px; }
+  .bloco div:not(.rotulo) { color: #3f3f46; line-height: 1.5; }
 
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 10px; font-weight: 700;
-       border-bottom: 2px solid #18181b; padding: 0 6px 4px; }
-  td { padding: 4px 6px; border-bottom: 1px solid #e4e4e7; vertical-align: middle; }
+  th { text-align: left; font-size: 12px; font-weight: 700;
+       border-bottom: 2px solid #18181b; padding: 0 8px 6px; }
+  td { padding: 10px 8px; border-bottom: 1px solid #e4e4e7; vertical-align: middle; }
 
   /* A foto é o que identifica a peça antes do nome. print-color-adjust
      obriga o navegador a imprimir a imagem, que ele senão descarta. */
-  /* 46px em vez de 66: ainda da para reconhecer a estampa de relance, que e
-     para isso que ela existe, e devolve 20px por linha. */
-  .foto { width: 52px; }
-  .foto img { width: 46px; height: 46px; object-fit: cover;
-              border: 1px solid #e4e4e7; border-radius: 3px; display: block;
+  .foto { width: 80px; }
+  .foto img { width: 72px; height: 72px; object-fit: cover;
+              border: 1px solid #e4e4e7; border-radius: 4px; display: block;
               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .semfoto { width: 46px; height: 46px; border: 1px dashed #d4d4d8; border-radius: 3px;
-             color: #a1a1aa; font-size: 8px; display: flex; align-items: center;
+  .semfoto { width: 72px; height: 72px; border: 1px dashed #d4d4d8; border-radius: 4px;
+             color: #a1a1aa; font-size: 10px; display: flex; align-items: center;
              justify-content: center; }
 
-  .nome { font-weight: 600; line-height: 1.25; }
-  .detalhe { color: #52525b; font-size: 10px; margin-top: 1px; }
-  .codigo { font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+  .nome { font-weight: 600; font-size: 15px; line-height: 1.3; }
+  .detalhe { color: #3f3f46; font-size: 13px; margin-top: 3px; }
+  .codigo { font-family: ui-monospace, Consolas, monospace; font-size: 15px;
             font-weight: 700; color: #18181b; }
-  /* A quantidade continua grande: e o numero que se erra, e errar quantidade
-     e mandar pedido incompleto para a revendedora. */
-  .qtd { text-align: center; width: 44px; font-size: 17px; font-weight: 700; }
-  .valor { text-align: right; width: 96px; white-space: nowrap; }
-  .cada { color: #71717a; font-size: 9px; font-weight: 400; }
+  /* A quantidade e o maior numero da folha. E o que se erra, e errar
+     quantidade e mandar pedido incompleto. */
+  .qtd { text-align: center; width: 64px; font-size: 26px; font-weight: 700; }
+  .valor { text-align: right; width: 124px; white-space: nowrap; }
+  .cada { color: #71717a; font-size: 11px; font-weight: 400; }
 
-  .totais { margin-top: 10px; margin-left: auto; width: 240px; }
-  .totais div { display: flex; justify-content: space-between; padding: 2px 0; }
-  .totais .fechamento { border-top: 2px solid #18181b; margin-top: 3px;
-                        padding-top: 5px; font-size: 13px; font-weight: 700; }
+  .totais { margin-top: 16px; margin-left: auto; width: 300px; }
+  .totais div { display: flex; justify-content: space-between; padding: 5px 0; }
+  .totais .fechamento { border-top: 2px solid #18181b; margin-top: 4px;
+                        padding-top: 8px; font-size: 17px; font-weight: 700; }
 
+  /* Linha nunca parte no meio entre duas folhas: meia peca no pe da pagina e
+     convite a pular item. O cabecalho da tabela se repete em toda folha, para
+     a segunda pagina nao chegar sem dizer o que e cada coluna. */
   tr { break-inside: avoid; }
-  .envio { margin: 4px 0 8px; padding: 3px 8px; border: 2px solid #000;
-           font-size: 12px; font-weight: 700; display: inline-block; }
+  thead { display: table-header-group; }
+  .totais { break-inside: avoid; }
 
-  /* Modo compacto: so entra em pedido grande. Reduz a foto e o respiro das
-     linhas ate o pedido inteiro caber numa folha. A quantidade nao encolhe. */
-  /* A letra do modo compacto e MAIOR que a do normal, nao menor: quem separa
-     le de pe, com a peca na mao. O espaco vem do respiro — padding, altura de
-     linha, a foto um pouco menor e a linha "Aos cuidados" que repetia o nome
-     do bloco ao lado — e nao do tamanho do texto. */
-  body.compacta td { padding: 1px 6px; }
-  body.compacta .blocos { margin-bottom: 5px; }
-  body.compacta .data { margin-bottom: 3px; }
-  body.compacta .bloco div:not(.rotulo) { line-height: 1.25; }
-  body.compacta .nome { font-size: 12px; line-height: 1.15; }
-  body.compacta .foto { width: 34px; }
-  body.compacta .foto img,
-  body.compacta .semfoto { width: 28px; height: 28px; }
-  body.compacta .semfoto { font-size: 7px; }
-  body.compacta .detalhe { font-size: 10px; }
-  body.compacta .codigo { font-size: 12px; }
-  body.compacta .qtd { font-size: 17px; }
-  body.compacta .totais { margin-top: 6px; }
-  body.compacta .totais div { padding: 1px 0; }
+  .envio { margin: 6px 0 14px; padding: 6px 12px; border: 2px solid #000;
+           font-size: 16px; font-weight: 700; display: inline-block; }
 
-  @media print { body { margin: 8mm; } }
+  @media print { body { margin: 10mm; } }
 </style>
 </head>
-<body class="${compacta ? "compacta" : ""}">
+<body>
   <h1>Pedido #${escapar(order.order_number)} — LOJA VIRTUAL</h1>
   <div class="data">${dataPorExtenso}</div>
 
