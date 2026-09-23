@@ -149,6 +149,11 @@ export function abrirFolhaDeSeparacao(order: Order) {
   .envio { margin: 6px 0 14px; padding: 6px 12px; border: 2px solid #000;
            font-size: 16px; font-weight: 700; display: inline-block; }
 
+  /* A fita que acompanha a tabela em toda folha. */
+  .envio-fita th { font-size: 14px; border-bottom: 1px solid #a1a1aa;
+                   padding: 6px 8px; background: #f4f4f5;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
   /*
    * A margem do PAPEL se declara aqui, e nao no body.
    *
@@ -193,6 +198,16 @@ export function abrirFolhaDeSeparacao(order: Order) {
 
   <table>
     <thead>
+      <!--
+        O envio repetido AQUI, e nao so no topo da folha 1.
+        O cabecalho da tabela se repete em toda pagina; a caixa do topo, nao.
+        Num pedido de duas folhas, quem estivesse com a segunda na mao nao via
+        para qual transportadora aquilo ia — e e a transportadora que decide
+        para onde o pacote vai depois de embalado.
+      -->
+      <tr class="envio-fita">
+        <th colspan="4">Pedido ${escapar(order.order_number)} &nbsp;·&nbsp; Envio: ${escapar(order.shipping_method ?? "—")}</th>
+      </tr>
       <tr>
         <th colspan="2">Produto</th>
         <th style="text-align:center">Qtd.</th>
