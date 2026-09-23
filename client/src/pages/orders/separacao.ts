@@ -20,6 +20,16 @@ export function abrirFolhaDeSeparacao(order: Order) {
     const itens = order.items ?? [];
     const totalPecas = itens.reduce((t, i) => t + (i.quantity || 0), 0);
 
+    /**
+     * Pedido grande aperta a folha; pedido pequeno fica confortavel.
+     *
+     * Um pedido de 5 itens cabe sobrando, e ali a foto grande ajuda a conferir
+     * a estampa. Um de 23 — como o FEM-1028 — estourava a pagina por 12px, e
+     * os totais iam sozinhos para uma segunda folha. Virar pagina com a peca
+     * na mao e onde se erra a separacao.
+     */
+    const compacta = itens.length > 15;
+
     const dataPorExtenso = new Date(order.created_at).toLocaleString("pt-BR", {
         day: "2-digit",
         month: "long",
@@ -35,7 +45,11 @@ export function abrirFolhaDeSeparacao(order: Order) {
     const e = order.shipping_address;
     const entrega = e
         ? [
-              `Aos cuidados: ${escapar(order.customer_name ?? "")}`,
+              // "Aos cuidados: <nome>" repete o nome que ja esta no bloco do
+              // cliente, ao lado. Em pedido grande essa linha e o que empurra
+              // os totais para uma segunda folha — e folha a mais nao ajuda
+              // quem separa.
+              ...(compacta ? [] : [`Aos cuidados: ${escapar(order.customer_name ?? "")}`]),
               `${escapar(e.street)}, ${escapar(e.number)}${
                   e.complement ? `, ${escapar(e.complement)}` : ""
               }`,
@@ -43,16 +57,6 @@ export function abrirFolhaDeSeparacao(order: Order) {
               `${escapar(e.city)} - ${escapar(e.state)} - Brasil - ${escapar(e.cep)}`,
           ].join("<br>")
         : "Retirada na fábrica";
-
-    /**
-     * Pedido grande aperta a folha; pedido pequeno fica confortavel.
-     *
-     * Um pedido de 5 itens cabe sobrando, e ali a foto grande ajuda a
-     * conferir a estampa. Um de 23 — como o FEM-1028 — sai em duas ou tres
-     * folhas, e virar pagina com a peca na mao e onde se erra a separacao.
-     * O limite de 15 e onde a folha comum comeca a estourar a pagina.
-     */
-    const compacta = itens.length > 15;
 
     const linhas = itens
         .map((item) => {
@@ -146,16 +150,24 @@ export function abrirFolhaDeSeparacao(order: Order) {
 
   /* Modo compacto: so entra em pedido grande. Reduz a foto e o respiro das
      linhas ate o pedido inteiro caber numa folha. A quantidade nao encolhe. */
+  /* A letra do modo compacto e MAIOR que a do normal, nao menor: quem separa
+     le de pe, com a peca na mao. O espaco vem do respiro — padding, altura de
+     linha, a foto um pouco menor e a linha "Aos cuidados" que repetia o nome
+     do bloco ao lado — e nao do tamanho do texto. */
   body.compacta td { padding: 1px 6px; }
-  body.compacta .blocos { margin-bottom: 6px; }
-  body.compacta .data { margin-bottom: 4px; }
-  body.compacta .nome { line-height: 1.15; }
-  body.compacta .foto { width: 36px; }
+  body.compacta .blocos { margin-bottom: 5px; }
+  body.compacta .data { margin-bottom: 3px; }
+  body.compacta .bloco div:not(.rotulo) { line-height: 1.25; }
+  body.compacta .nome { font-size: 12px; line-height: 1.15; }
+  body.compacta .foto { width: 34px; }
   body.compacta .foto img,
-  body.compacta .semfoto { width: 30px; height: 30px; }
+  body.compacta .semfoto { width: 28px; height: 28px; }
   body.compacta .semfoto { font-size: 7px; }
-  body.compacta .detalhe { font-size: 9px; }
-  body.compacta .qtd { font-size: 15px; }
+  body.compacta .detalhe { font-size: 10px; }
+  body.compacta .codigo { font-size: 12px; }
+  body.compacta .qtd { font-size: 17px; }
+  body.compacta .totais { margin-top: 6px; }
+  body.compacta .totais div { padding: 1px 0; }
 
   @media print { body { margin: 8mm; } }
 </style>
