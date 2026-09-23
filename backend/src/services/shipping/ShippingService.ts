@@ -1,5 +1,6 @@
 import * as OrdeRepository from '../../repository/orders/OrderRepository';
 import * as MelhorEnvio from '../../integrations/melhorEnvio/service/MelhorEnvio';
+import * as BlingNfe from '../../integrations/bling/BlingNfeService';
 import { combinePackage } from '../../integrations/melhorEnvio/domain/MelhorEnvioDomain';
 
 export async function sendToCart(orderId: string) {
@@ -23,10 +24,16 @@ export async function sendToCart(orderId: string) {
 
     if (order.meOrderId) throw new Error('ALREADY_IN_CART');
 
+    // A nota e buscada no Bling na hora de montar o envio, nao guardada antes:
+    // ela costuma ser emitida DEPOIS do pedido chegar la, e ler agora e o que
+    // garante que a chave exista quando existe.
+    const nota = await BlingNfe.buscarNotaDoPedido(order.blingOrderId);
+
     const noCarrinho = await MelhorEnvio.addOrderToCart({
         orderNumber: order.orderNumber,
         serviceId: order.shippingServiceId,
         total: order.total,
+        invoiceKey: nota?.chave ?? null,
         shippingAddress: order.shippingAddress as never,
         customer: { ...customer, cpf: customer.cpf },
         package: pkg,

@@ -55,6 +55,11 @@ export type LabelOrderData = {
         unitaryValue: string
     }[];
     package: PackageDimensions;
-
+    /**
+     * Chave de acesso da NF-e (44 digitos), quando o pedido ja tem nota
+     * autorizada. Com ela o envio vai como comercial e o seguro nao tem teto;
+     * sem ela, o Melhor Envio limita o seguro a R$ 1.000.
+     */
+    invoiceKey?: string | null;
 };
 

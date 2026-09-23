@@ -7,6 +7,12 @@ function sleep(ms: number) {
 }
 
 /**
+ * Teto de seguro que o Melhor Envio impoe a envio sem nota fiscal.
+ * Regra deles (E-CRT-0001), nao nossa — pedir acima disso volta 422.
+ */
+const TETO_SEM_NOTA = 1000;
+
+/**
  * Coloca o envio no CARRINHO do Melhor Envio — e para por ai.
  *
  * Antes esta funcao seguia direto para checkout(), que paga com o saldo da
@@ -52,10 +58,19 @@ export async function addOrderToCart(data: LabelOrderData) {
             unitary_value: Number(item.unitaryValue)
         })),
         options: {
-            insurance_value: Number(data.total),
+            // O seguro vai pelo valor do pedido — mas envio SEM nota tem teto
+            // de R$ 1.000 no Melhor Envio, e pedir mais que isso volta como 422
+            // com a cliente esperando. Com nota, seguro cheio; sem nota, o teto,
+            // que e o maximo que a regra deixa.
+            insurance_value: data.invoiceKey
+                ? Number(data.total)
+                : Math.min(Number(data.total), TETO_SEM_NOTA),
             receipt: false,
             own_hand: false,
-            non_commercial: true,
+            // Nao comercial era fixo aqui. Uma venda de atacado de CNPJ para
+            // revendedora e comercial por definicao, e e a nota que prova isso.
+            non_commercial: !data.invoiceKey,
+            ...(data.invoiceKey ? { invoice: { key: data.invoiceKey } } : {}),
         },
     });
 

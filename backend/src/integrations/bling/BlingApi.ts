@@ -279,6 +279,45 @@ export async function postSalesOrder(
     });
 }
 
+/** O pedido de venda no Bling — traz `notaFiscal: { id }` depois de emitida. */
+export async function getSalesOrder(
+    token: string,
+    blingOrderId: number | string,
+): Promise<{ notaFiscal?: { id: number } } | null> {
+    const data = await blingFetch<{ data: { notaFiscal?: { id: number } } }>(
+        token,
+        `/pedidos/vendas/${blingOrderId}`,
+        { method: 'GET' },
+    );
+    return data?.data ?? null;
+}
+
+/**
+ * A NF-e emitida. O que interessa aqui e a `chaveAcesso`: sao os 44 digitos
+ * que o Melhor Envio exige para aceitar o envio como COMERCIAL — e envio
+ * comercial nao tem o teto de R$ 1.000 de seguro.
+ *
+ * `situacao: 5` e autorizada. Nota em rascunho ou rejeitada nao serve, e nao
+ * ter esse cuidado significaria mandar para a estrada uma nota que o SEFAZ
+ * nao reconhece.
+ */
+export async function getNfe(
+    token: string,
+    nfeId: number | string,
+): Promise<{
+    numero?: string;
+    chaveAcesso?: string;
+    situacao?: number;
+    linkPDF?: string;
+} | null> {
+    const data = await blingFetch<{ data: Record<string, unknown> }>(
+        token,
+        `/nfe/${nfeId}`,
+        { method: 'GET' },
+    );
+    return (data?.data as never) ?? null;
+}
+
 /**
  * As formas de pagamento cadastradas no Bling da Chris.
  *
