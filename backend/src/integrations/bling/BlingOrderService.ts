@@ -45,6 +45,41 @@ async function ensureBlingContact(
     return contactId;
 }
 
+/**
+ * Como a loja paga vira o codigo fiscal que vai na NF-e.
+ *
+ * Numeros da tabela do SEFAZ, nao nossos: 3 = cartao de credito, 15 = boleto,
+ * 20 = Pix. Casamos por eles e nao pelo id da forma cadastrada — id e da conta
+ * e morreria numa migracao — nem pela descricao, que a Chris pode renomear.
+ */
+const CODIGO_FISCAL_POR_PAGAMENTO: Record<string, number> = {
+    pix: 20,
+    boleto: 15,
+    card: 3,
+};
+
+/** Consultado uma vez por processo: a lista nao muda entre pedidos. */
+let formasEmCache: { id: number; tipoPagamento: number }[] | null = null;
+
+async function resolveFormaPagamento(
+    token: string,
+    paymentMethod: string | null,
+): Promise<number | undefined> {
+    const alvo = CODIGO_FISCAL_POR_PAGAMENTO[String(paymentMethod ?? '')];
+    if (!alvo) return undefined;
+
+    try {
+        if (!formasEmCache) formasEmCache = await BlingApi.listPaymentMethods(token);
+        return formasEmCache.find((f) => Number(f.tipoPagamento) === alvo)?.id;
+    } catch (error) {
+        // Nao derruba o pedido: sem a forma, a venda entra no Bling como antes
+        // e a nota pede um ajuste a mao. Pior que isso seria o pedido nao
+        // chegar la.
+        console.error('Falha ao consultar formas de pagamento do Bling:', error);
+        return undefined;
+    }
+}
+
 export async function pushOrder(orderId: string): Promise<{ blingOrderId: number }> {
     const token = await TokenService.getAccessToken();
     if (!token) throw new Error('BLING_NOT_CONNECTED');
@@ -82,11 +117,13 @@ export async function pushOrder(orderId: string): Promise<{ blingOrderId: number
 
     const addr = (order.shippingAddress ?? {}) as Record<string, string>;
     const contactId = await ensureBlingContact(token, customer, addr);
+    const formaPagamentoId = await resolveFormaPagamento(token, order.paymentMethod);
 
     const payload = BlingDomain.buildSalesOrderPayload(
         { order, items, customer: customer ?? null },
         new Date(),
         contactId,
+        formaPagamentoId,
     );
 
     const result = await BlingApi.postSalesOrder(token, payload);

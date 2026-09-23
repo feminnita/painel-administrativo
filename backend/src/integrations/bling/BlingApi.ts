@@ -279,3 +279,20 @@ export async function postSalesOrder(
     });
 }
 
+/**
+ * As formas de pagamento cadastradas no Bling da Chris.
+ *
+ * Cada uma carrega um `tipoPagamento`, que e o codigo fiscal que vai na NF-e:
+ * 3 = cartao de credito, 15 = boleto, 20 = Pix. E por esse numero que a gente
+ * casa — nao pelo id, que e da conta dela e mudaria numa migracao, nem pela
+ * descricao, que e texto livre e ela pode renomear.
+ */
+export async function listPaymentMethods(
+    token: string,
+): Promise<{ id: number; descricao: string; tipoPagamento: number }[]> {
+    const data = await blingFetch<{
+        data: { id: number; descricao: string; tipoPagamento: number }[];
+    }>(token, '/formas-pagamentos', { method: 'GET' });
+    return data?.data ?? [];
+}
+

@@ -171,7 +171,12 @@ export function buildInsertValues(input: BuildPayloadInput) {
     }
 }
 
-export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactId: number) {
+export function buildSalesOrderPayload(
+    data: SalesOrderData,
+    now: Date,
+    contactId: number,
+    formaPagamentoId?: number,
+) {
 
     const { order, items, customer } = data;
     const addr = (order.shippingAddress ?? {}) as Record<string, string>;
@@ -241,6 +246,13 @@ export function buildSalesOrderPayload(data: SalesOrderData, now: Date, contactI
                 dataVencimento: today,
                 valor: Number(order.total),
                 observacoes: paymentLabel,
+                // Sem ISTO, o pagamento ia so como texto na observacao — e o
+                // Bling, sem forma de pagamento vinculada, emitia a NF-e com
+                // "99 - Outros". O SEFAZ recusa: desde a NT 2020.006 nao se usa
+                // "Outros" quando existe codigo proprio. A primeira venda de
+                // verdade (FEM-1028, cartao, R$ 1.240) travou exatamente nisso,
+                // com a cliente esperando.
+                ...(formaPagamentoId ? { formaPagamento: { id: formaPagamentoId } } : {}),
             },
         ],
         transporte,
