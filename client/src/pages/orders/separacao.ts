@@ -66,7 +66,19 @@ export function abrirFolhaDeSeparacao(order: Order) {
                 <!-- Variacao e codigo na MESMA linha: eram duas, e duas linhas
                      por item viram meia folha a mais num pedido de 23. A
                      informacao e a mesma; o que muda e o papel. -->
-                <div class="detalhe">${variacao} · <span class="codigo">${escapar(item.product_code ?? "—")}</span></div>
+                <!--
+                  O SKU da VARIACAO em destaque, o codigo do produto ao lado.
+                  "24520" vale para as 64 variacoes daquele pijama: nao diz cor
+                  nem tamanho, e quem separa precisa exatamente disso.
+                  "27500PRGG" aponta uma peca so.
+                -->
+                <div class="detalhe">
+                  ${variacao} ·
+                  <span class="codigo">${escapar(item.sku_reference ?? item.product_code ?? "—")}</span>
+                  ${item.sku_reference && item.product_code
+            ? `<span class="codigo-produto">(${escapar(item.product_code)})</span>`
+            : ""}
+                </div>
               </td>
               <td class="qtd">${item.quantity}</td>
               <td class="valor">
@@ -128,6 +140,9 @@ export function abrirFolhaDeSeparacao(order: Order) {
   .detalhe { color: #3f3f46; font-size: 13px; margin-top: 3px; }
   .codigo { font-family: ui-monospace, Consolas, monospace; font-size: 15px;
             font-weight: 700; color: #18181b; }
+  /* O codigo do produto fica, mas discreto: quem separa procura o SKU. */
+  .codigo-produto { font-family: ui-monospace, Consolas, monospace;
+                    font-size: 12px; color: #71717a; }
   /* A quantidade e o maior numero da folha. E o que se erra, e errar
      quantidade e mandar pedido incompleto. */
   .qtd { text-align: center; width: 64px; font-size: 26px; font-weight: 700; }

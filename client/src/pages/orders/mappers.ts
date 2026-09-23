@@ -9,6 +9,7 @@ function mapApiOrderItem(i: Record<string, any>): OrderItem {
     // copiava. A folha de separacao imprimia "—" na coluna CODIGO em todas as
     // linhas — justamente o campo pelo qual a peca e achada na prateleira.
     product_code: i.productCode ?? null,
+    sku_reference: i.skuReference ?? null,
     product_name: i.productName ?? "",
     product_image: i.productImage ?? "",
     color: i.color ?? null,

@@ -37,9 +37,11 @@ export async function findItemsByOrderId(orderId: string) {
             unitPrice: orderItems.unitPrice,
             totalPrice: orderItems.totalPrice,
             productCode: products.code,
+            skuReference: productsSkus.reference,
         })
         .from(orderItems)
         .leftJoin(products, eq(products.id, orderItems.productId))
+        .leftJoin(productsSkus, eq(productsSkus.id, orderItems.skuId))
         .where(eq(orderItems.orderId, orderId));
 
     return linhas;
@@ -251,6 +253,11 @@ export async function findAllWithRelations(filters: OrderListFilters = {}) {
                 productName: orderItems.productName,
                 productImage: orderItems.productImage,
                 productCode: products.code,
+                // A REFERENCIA da variacao, que e o que a equipe procura na
+                // prateleira. O codigo do produto (24520) vale para as 64
+                // variacoes dele: nao diz cor nem tamanho, e e exatamente
+                // isso que quem separa precisa saber.
+                skuReference: productsSkus.reference,
                 color: orderItems.color,
                 size: orderItems.size,
                 quantity: orderItems.quantity,
@@ -259,6 +266,7 @@ export async function findAllWithRelations(filters: OrderListFilters = {}) {
             })
             .from(orderItems)
             .leftJoin(products, eq(products.id, orderItems.productId))
+            .leftJoin(productsSkus, eq(productsSkus.id, orderItems.skuId))
             .where(inArray(orderItems.orderId, orderIds))
         : [];
 

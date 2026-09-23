@@ -3,6 +3,8 @@ export type OrderItem = {
     // Vem do produto, por junção — a linha do pedido guarda o nome, não o
     // código. É por ele que se separa a peça na prateleira.
     product_code?: string | null;
+    /** Referencia da VARIACAO (27500PRGG) — e o que se procura na prateleira. */
+    sku_reference?: string | null;
     product_name: string;
     product_image: string;
     color: string | null;
