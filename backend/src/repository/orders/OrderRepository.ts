@@ -236,8 +236,30 @@ export async function findAllWithRelations(filters: OrderListFilters = {}) {
         .orderBy(desc(orders.createdAt));
 
     const orderIds = rows.map((r) => r.order.id);
+    // O join com products existe por causa do CODIGO. Sem ele, quem imprime a
+    // folha de separacao PELA LISTA recebia item sem productCode e a coluna
+    // Codigo saia "—" em todas as linhas — justamente o numero que a equipe
+    // usa para achar a peca na prateleira. Imprimir de dentro do pedido
+    // funcionava, pela lista nao, e nada na tela dizia por que.
     const items = orderIds.length
-        ? await db.query.orderItems.findMany({ where: inArray(orderItems.orderId, orderIds) })
+        ? await db
+            .select({
+                id: orderItems.id,
+                orderId: orderItems.orderId,
+                productId: orderItems.productId,
+                skuId: orderItems.skuId,
+                productName: orderItems.productName,
+                productImage: orderItems.productImage,
+                productCode: products.code,
+                color: orderItems.color,
+                size: orderItems.size,
+                quantity: orderItems.quantity,
+                unitPrice: orderItems.unitPrice,
+                totalPrice: orderItems.totalPrice,
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(products.id, orderItems.productId))
+            .where(inArray(orderItems.orderId, orderIds))
         : [];
 
     const itemsByOrder = new Map<string, typeof items>();
