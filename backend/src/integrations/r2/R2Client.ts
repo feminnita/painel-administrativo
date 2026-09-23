@@ -17,6 +17,11 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
  */
 
 const BALDE = process.env.R2_BUCKET ?? 'feminnita-imagens';
+/**
+ * Balde das copias de seguranca. PRIVADO, ao contrario do das imagens — ali
+ * dentro ha nome, telefone, CPF e endereco de quase dois mil clientes.
+ */
+export const BALDE_BACKUPS = process.env.R2_BUCKET_BACKUPS ?? 'feminnita-backups';
 const CONTA = process.env.R2_ACCOUNT_ID ?? '1502df02fc0128da99cde4231f861bd5';
 const PUBLICO = process.env.R2_PUBLIC_URL ?? 'https://pub-3c261fc069aa46e795f1276f1f25ed51.r2.dev';
 
@@ -31,6 +36,11 @@ const EXTENSAO: Record<string, string> = {
 };
 
 let cliente: S3Client | null = null;
+
+/** O mesmo cliente, para quem precisa escrever noutro balde (o backup). */
+export function clienteR2(): S3Client {
+    return conectar();
+}
 
 function conectar(): S3Client {
     if (cliente) return cliente;
