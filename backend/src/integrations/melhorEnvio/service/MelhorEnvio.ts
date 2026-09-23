@@ -70,7 +70,15 @@ export async function addOrderToCart(data: LabelOrderData) {
             // Nao comercial era fixo aqui. Uma venda de atacado de CNPJ para
             // revendedora e comercial por definicao, e e a nota que prova isso.
             non_commercial: !data.invoiceKey,
-            ...(data.invoiceKey ? { invoice: { key: data.invoiceKey } } : {}),
+            // As regras do proprio servico exigem CHAVE e NUMERO quando o envio
+            // e comercial (`options.invoice.number: required_if non_commercial,
+            // false`). Mandar so a chave passa no seguro e falha depois.
+            ...(data.invoiceKey
+                ? { invoice: { key: data.invoiceKey, number: data.invoiceNumber ?? '' } }
+                : {}),
+            // Transportadora que posta em agencia (Total Express, Jadlog, Loggi)
+            // recusa o envio sem saber ONDE a Chris vai deixar o pacote.
+            ...(data.agencyId ? { agency_id: data.agencyId } : {}),
         },
     });
 

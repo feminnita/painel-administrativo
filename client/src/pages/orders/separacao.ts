@@ -123,12 +123,22 @@ export function abrirFolhaDeSeparacao(order: Order) {
                         padding-top: 8px; font-size: 16px; font-weight: 700; }
 
   tr { break-inside: avoid; }
+  .envio { margin: 6px 0 12px; padding: 6px 10px; border: 2px solid #000;
+           font-size: 15px; font-weight: 700; display: inline-block; }
   @media print { body { margin: 10mm; } }
 </style>
 </head>
 <body>
   <h1>Pedido #${escapar(order.order_number)} — LOJA VIRTUAL</h1>
   <div class="data">${dataPorExtenso}</div>
+
+  <!--
+    O envio no topo, e nao perdido entre CPF e e-mail.
+    Quem separa precisa saber para ONDE vai antes de embalar: JeT, Total
+    Express e Correios tem ponto de entrega e horario diferentes, e "Standard"
+    sozinho nao diz nada — e o nome que a JeT e a Total Express usam as duas.
+  -->
+  <div class="envio">Envio: ${escapar(order.shipping_method ?? "—")}</div>
 
   <div class="blocos">
     <div class="bloco">
@@ -140,7 +150,6 @@ export function abrirFolhaDeSeparacao(order: Order) {
     <div class="bloco">
       <div class="rotulo">Informações adicionais</div>
       <div>CPF: ${escapar(order.customer_cpf ?? "—")}</div>
-      <div>Envio: ${escapar(order.shipping_method ?? "—")}</div>
       ${order.tracking_code ? `<div>Rastreio: ${escapar(order.tracking_code)}</div>` : ""}
     </div>
     <div class="bloco">

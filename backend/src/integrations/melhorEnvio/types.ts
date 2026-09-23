@@ -61,5 +61,12 @@ export type LabelOrderData = {
      * sem ela, o Melhor Envio limita o seguro a R$ 1.000.
      */
     invoiceKey?: string | null;
+    /** Numero da NF-e. Exigido junto com a chave quando o envio e comercial. */
+    invoiceNumber?: string | null;
+    /**
+     * Agencia de postagem. Obrigatoria nos servicos que se postam em agencia
+     * (Total Express, Jadlog, Loggi); ignorada nos que coletam ou vao ao correio.
+     */
+    agencyId?: number | null;
 };
 

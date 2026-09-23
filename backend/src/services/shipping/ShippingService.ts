@@ -1,6 +1,7 @@
 import * as OrdeRepository from '../../repository/orders/OrderRepository';
 import * as MelhorEnvio from '../../integrations/melhorEnvio/service/MelhorEnvio';
 import * as BlingNfe from '../../integrations/bling/BlingNfeService';
+import { agenciaDoServico } from '../../integrations/melhorEnvio/domain/AgenciasDePostagem';
 import { combinePackage } from '../../integrations/melhorEnvio/domain/MelhorEnvioDomain';
 
 export async function sendToCart(orderId: string) {
@@ -34,6 +35,8 @@ export async function sendToCart(orderId: string) {
         serviceId: order.shippingServiceId,
         total: order.total,
         invoiceKey: nota?.chave ?? null,
+        invoiceNumber: nota?.numero ?? null,
+        agencyId: agenciaDoServico(order.shippingServiceId),
         shippingAddress: order.shippingAddress as never,
         customer: { ...customer, cpf: customer.cpf },
         package: pkg,
