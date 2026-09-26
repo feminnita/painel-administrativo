@@ -17,7 +17,7 @@ import type { Order } from "./types";
  * ("Short Doll Feminino Suede Premium..." serve para dezenas de peças).
  */
 export function abrirFolhaDeSeparacao(order: Order) {
-    const itens = order.items ?? [];
+    const itens = agruparPorProduto(order.items ?? []);
     const totalPecas = itens.reduce((t, i) => t + (i.quantity || 0), 0);
 
 
@@ -272,6 +272,65 @@ export function abrirFolhaDeSeparacao(order: Order) {
     }
     janela.document.write(html);
     janela.document.close();
+}
+
+/**
+ * Põe as peças do MESMO produto em sequência na folha.
+ *
+ * O carrinho guarda a ordem em que a cliente clicou: ela escolhe um pijama,
+ * escolhe outro, e lá na frente lembra de pegar mais um do primeiro em outro
+ * tamanho. A folha saía nessa ordem, e quem separa ia até a prateleira, voltava,
+ * e ia de novo à mesma prateleira — três viagens pelo mesmo produto.
+ *
+ * A ordem dos PRODUTOS não muda: vale a primeira vez que cada um aparece. A
+ * folha continua parecida com o pedido; o que junta são as variações dele.
+ *
+ * Dentro do produto, ordena por tamanho na sequência da arara (P, M, G, GG,
+ * depois plus, depois infantil) e a cor desempata. Assim a mão percorre a caixa
+ * uma vez só, na direção em que as peças já estão.
+ */
+const ORDEM_DOS_TAMANHOS = [
+    "PP", "P", "M", "G", "GG", "XG", "XGG", "EG", "EGG",
+    "G1", "G2", "G3", "G4",
+];
+
+function pesoDoTamanho(tamanho: string | null): number {
+    const t = String(tamanho ?? "").toUpperCase().trim();
+    if (!t) return 999;
+
+    const naLista = ORDEM_DOS_TAMANHOS.indexOf(t);
+    if (naLista >= 0) return naLista;
+
+    // Tamanho numérico (plus 48/50/52, infantil 10/12/14) entra depois das
+    // letras, na ordem do número. O infantil cai antes do plus sozinho, porque
+    // 10 é menor que 48 — que é a ordem certa na arara.
+    const numero = Number(t.replace(/\D/g, ""));
+    if (Number.isFinite(numero) && numero > 0) return 100 + numero;
+
+    return 998;
+}
+
+function agruparPorProduto<T extends { product_code?: string | null; product_name: string; size: string | null; color: string | null }>(
+    itens: T[],
+): T[] {
+    // Sem código cadastrado, o nome serve de chave — é o que quem separa lê.
+    const chave = (i: T) => i.product_code || i.product_name;
+
+    const ordemDeChegada = new Map<string, number>();
+    itens.forEach((i, pos) => {
+        const k = chave(i);
+        if (!ordemDeChegada.has(k)) ordemDeChegada.set(k, pos);
+    });
+
+    return [...itens].sort((a, b) => {
+        const produto = ordemDeChegada.get(chave(a))! - ordemDeChegada.get(chave(b))!;
+        if (produto !== 0) return produto;
+
+        const tamanho = pesoDoTamanho(a.size) - pesoDoTamanho(b.size);
+        if (tamanho !== 0) return tamanho;
+
+        return String(a.color ?? "").localeCompare(String(b.color ?? ""), "pt-BR");
+    });
 }
 
 /**
