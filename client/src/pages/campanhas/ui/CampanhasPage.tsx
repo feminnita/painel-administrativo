@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { Image, Megaphone, ShoppingCart, TrendingUp } from "lucide-react";
+import { MetaDesempenho } from "./MetaDesempenho";
 
 // Desempenho de campanha e de ARTE, medido pelas vendas da própria loja.
 //
@@ -82,6 +83,12 @@ export function CampanhasPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Gasto da Meta ao lado da receita daqui. Vem antes do resto porque a
+                pergunta "estou perdendo dinheiro em anuncio?" e mais urgente que
+                "de onde veio a venda". Busca propria: a Meta fora do ar nao
+                derruba o que esta abaixo. */}
+            <MetaDesempenho />
 
             {semOrigem && (
                 <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
