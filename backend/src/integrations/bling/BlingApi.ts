@@ -199,6 +199,22 @@ export async function getContactsPage(
     return data?.data ?? [];
 }
 
+// Procura no Bling o produto de um codigo da loja (o "24520"). Devolve lista
+// porque o filtro e uma BUSCA, nao uma chave: quem chama confere o codigo antes
+// de usar o resultado.
+export async function getProductsByCode(
+    token: string,
+    codigo: string,
+): Promise<BlingProductListItem[]> {
+    const data = await blingFetch<{ data: BlingProductListItem[] }>(
+        token,
+        '/produtos',
+        { method: 'GET' },
+        { codigo, limite: '10' },
+    );
+    return data?.data ?? [];
+}
+
 export async function getProductDetail(
     token: string,
     id: string,

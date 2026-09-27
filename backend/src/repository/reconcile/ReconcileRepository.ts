@@ -34,6 +34,37 @@ export async function fetchSkuRows(): Promise<SkuRow[]> {
     return rows;
 }
 
+export type SkuSemVinculo = {
+    sku_id: string;
+    produto_codigo: string | null;
+    referencia: string | null;
+    tamanho: string;
+    cor: string | null;
+};
+
+// Variações ATIVAS que estão sem vínculo e TÊM referência preenchida — a
+// matéria-prima da passada pelo código. Sem referência não há o que casar, e
+// variação inativa não interessa: a Chris já decidiu que ela não vende.
+export async function fetchSkusSemVinculo(): Promise<SkuSemVinculo[]> {
+    const { rows } = await db.execute<SkuSemVinculo>(sql`
+        SELECT
+            s.id::text    AS sku_id,
+            p.code        AS produto_codigo,
+            s.reference   AS referencia,
+            s.size        AS tamanho,
+            c.name        AS cor
+        FROM products_skus s
+        JOIN products p ON p.id = s.product_id
+        LEFT JOIN products_colors c ON c.id = s.color_id
+        WHERE s.bling_id IS NULL
+          AND s.active = true
+          AND p.code IS NOT NULL AND p.code <> ''
+          AND s.reference IS NOT NULL AND s.reference <> ''
+        ORDER BY p.code, c.name, s.size
+    `);
+    return rows;
+}
+
 // Retrato do vínculo ATUAL (só SKUs que já têm bling_id) para virar o novo
 // snapshot em site_settings.bling_id_backup.
 export async function fetchCurrentBinding(): Promise<BackupRow[]> {

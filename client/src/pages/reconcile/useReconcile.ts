@@ -1,13 +1,23 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
-import type { ApplyReport, ReconcileReport, RefreshResult } from "./types";
+import type {
+    ApplyReport,
+    CodigoApplyReport,
+    CodigoReport,
+    ReconcileReport,
+    RefreshResult,
+} from "./types";
 
 type Banner = { ok: boolean; message: string };
 
 export function useReconcile() {
     const [report, setReport] = useState<ReconcileReport | null>(null);
     const [gravou, setGravou] = useState<number | null>(null);
-    const [loading, setLoading] = useState<null | "dryRun" | "apply" | "refresh">(null);
+    const [codigoReport, setCodigoReport] = useState<CodigoReport | null>(null);
+    const [gravouCodigo, setGravouCodigo] = useState<number | null>(null);
+    const [loading, setLoading] = useState<
+        null | "dryRun" | "apply" | "refresh" | "dryRunCodigo" | "applyCodigo"
+    >(null);
     const [banner, setBanner] = useState<Banner | null>(null);
 
     function fail(error: unknown, fallback: string) {
@@ -69,5 +79,55 @@ export function useReconcile() {
         }
     };
 
-    return { report, gravou, loading, banner, dryRun, apply, refreshBackup };
+    // A prévia pelo código conversa com o Bling e leva alguns segundos por
+    // produto — por isso ela é um botão separado, e não parte do dry-run acima.
+    const dryRunCodigo = async () => {
+        setLoading("dryRunCodigo");
+        setBanner(null);
+        setGravouCodigo(null);
+        try {
+            const data = await api.post<CodigoReport>("/api/admin/reconcile/codigo/dry-run");
+            setCodigoReport(data);
+            setBanner({
+                ok: true,
+                message: `Prévia pelo código: ${data.counts.gravaveis} variação(ões) prontas para religar.`,
+            });
+        } catch (error) {
+            fail(error, "Erro ao gerar a prévia pelo código");
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    const applyCodigo = async () => {
+        setLoading("applyCodigo");
+        setBanner(null);
+        try {
+            const data = await api.post<CodigoApplyReport>("/api/admin/reconcile/codigo/apply");
+            setCodigoReport(data);
+            setGravouCodigo(data.gravou);
+            setBanner({
+                ok: true,
+                message: `Religado pelo código: ${data.gravou} vínculo(s) gravado(s).`,
+            });
+        } catch (error) {
+            fail(error, "Erro ao religar pelo código");
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    return {
+        report,
+        gravou,
+        codigoReport,
+        gravouCodigo,
+        loading,
+        banner,
+        dryRun,
+        apply,
+        refreshBackup,
+        dryRunCodigo,
+        applyCodigo,
+    };
 }

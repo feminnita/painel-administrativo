@@ -64,11 +64,10 @@ function ItemList({
                             {" | "}
                             {it.tamanho || "—"}
                         </span>
-                        {it.bling_id && (
-                            <span className="ml-3 shrink-0 font-mono text-xs text-gray-400">
-                                bling {it.bling_id}
-                            </span>
-                        )}
+                        <span className="ml-3 flex shrink-0 items-center gap-3 font-mono text-xs text-gray-400">
+                            {it.referencia && <span>{it.referencia}</span>}
+                            {it.bling_id && <span>bling {it.bling_id}</span>}
+                        </span>
                     </div>
                 ))}
             </div>
@@ -78,9 +77,31 @@ function ItemList({
 
 export function ReconcilePage() {
     const confirm = useConfirm();
-    const { report, gravou, loading, banner, dryRun, apply, refreshBackup } = useReconcile();
+    const {
+        report,
+        gravou,
+        codigoReport,
+        gravouCodigo,
+        loading,
+        banner,
+        dryRun,
+        apply,
+        refreshBackup,
+        dryRunCodigo,
+        applyCodigo,
+    } = useReconcile();
 
     const busy = loading !== null;
+
+    const onApplyCodigo = async () => {
+        const ok = await confirm({
+            title: "Religar as variações pelo código?",
+            message:
+                "Isto grava o vínculo das variações cuja REFERÊNCIA bate com o código da variação no Bling. É ADITIVO: só escreve em variação sem vínculo, nunca sobrescreve, nunca cria nem apaga variação. Depois disso o estoque delas passa a vir do Bling sozinho — ou seja, elas voltam a aparecer na loja. Deseja continuar?",
+            confirmLabel: "Religar",
+        });
+        if (ok) applyCodigo();
+    };
 
     const onApply = async () => {
         const ok = await confirm({
@@ -237,6 +258,113 @@ export function ReconcilePage() {
                     />
                 </div>
             )}
+
+            <div className="mt-12 border-t border-gray-100 pt-8">
+                <h2 className="text-xl font-bold text-gray-900">Religar pelo código da variação</h2>
+                <p className="mt-2 mb-6 max-w-2xl text-sm text-gray-500">
+                    A reconciliação acima só devolve vínculo que um dia existiu, porque compara com
+                    o snapshot. Esta aqui pergunta ao <span className="font-medium">Bling ao vivo</span>{" "}
+                    e casa pela <span className="font-medium">referência</span> da variação com o
+                    código dela lá. Resolve o caso de variação que nunca foi ligada — e enquanto ela
+                    está sem vínculo, o saldo não é atualizado e a loja mostra a peça como esgotada.
+                </p>
+
+                <div className="mb-8 flex flex-wrap gap-3">
+                    <button
+                        onClick={dryRunCodigo}
+                        disabled={busy}
+                        className="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+                    >
+                        {loading === "dryRunCodigo" ? (
+                            <RefreshCw size={15} className="animate-spin" />
+                        ) : (
+                            <Eye size={15} />
+                        )}
+                        Ver prévia pelo código
+                    </button>
+
+                    <button
+                        onClick={onApplyCodigo}
+                        disabled={busy || !codigoReport || codigoReport.counts.gravaveis === 0}
+                        className="flex items-center gap-2 rounded-xl bg-[#8C2F39] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#7a2832] disabled:opacity-50"
+                        title={
+                            !codigoReport
+                                ? "Gere a prévia primeiro"
+                                : codigoReport.counts.gravaveis === 0
+                                    ? "Nenhuma variação pronta para religar"
+                                    : undefined
+                        }
+                    >
+                        {loading === "applyCodigo" ? (
+                            <RefreshCw size={15} className="animate-spin" />
+                        ) : (
+                            <Link2 size={15} />
+                        )}
+                        Religar
+                        {codigoReport && codigoReport.counts.gravaveis > 0
+                            ? ` (${codigoReport.counts.gravaveis})`
+                            : ""}
+                    </button>
+                </div>
+
+                {codigoReport && (
+                    <div className="space-y-6">
+                        {gravouCodigo !== null && (
+                            <div className="flex items-center gap-2 rounded-xl bg-green-50 p-4 text-sm font-medium text-green-800">
+                                <CheckCircle size={16} />
+                                {gravouCodigo} vínculo(s) gravado(s) nesta aplicação.
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                            <CountCard label="Graváveis" value={codigoReport.counts.gravaveis} tone="green" />
+                            <CountCard label="Ambíguos" value={codigoReport.counts.ambiguos} tone="amber" />
+                            <CountCard label="Colisão" value={codigoReport.counts.colisao} tone="red" />
+                            <CountCard label="Já ocupado" value={codigoReport.counts.jaOcupado} tone="gray" />
+                            <CountCard label="Sem par" value={codigoReport.counts.semParNoBling} tone="gray" />
+                        </div>
+
+                        {codigoReport.produtosNaoAchados.length > 0 && (
+                            <p className="flex items-start gap-2 text-xs text-gray-400">
+                                <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                                Produto(s) que não achei no Bling:{" "}
+                                {codigoReport.produtosNaoAchados.join(", ")}
+                            </p>
+                        )}
+
+                        <ItemList
+                            title="Graváveis"
+                            items={codigoReport.gravaveis}
+                            tone="green"
+                            description="A referência bate com o código de UMA variação no Bling, e esse vínculo está livre. Estes serão gravados ao clicar em Religar."
+                        />
+                        <ItemList
+                            title="Ambíguos"
+                            items={codigoReport.ambiguos}
+                            tone="amber"
+                            description="Mais de uma variação no Bling tem esse mesmo código — provável cadastro duplicado lá."
+                        />
+                        <ItemList
+                            title="Colisão"
+                            items={codigoReport.colisao}
+                            tone="red"
+                            description="Duas variações da loja têm a mesma referência e disputariam o mesmo vínculo — nenhuma foi gravada."
+                        />
+                        <ItemList
+                            title="Já ocupado"
+                            items={codigoReport.jaOcupado}
+                            tone="gray"
+                            description="Esse vínculo já pertence a outra variação da loja — não reutilizado."
+                        />
+                        <ItemList
+                            title="Sem par"
+                            items={codigoReport.semParNoBling}
+                            tone="gray"
+                            description="A referência não existe como código de variação no Bling. Peça que só existe aqui."
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
