@@ -16,6 +16,7 @@ import { adminSiteSettingsRoutes } from './routes/settings/SiteSettings';
 import { adminUploadRoutes } from './routes/upload/UploadRouter';
 import { adminBlingRoutes } from './routes/integrations/BlingRoutes';
 import { startBlingAutoPush } from './integrations/bling/BlingAutoPush';
+import { startBlingStockSync } from './integrations/bling/BlingStockSync';
 import { melhorEnvioRoutes } from './routes/integrations/MelhorEnvioRoutes';
 import { startMeTokenRefreshJob } from './integrations/melhorEnvio/RefreshJob';
 import { startBlingTokenRefreshJob } from './integrations/bling/RefreshJob';
@@ -107,6 +108,7 @@ const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on http://${HOST}:${PORT}`);
   startBlingAutoPush();
+  startBlingStockSync();
   startMeTokenRefreshJob();
   startBlingTokenRefreshJob();
   startEnvioAutomatico();
