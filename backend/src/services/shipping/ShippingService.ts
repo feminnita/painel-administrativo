@@ -1,4 +1,5 @@
 import * as OrdeRepository from '../../repository/orders/OrderRepository';
+import * as OrderService from '../orders/OrderService';
 import * as MelhorEnvio from '../../integrations/melhorEnvio/service/MelhorEnvio';
 import * as BlingNfe from '../../integrations/bling/BlingNfeService';
 import { agenciaDoServico } from '../../integrations/melhorEnvio/domain/AgenciasDePostagem';
@@ -65,8 +66,28 @@ export async function generateLabel(orderId: string) {
     if (order.labelUrl) throw new Error('LABEL_ALREADY_EXISTS');
 
     const label = await MelhorEnvio.generateLabelForCart(order.meOrderId);
+    const salvo = await OrdeRepository.saveLabelInfo(orderId, label);
 
-    return OrdeRepository.saveLabelInfo(orderId, label);
+    // Quando o Melhor Envio ja devolve o rastreio junto com a etiqueta, gravar
+    // aqui e parar era deixar a cliente sem aviso: o status seguia "pago" e o
+    // e-mail "esta a caminho" so sai na transicao para "enviado". O caminho
+    // lento (rastreio que chega depois) passa pelo job e avisa; este, o rapido,
+    // nao avisava ninguem. Cinco pedidos ficaram assim ate 30/09/2026.
+    //
+    // O e-mail nao pode derrubar a geracao da etiqueta: se o envio falhar, a
+    // etiqueta ja esta salva e o job da proxima volta cobre o pedido.
+    if (label.trackingCode) {
+        try {
+            return await OrderService.setManualTracking(orderId, label.trackingCode);
+        } catch (erro) {
+            console.error(
+                `[ENVIO] etiqueta de ${order.orderNumber} gerada, mas avisar a cliente falhou:`,
+                erro instanceof Error ? erro.message : erro,
+            );
+        }
+    }
+
+    return salvo;
 }
 
 export async function refreshTracking(orderId: string) {

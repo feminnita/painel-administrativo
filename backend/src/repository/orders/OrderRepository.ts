@@ -387,6 +387,29 @@ export function findLabeledOrdersWithoutTracking() {
         .limit(20);
 }
 
+// 4. Ja tem rastreio guardado, mas o pedido nunca saiu de "pago" — entao a
+// cliente NUNCA recebeu o "seu pedido esta a caminho".
+//
+// Isso acontece quando o Melhor Envio devolve o rastreio JUNTO com a etiqueta:
+// `generateLabel` grava tudo por `saveLabelInfo` e pronto, e o pedido nunca
+// passa por `setManualTracking`, que e quem muda o status e manda o e-mail. O
+// caminho lento (rastreio que chega depois, pelo job) sempre funcionou; o
+// rapido nunca avisou ninguem. Em 30/09/2026 havia cinco pedidos assim, um
+// deles de 23/09 — uma semana de silencio com a etiqueta ja impressa.
+export function findTrackedOrdersNotShipped() {
+    return db
+        .select({ id: orders.id, orderNumber: orders.orderNumber, trackingCode: orders.trackingCode })
+        .from(orders)
+        .where(and(
+            isNotNull(orders.trackingCode),
+            eq(orders.paymentStatus, 'paid'),
+            inArray(orders.status, ['paid', 'confirmed', 'processing']),
+            NAO_E_RETIRADA,
+        ))
+        .orderBy(desc(orders.createdAt))
+        .limit(20);
+}
+
 export async function markPushed(orderId: string) {
     const [order] = await db
         .update(orders)

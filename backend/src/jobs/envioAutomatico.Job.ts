@@ -12,10 +12,11 @@ import * as MeTokenService from '../integrations/melhorEnvio/TokenService';
  * quando o pedido foi pago, sabe quando o carrinho foi pago, e sabe quando a
  * etiqueta ficou pronta. Nada disso precisa de gente para acontecer.
  *
- * Tres filas, uma por etapa:
+ * Quatro filas, uma por etapa:
  *   1. pedido pago e fora do carrinho      -> manda para o carrinho
  *   2. no carrinho e ja pago la (released) -> gera a etiqueta
  *   3. com etiqueta e sem rastreio         -> busca o rastreio, marca enviado
+ *   4. com rastreio e ainda "pago"         -> marca enviado e avisa a cliente
  *
  * O painel NUNCA paga nada: a Chris paga o carrinho no Melhor Envio, por PIX.
  * A etapa 2 so age quando o Melhor Envio diz que o envio esta "released", que
@@ -95,6 +96,33 @@ async function buscarRastreios(): Promise<void> {
     }
 }
 
+/**
+ * Rede de seguranca: pedido com rastreio guardado que nunca saiu de "pago".
+ *
+ * A cliente nao recebeu o "seu pedido esta a caminho", porque esse e-mail so
+ * sai na transicao para "enviado". Acontecia quando o Melhor Envio devolvia o
+ * rastreio junto com a etiqueta — `generateLabel` gravava e parava ali. A causa
+ * foi corrigida no ShippingService; esta fila existe para o que ja ficou para
+ * tras e para qualquer caminho novo que volte a esquecer o aviso.
+ */
+async function avisarQuemJaFoiPostado(): Promise<void> {
+    const fila = await OrderRepository.findTrackedOrdersNotShipped();
+
+    for (const pedido of fila) {
+        if (!pedido.trackingCode) continue;
+
+        try {
+            await OrderService.setManualTracking(pedido.id, pedido.trackingCode);
+            console.log(`[ENVIO] ${pedido.orderNumber} ja tinha rastreio ${pedido.trackingCode} -> marcado enviado, cliente avisada`);
+        } catch (erro) {
+            console.error(
+                `[ENVIO] ${pedido.orderNumber} nao consegui avisar:`,
+                erro instanceof Error ? erro.message : erro,
+            );
+        }
+    }
+}
+
 async function ciclo(): Promise<void> {
     if (rodando) return; // trava em memoria: ciclos nao se sobrepoem
     rodando = true;
@@ -105,6 +133,7 @@ async function ciclo(): Promise<void> {
         await mandarParaOCarrinho();
         await gerarEtiquetasPagas();
         await buscarRastreios();
+        await avisarQuemJaFoiPostado();
     } catch (erro) {
         console.error('[ENVIO] ciclo falhou:', erro);
     } finally {
