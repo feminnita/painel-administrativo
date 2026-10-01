@@ -46,7 +46,9 @@ export type Order = {
     // outro — foi assim que o deploy do painel falhou uma vez.
     me_order_id?: string | null;
     meOrderId?: string | null;
-    bling_order_id: number | null;
+    // Hora da ULTIMA impressao da folha de separacao. Null = nunca impresso.
+  printed_at: string | null;
+  bling_order_id: number | null;
     notes: string | null;
     created_at: string;
     customer_name: string;

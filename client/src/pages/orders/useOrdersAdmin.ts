@@ -80,6 +80,23 @@ export function useOrdersAdmin() {
     }
   };
 
+  /**
+   * Registra que a folha de separacao foi impressa.
+   *
+   * Chamado DEPOIS de abrir a folha, nunca antes: se a impressao falhar ou a
+   * Chris fechar a janela, o pedido nao fica marcado como preparado. E a falha
+   * em registrar nao pode atrapalhar a impressao — por isso o catch silencioso
+   * aqui, com o erro no console para quem for investigar.
+   */
+  const marcarImpresso = async (id: string) => {
+    try {
+      await api.put(`/api/admin/orders/${id}/impresso`, {});
+      await load(selected?.id);
+    } catch (err) {
+      console.error("Nao consegui marcar o pedido como impresso:", err);
+    }
+  };
+
   const saveTracking = async () => {
     if (!selected || !trackingInput.trim()) return;
     setSavingTracking(true);
@@ -172,6 +189,7 @@ export function useOrdersAdmin() {
     savingTracking,
     changeStatus,
     saveTracking,
+    marcarImpresso,
     buyingLabel,
     sendToCart,
     generateLabel,

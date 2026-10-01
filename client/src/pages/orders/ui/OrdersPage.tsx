@@ -236,6 +236,20 @@ export function OrdersPage() {
                                                         <span className="font-bold text-gray-900">
                                                             {order.order_number}
                                                         </span>
+                                                        {/* Selo de preparado. Fica ao lado do numero, junto dos
+                                                            outros status, porque a pergunta "ja separei este?" e
+                                                            feita varrendo a lista com o olho — nao passando o
+                                                            mouse em cada linha. Sem ele, o pedido da Thalita
+                                                            quase foi separado duas vezes em 01/10/2026. */}
+                                                        {order.printed_at && (
+                                                            <span
+                                                                title={`Folha de separação impressa em ${new Date(order.printed_at).toLocaleString("pt-BR")}`}
+                                                                className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                                                            >
+                                                                <Printer size={11} />
+                                                                impresso
+                                                            </span>
+                                                        )}
                                                         <span
                                                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_STATUS_META[pay].color}`}
                                                         >
@@ -332,9 +346,20 @@ export function OrdersPage() {
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 abrirFolhaDeSeparacao(order);
+                                                                // So marca DEPOIS de abrir: se a impressao nao
+                                                                // acontecer, o pedido nao fica como preparado.
+                                                                vm.marcarImpresso(order.id);
                                                             }}
-                                                            title="Imprimir folha de separação"
-                                                            className="rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
+                                                            title={
+                                                                order.printed_at
+                                                                    ? `JA IMPRESSO em ${new Date(order.printed_at).toLocaleString("pt-BR")} — clique para imprimir de novo`
+                                                                    : "Imprimir folha de separação"
+                                                            }
+                                                            className={
+                                                                order.printed_at
+                                                                    ? "rounded-lg border border-emerald-300 bg-emerald-50 p-1.5 text-emerald-700 hover:bg-emerald-100"
+                                                                    : "rounded-lg border p-1.5 text-indigo-600 hover:bg-indigo-50"
+                                                            }
                                                         >
                                                             <Printer size={13} />
                                                         </button>

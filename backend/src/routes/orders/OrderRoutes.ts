@@ -8,4 +8,5 @@ adminOrderRoutes.use(requireAdminAuth);
 adminOrderRoutes.get('/', OrderController.list);
 adminOrderRoutes.get('/:id', OrderController.getOne);
 adminOrderRoutes.put('/:id/tracking', OrderController.setTracking);
+adminOrderRoutes.put('/:id/impresso', OrderController.marcarImpresso);
 adminOrderRoutes.put('/:id/status', OrderController.updateStatus);

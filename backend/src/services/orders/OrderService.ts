@@ -134,6 +134,12 @@ export async function updateOrderStatus(
     return order;
 }
 
+export async function marcarImpresso(orderId: string) {
+    const order = await OrdeRepository.marcarImpresso(orderId);
+    if (!order) throw new Error('ORDER_NOT_FOUND');
+    return order;
+}
+
 export async function setManualTracking(orderId: string, trackingCode: string) {
     const code = trackingCode.trim().toUpperCase();
     if (!code) throw new Error('TRACKING_REQUIRED');

@@ -61,3 +61,13 @@ export async function setTracking(req: Request, res: Response) {
         res.status(500).json({ error: 'Erro ao salvar rastreio' });
     }
 }
+
+export async function marcarImpresso(req: Request, res: Response) {
+    try {
+        res.json(await OrderService.marcarImpresso(String(req.params.id)));
+    } catch (error) {
+        console.error('Erro ao marcar pedido como impresso:', error);
+        res.status(500).json({ error: 'Erro ao marcar pedido como impresso' });
+    }
+}
+

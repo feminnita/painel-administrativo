@@ -30,6 +30,11 @@ export const orders = pgTable('orders', {
     trackingUrl: text('tracking_url'),
     shippingServiceId: integer('shipping_service_id'),
     shippedAt: timestamp('shipped_at', { withTimezone: true }),
+    // Quando a folha de separacao foi impressa pela ultima vez. A coluna ja
+    // existia no banco desde uma migration antiga, mas nada escrevia nem lia —
+    // entao a tela nao tinha como dizer se um pedido ja tinha sido preparado.
+    // Em 01/10/2026 o pedido da Thalita quase foi separado duas vezes por isso.
+    printedAt: timestamp('printed_at', { withTimezone: true }),
     refCreator: text('ref_creator'),
     blingOrderId: bigint('bling_order_id', { mode: 'number' }),
     blingPushStatus: text('bling_push_status'),

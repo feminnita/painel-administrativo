@@ -177,6 +177,22 @@ export function findItemsWithProducts(orderId: string) {
         .where(eq(orderItems.orderId, orderId));
 }
 
+/**
+ * Marca que a folha de separacao foi impressa, com a hora da ULTIMA impressao.
+ *
+ * Guarda a ultima, nao a primeira: a pergunta que a tela precisa responder e
+ * "ja preparei este pedido?", e saber quando foi a ultima vez ajuda mais do
+ * que saber quando foi a primeira. Reimprimir atualiza a hora.
+ */
+export async function marcarImpresso(orderId: string) {
+    const [order] = await db
+        .update(orders)
+        .set({ printedAt: new Date(), updatedAt: new Date() })
+        .where(eq(orders.id, orderId))
+        .returning();
+    return order;
+}
+
 export async function saveShippedAt(orderId: string) {
     const [order] = await db
         .update(orders)
