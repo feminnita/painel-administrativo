@@ -144,8 +144,21 @@ export async function setManualTracking(orderId: string, trackingCode: string) {
     return updateOrderStatus(orderId, { status: 'shipped' });
 }
 
+/**
+ * Por quanto tempo o pedido nao pago segura o estoque antes de ser cancelado.
+ *
+ * Mesmo valor do RESERVATION_TTL_MINUTES de
+ * site-feminnita-6x/backend/src/service/OrderLifecycle.Service.ts — os dois
+ * backends tem a propria copia e o job roda no do site. Se mudar la, muda aqui:
+ * deixar um dos dois em 60 minutos traz o problema de volta pela outra porta.
+ *
+ * O Pix saiu de 60 minutos para 24 horas em 01/10/2026. Medicao dos 90 dias
+ * anteriores: 19 Pix nao pagos morreram com maximo de 61 min (era o proprio
+ * cancelamento), e dos 6 pagos, 5 so pagaram depois de 3 HORAS. A cliente nao
+ * desistia — era cancelada antes de pagar. R$ 4.348 perdidos em 60 dias.
+ */
 const RESERVATION_TTL_MINUTES: Record<string, number> = {
-    pix: 60,
+    pix: 24 * 60,
     card: 60,
     boleto: 3 * 24 * 60,
 };
