@@ -344,6 +344,22 @@ export function findPaidOrdersToPush() {
 // nao tem transportadora, nao tem etiqueta, nao tem rastreio.
 const NAO_E_RETIRADA = sql`coalesce(${orders.shippingMethod}, '') !~* 'retir'`;
 
+/**
+ * Pedido que ainda esta em andamento. As tres filas abaixo nao olhavam o
+ * status, entao pedido JA ENVIADO continuava sendo consultado no Melhor Envio
+ * para sempre: em 01/10/2026 o FEM-1028, enviado em 22/09 e com rastreio,
+ * tomava 404 "Registro nao encontrado" a cada ciclo de 3 minutos — o envio
+ * tinha sido apagado la, mas o pedido nunca saia da fila. O log enchia de
+ * stack trace e erro de verdade ficava escondido no meio.
+ */
+const AINDA_EM_ANDAMENTO = inArray(orders.status, ['pending', 'confirmed', 'paid', 'processing']);
+
+/**
+ * Etiqueta de sandbox nao existe em producao — consultar da 404 eternamente.
+ * O FEM-1017 e um pedido de teste de 02/09 e ficou preso nessa fila por isso.
+ */
+const NAO_E_SANDBOX = sql`coalesce(${orders.labelUrl}, '') not like '%sandbox%'`;
+
 // 1. Pago e ainda nem foi para o carrinho do Melhor Envio.
 export function findPaidOrdersToCart() {
     return db
@@ -354,6 +370,7 @@ export function findPaidOrdersToCart() {
             isNull(orders.meOrderId),
             isNull(orders.labelUrl),
             NAO_E_RETIRADA,
+            AINDA_EM_ANDAMENTO,
         ))
         .orderBy(desc(orders.createdAt))
         .limit(20);
@@ -368,6 +385,7 @@ export function findCartOrdersWithoutLabel() {
             isNotNull(orders.meOrderId),
             isNull(orders.labelUrl),
             NAO_E_RETIRADA,
+            AINDA_EM_ANDAMENTO,
         ))
         .orderBy(desc(orders.createdAt))
         .limit(20);
@@ -382,6 +400,8 @@ export function findLabeledOrdersWithoutTracking() {
             isNotNull(orders.labelUrl),
             isNull(orders.trackingCode),
             NAO_E_RETIRADA,
+            AINDA_EM_ANDAMENTO,
+            NAO_E_SANDBOX,
         ))
         .orderBy(desc(orders.createdAt))
         .limit(20);
