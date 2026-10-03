@@ -30,6 +30,9 @@ async function tokenRequest(
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Authorization: basicAuthHeader(clientId, clientSecret),
+            // Bling descontinuou o token opaco: com este header o oauth/token devolve JWT.
+            // So vai aqui — mandar enable-jwt numa chamada com token opaco da 401.
+            'enable-jwt': '1',
         },
         body,
     });
