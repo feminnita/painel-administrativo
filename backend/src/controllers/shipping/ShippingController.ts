@@ -20,6 +20,7 @@ export async function sendToCart(req: Request, res: Response) {
         if (message === 'ORDER_NOT_PAID') return res.status(409).json({ error: 'Pedido ainda não foi pago' });
         if (message === 'LABEL_ALREADY_EXISTS') return res.status(409).json({ error: 'Etiqueta já comprada para este pedido' });
         if (message === 'ALREADY_IN_CART') return res.status(409).json({ error: 'Este pedido já está no carrinho do Melhor Envio' });
+        if (message === 'NF_PENDENTE') return res.status(409).json({ error: 'Emita a nota fiscal no Bling primeiro. Assim que ela sair, o pedido vai para o carrinho do Melhor Envio sozinho em até 3 minutos.' });
         console.error(`Erro ao enviar o pedido ${orderId} para o carrinho:`, error);
         res.status(502).json({ error: message });
     }

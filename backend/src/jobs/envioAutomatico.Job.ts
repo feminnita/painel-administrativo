@@ -43,7 +43,9 @@ async function mandarParaOCarrinho(): Promise<void> {
             const msg = erro instanceof Error ? erro.message : String(erro);
             // Pedido de retirada, sem CPF, sem dados de envio: nao e falha do
             // job, e pedido que nunca vai ter etiqueta. Silencioso de proposito.
-            if (['ORDER_IS_PICKUP', 'CUSTOMER_MISSING_CPF', 'ORDER_MISSING_SHIPPING_DATA'].includes(msg)) continue;
+            // NF_PENDENTE tambem: e espera normal, nao erro — o pedido entra
+            // sozinho no ciclo em que a nota aparecer no Bling.
+            if (['ORDER_IS_PICKUP', 'CUSTOMER_MISSING_CPF', 'ORDER_MISSING_SHIPPING_DATA', 'NF_PENDENTE'].includes(msg)) continue;
             console.error(`[ENVIO] ${pedido.orderNumber} nao entrou no carrinho: ${msg}`);
         }
     }

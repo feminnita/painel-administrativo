@@ -31,6 +31,14 @@ export async function sendToCart(orderId: string) {
     // garante que a chave exista quando existe.
     const nota = await BlingNfe.buscarNotaDoPedido(order.blingOrderId);
 
+    // Sem nota, nao monta o envio. O robo de envio mandava o pedido ao carrinho
+    // minutos depois de pago, antes de a nota ser emitida: o envio ia como
+    // declaracao de conteudo, a Chris pagava, e a etiqueta nao saia porque a
+    // transportadora exige NF (FEM-1058, 06/10/2026 — envio pago sem nota, que
+    // so dava para cancelar). Barrando aqui, o robo tenta de novo a cada 3 min
+    // e o pedido entra no carrinho sozinho, ja com a chave, assim que a nota sai.
+    if (!nota?.chave) throw new Error('NF_PENDENTE');
+
     const noCarrinho = await MelhorEnvio.addOrderToCart({
         orderNumber: order.orderNumber,
         serviceId: order.shippingServiceId,
