@@ -5,25 +5,30 @@ import * as TokenService from './TokenService';
 
 async function ensureBlingContact(
     token: string,
-    customer: { name: string; email: string; cpf: string | null; phone: string | null },
+    customer: { name: string; email: string; cpf: string | null; cnpj?: string | null; phone: string | null },
     addr: Record<string, string>,
 ): Promise<number> {
-    const cpf = (customer.cpf ?? '').replace(/\D/g, '');
-    if (!cpf) throw new Error('CUSTOMER_WITHOUT_CPF');
+    // A loja aceita "CPF ou CNPJ" num campo so e grava tudo em customers.cpf.
+    // Com o tipo fixo em 'F', todo lojista que comprava com CNPJ era recusado
+    // pelo Bling ("O campo CPF e invalido") e o pedido nunca entrava — foi o
+    // FEM-1058 em 06/10/2026, R$ 1.023,17 pago e parado. 14 digitos = empresa.
+    const documento = (customer.cpf || customer.cnpj || '').replace(/\D/g, '');
+    if (!documento) throw new Error('CUSTOMER_WITHOUT_CPF');
+    const tipo = documento.length === 14 ? 'J' : 'F';
 
-    const found = await BlingApi.searchContacts(token, cpf);
+    const found = await BlingApi.searchContacts(token, documento);
     const match = found.find(
-        (c) => (c.numeroDocumento ?? '').replace(/\D/g, '') === cpf,
+        (c) => (c.numeroDocumento ?? '').replace(/\D/g, '') === documento,
     );
     if (match) return match.id;
 
     const created = await BlingApi.postContact(token, {
         nome: customer.name,
-        tipo: 'F',
+        tipo,
         // Bling v3 exige situacao no contato: enum de 1 letra "A"|"I"|"E"|"S".
         situacao: 'A',
         indicadorIe: 9,
-        numeroDocumento: cpf,
+        numeroDocumento: documento,
         email: customer.email,
         celular: (customer.phone ?? '').replace(/\D/g, ''),
         endereco: {

@@ -47,6 +47,7 @@ export type LabelOrderData = {
         name: string;
         email: string;
         cpf: string;
+        cnpj?: string | null;
         phone?: string | null
     };
     items: {

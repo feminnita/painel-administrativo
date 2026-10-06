@@ -24,6 +24,13 @@ const TETO_SEM_NOTA = 1000;
  * o carrinho; ela paga no Melhor Envio; o painel gera e imprime a etiqueta.
  */
 export async function addOrderToCart(data: LabelOrderData) {
+    // Lojista que compra com CNPJ tem o numero gravado em customers.cpf (a loja
+    // usa um campo so para os dois). O Melhor Envio recusa 14 digitos em
+    // "document" ("deve ter um CPF valido"): CNPJ vai em "company_document".
+    const documento = (data.customer.cpf || data.customer.cnpj || '').replace(/\D/g, '');
+    const docDestinatario =
+        documento.length === 14 ? { company_document: documento } : { document: documento };
+
     const cartItem = await MelhorEnvio.addToCart({
         service: data.serviceId,
         from: {
@@ -42,7 +49,7 @@ export async function addOrderToCart(data: LabelOrderData) {
             name: data.customer.name,
             email: data.customer.email,
             phone: data.customer.phone ?? undefined,
-            document: data.customer.cpf,
+            ...docDestinatario,
             address: data.shippingAddress.street,
             number: data.shippingAddress.number,
             complement: data.shippingAddress.complement,
