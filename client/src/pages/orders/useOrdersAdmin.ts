@@ -84,9 +84,10 @@ export function useOrdersAdmin() {
    * Registra que a folha de separacao foi impressa.
    *
    * Chamado DEPOIS de abrir a folha, nunca antes: se a impressao falhar ou a
-   * Chris fechar a janela, o pedido nao fica marcado como preparado. E a falha
-   * em registrar nao pode atrapalhar a impressao — por isso o catch silencioso
-   * aqui, com o erro no console para quem for investigar.
+   * Chris fechar a janela, o pedido nao fica marcado como preparado. A falha
+   * em registrar nao atrapalha a impressao (a folha ja abriu), mas APARECE na
+   * tela: com o erro so no console, a marcacao ficou de 01 a 06/10/2026 sem
+   * gravar nenhum pedido e ninguem soube.
    */
   const marcarImpresso = async (id: string) => {
     try {
@@ -94,6 +95,10 @@ export function useOrdersAdmin() {
       await load(selected?.id);
     } catch (err) {
       console.error("Nao consegui marcar o pedido como impresso:", err);
+      const numero = orders.find((o) => o.id === id)?.order_number ?? "O pedido";
+      setAviso(
+        `${numero}: a folha abriu, mas NÃO ficou registrado como impresso (${err instanceof ApiError ? err.message : "erro de conexão"}).`,
+      );
     }
   };
 

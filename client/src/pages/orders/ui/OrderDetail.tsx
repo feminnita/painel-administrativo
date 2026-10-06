@@ -86,13 +86,30 @@ export function OrderDetail({ vm }: { vm: OrdersVM }) {
                     {/* Folha de separacao: o papel que vai para o estoque buscar
                         as pecas. Fica no topo porque e a primeira coisa que se
                         faz com um pedido pago — antes de etiqueta e rastreio.
-                        Nao confundir com "Imprimir etiqueta", que e o envio. */}
+                        Nao confundir com "Imprimir etiqueta", que e o envio.
+                        Este botao abria a folha sem marcar o pedido como
+                        impresso — so o da lista marcava. Como a Chris imprime
+                        de dentro do pedido, nenhum ficava registrado. */}
                     <button
-                        onClick={() => abrirFolhaDeSeparacao(selected)}
-                        title="Imprimir folha de separação"
-                        className="flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => {
+                            abrirFolhaDeSeparacao(selected);
+                            vm.marcarImpresso(selected.id);
+                        }}
+                        title={
+                            selected.printed_at
+                                ? `Já impressa em ${new Date(selected.printed_at).toLocaleString("pt-BR")} — clique para imprimir de novo`
+                                : "Imprimir folha de separação"
+                        }
+                        className={
+                            selected.printed_at
+                                ? "flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                                : "flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                        }
                     >
-                        <Printer size={14} /> Separação
+                        <Printer size={14} />
+                        {selected.printed_at
+                            ? `Impressa ${new Date(selected.printed_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+                            : "Separação"}
                     </button>
                     <button
                         onClick={() => select(null)}
