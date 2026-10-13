@@ -27,6 +27,13 @@ export const env = {
     corsOrigins: process.env.CORS_ORIGINS?.split(',') ?? ['http://localhost:3001'],
     panelUrl: process.env.PANEL_URL ?? 'http://localhost:3001',
 
+    // Atendimento (Lia no WhatsApp oficial): segredo compartilhado com o sistema de
+    // marketing, endereco dele para o "Atendido" e alerta no Telegram (opcionais).
+    atendimentoSecret: process.env.ATENDIMENTO_SECRET ?? '',
+    liaUrl: process.env.LIA_URL ?? 'https://marketing.feminnita.com.br',
+    telegramAlertaToken: process.env.TELEGRAM_ALERTA_TOKEN ?? '',
+    telegramAlertaChatId: process.env.TELEGRAM_ALERTA_CHAT_ID ?? '',
+
     databaseUrl: required('DATABASE_URL'),
 
     bling: {
