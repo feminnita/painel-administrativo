@@ -5,8 +5,9 @@ import {
     BarChart2, ChevronRight, ExternalLink, Image, LayoutDashboard,
     LayoutGrid, Link2, LogOut, Menu, Package, Palette, Ruler, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, X, Zap, Megaphone, Mail,
-    FileText, SearchX, HandCoins,
+    FileText, SearchX, HandCoins, Headset,
 } from "lucide-react";
+import { AvisoAtendimento } from "./AvisoAtendimento";
 import { api, clearToken } from "@/lib/api/client";
 
 type NavLeaf = { href: string; label: string; icon: typeof Package };
@@ -21,6 +22,7 @@ const SITE_URL = import.meta.env.VITE_SITE_URL ?? "http://localhost:3000";
 
 const navItems: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/atendimento", label: "Atendimento", icon: Headset },
 
     {
         label: "Vendas", icon: BarChart2,
@@ -239,6 +241,7 @@ export function AdminLayout() {
                     </span>
                 </div>
 
+                <AvisoAtendimento />
                 <main className="flex-1 overflow-y-auto overflow-x-hidden">
                     <Outlet />
                 </main>
