@@ -2,7 +2,6 @@ import type { Request, Response } from 'express';
 import { timingSafeEqual } from 'crypto';
 import { env } from '../../config/env';
 import * as AtendimentoRepository from '../../repository/atendimento/AtendimentoRepository';
-import { enviarAlertaTelegram } from '../../integrations/telegram/Telegram';
 
 function segredoOk(recebido: string | undefined) {
     if (!env.atendimentoSecret || !recebido) return false;
@@ -12,6 +11,7 @@ function segredoOk(recebido: string | undefined) {
 }
 
 // Entrada do sistema de marketing: a Lia passou uma cliente para a equipe.
+// (O alerta no Telegram sai do proprio sistema da Lia, so para caso novo.)
 export async function receberCaso(req: Request, res: Response) {
     if (!segredoOk(req.header('x-atendimento-secret'))) return res.sendStatus(401);
     const { telefone, nome, resumo, ultimaMensagem, origem } = req.body ?? {};
@@ -25,9 +25,6 @@ export async function receberCaso(req: Request, res: Response) {
         ultimaMensagem: String(ultimaMensagem ?? '').slice(0, 500),
         origem: origem ? String(origem) : undefined,
     });
-    if (!r.repetido) {
-        await enviarAlertaTelegram(`🔔 Cliente aguardando atendimento\n${nome || 'Sem nome'} (${telefone})\n${resumo}\nhttps://wa.me/${telefone}`);
-    }
     return res.status(r.repetido ? 200 : 201).json(r);
 }
 
