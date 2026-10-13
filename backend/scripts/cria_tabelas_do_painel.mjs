@@ -1,5 +1,5 @@
 /**
- * Cria as 4 tabelas que so o painel usa e que nenhuma migracao cria.
+ * Cria as tabelas que so o painel usa e que nenhuma migracao cria.
  *
  * Elas nunca entraram nas migracoes — foram feitas direto no banco ao longo do
  * tempo. Num banco novo, montado a partir das migracoes, elas simplesmente nao
@@ -64,6 +64,19 @@ const COMANDOS = [
     ['deleted_variations_unica (indice)', `
         CREATE UNIQUE INDEX IF NOT EXISTS "deleted_variations_unica"
             ON "product_deleted_variations" ("product_id", "color_key", "size_key")`],
+
+    ['atendimento_casos', `
+        CREATE TABLE IF NOT EXISTS "atendimento_casos" (
+            "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+            "telefone" text NOT NULL,
+            "nome" text,
+            "resumo" text NOT NULL,
+            "ultima_mensagem" text,
+            "origem" text DEFAULT 'whatsapp-oficial' NOT NULL,
+            "criado_em" timestamp with time zone DEFAULT now() NOT NULL,
+            "atendido_em" timestamp with time zone,
+            "atendido_por" text
+        )`],
 ];
 
 const cliente = new pg.Client({ connectionString: DESTINO, ssl: { rejectUnauthorized: false } });

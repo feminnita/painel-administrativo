@@ -28,3 +28,6 @@ export * from './integrations/melhorEnvio';
 
 //
 export * from './product/variacoes-apagadas';
+
+//
+export * from './atendimento/atendimentoCasos';
