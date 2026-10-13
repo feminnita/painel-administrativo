@@ -29,6 +29,7 @@ import { adminCustomerRoutes } from './routes/customers/CustomersRoutes';
 import { adminNewsletterRoutes } from './routes/newsletter/NewsletterRoutes';
 import { adminCampanhasRoutes } from './routes/campanhas/CampanhasRoutes';
 import { adminReconcileRoutes } from './routes/reconcile/ReconcileRoutes';
+import { adminAtendimentoRoutes, atendimentoWebhookRoutes } from './routes/atendimento/AtendimentoRoutes';
 
 const app = express();
 
@@ -86,6 +87,9 @@ app.use('/api/admin/customers', adminCustomerRoutes);
 app.use('/api/admin/newsletter', adminNewsletterRoutes);
 app.use('/api/admin/campanhas', adminCampanhasRoutes);
 app.use('/api/admin/reconcile', adminReconcileRoutes);
+app.use('/api/admin/atendimento', adminAtendimentoRoutes);
+// Entrada da Lia (sistema de marketing), protegida por segredo compartilhado.
+app.use('/api/atendimento', atendimentoWebhookRoutes);
 
 // Momento em que este processo subiu — mostra se o deploy reiniciou o servidor.
 const iniciadoEm = new Date().toISOString();
