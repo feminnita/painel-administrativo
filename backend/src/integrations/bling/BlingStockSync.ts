@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import * as TokenService from './TokenService';
+import { saldoReal } from './BlingDomain';
 
 /**
  * Traz o SALDO do Bling para a loja, sozinho, de tempo em tempo.
@@ -69,7 +70,7 @@ async function saldosDoLote(token: string, ids: number[]): Promise<Map<number, n
     for (const linha of body?.data ?? []) {
         const id = linha.produto?.id;
         if (typeof id === 'number' && typeof linha.saldoFisicoTotal === 'number') {
-            mapa.set(id, linha.saldoFisicoTotal);
+            mapa.set(id, saldoReal(linha.saldoFisicoTotal));
         }
     }
 

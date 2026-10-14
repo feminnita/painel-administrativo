@@ -17,11 +17,22 @@ export function buildProductSlug(name: string, code: string): string {
     return `${slugify(name)}-${slugify(code)}`.replace(/-+$/, '');
 }
 
+// O saldo do Bling B nao e o estoque real: o StockHub publica real + 1000
+// quando o real passa de 3 (o +1000 serve para ranquear nos marketplaces) e o
+// real puro quando e 3 ou menos. Copiado como veio, o site mostrava 1.008 de
+// uma peca com 8 e deixava a cliente do atacado comprar 20. Todo saldo de SKU
+// que entra na loja passa por aqui, e a loja vende so o que existe.
+export const BUFFER_MARKETPLACE = 1000;
+
+export function saldoReal(saldoBling: number): number {
+    return saldoBling >= BUFFER_MARKETPLACE ? saldoBling - BUFFER_MARKETPLACE : saldoBling;
+}
+
 export function sumStock(deposits: BlingStockDeposit[]): number {
-    return deposits.reduce(
+    return saldoReal(deposits.reduce(
         (sum, d) => sum + (Number.parseFloat(String(d.saldoVirtual ?? '0')) || 0),
         0,
-    );
+    ));
 }
 
 export function calcPixPrice(basePrice: number): number {
@@ -67,7 +78,7 @@ export function parseVariations(
             size,
             color,
             skuCode: v.codigo ?? '',
-            stockQty: Number.parseFloat(String(v.estoque?.saldoVirtualTotal ?? '0')) || 0,
+            stockQty: saldoReal(Number.parseFloat(String(v.estoque?.saldoVirtualTotal ?? '0')) || 0),
             blingId: v.id ?? null,
         });
     }
