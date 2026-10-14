@@ -66,6 +66,40 @@ export const listarAbertos = () => comTabela(() =>
 export const listarAtendidosRecentes = () => comTabela(() =>
     db.select().from(atendimentoCasos).where(isNotNull(atendimentoCasos.atendidoEm)).orderBy(desc(atendimentoCasos.atendidoEm)).limit(20));
 
+// Ultimos pedidos de quem escreve no WhatsApp, reconhecida pelo TELEFONE do
+// cadastro (DDD + ultimos 8 digitos). A Lia so ve pedido da propria cliente:
+// quem souber o numero do pedido de outra pessoa nao consegue o rastreio dela.
+// DDD + 8 finais e nao o numero inteiro porque o WhatsApp manda 55 na frente e
+// as vezes sem o 9 do celular, e o cadastro guarda com 10 ou 11 digitos.
+export async function pedidosPorTelefone(telefone: string) {
+    const d = telefone.replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+    if (d.length < 10) return [];
+    const ddd = d.slice(0, 2);
+    const fim = d.slice(-8);
+    const r = await db.execute(sql`
+        with c as (
+            select id, regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g') as tel from customers
+        )
+        select o.order_number, o.status, o.payment_status, o.payment_method, o.tracking_url,
+               o.created_at, o.shipped_at
+          from orders o
+          join c on c.id = o.customer_id
+         where length(c.tel) >= 10
+           and right(c.tel, 8) = ${fim}
+           and (case when length(c.tel) >= 12 then substr(c.tel, 3, 2) else left(c.tel, 2) end) = ${ddd}
+         order by (o.status = 'cancelled'), o.created_at desc
+         limit 3`);
+    return (r.rows as Record<string, unknown>[]).map((o) => ({
+        pedido: o.order_number,
+        situacao: o.status,
+        pagamento: o.payment_status,
+        forma: o.payment_method,
+        rastreio: o.tracking_url ?? null,
+        feitoEm: o.created_at,
+        enviadoEm: o.shipped_at ?? null,
+    }));
+}
+
 export function marcarAtendido(id: string, quem: string) {
     return comTabela(async () => {
         const r = await db.update(atendimentoCasos).set({ atendidoEm: new Date(), atendidoPor: quem })

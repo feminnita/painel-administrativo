@@ -28,6 +28,15 @@ export async function receberCaso(req: Request, res: Response) {
     return res.status(r.repetido ? 200 : 201).json(r);
 }
 
+// Consulta da Lia: "meu pedido ja foi enviado?". Vem com o telefone de quem
+// esta escrevendo no WhatsApp, nunca com numero de pedido digitado.
+export async function pedidosDaCliente(req: Request, res: Response) {
+    if (!segredoOk(req.header('x-atendimento-secret'))) return res.sendStatus(401);
+    const telefone = String(req.body?.telefone ?? '');
+    if (!/^\d{10,15}$/.test(telefone)) return res.status(400).json({ erro: 'telefone invalido' });
+    res.json({ pedidos: await AtendimentoRepository.pedidosPorTelefone(telefone) });
+}
+
 export async function listar(_req: Request, res: Response) {
     const [abertos, recentes] = await Promise.all([
         AtendimentoRepository.listarAbertos(),

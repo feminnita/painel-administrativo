@@ -10,6 +10,11 @@ atendimentoWebhookRoutes.post(
     rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
     AtendimentoController.receberCaso,
 );
+atendimentoWebhookRoutes.post(
+    '/pedidos',
+    rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
+    AtendimentoController.pedidosDaCliente,
+);
 
 // Tela "Atendimento" do painel: fila e "Atendido".
 export const adminAtendimentoRoutes = Router();
