@@ -16,6 +16,7 @@ import { BannersPage } from './pages/banners/ui/BannersPage';
 import { VitrinePage } from './pages/vitrine/ui/VitrinePage';
 import { IntegracoesPage } from "./pages/integrations/ui/IntegracoesPage";
 import { CartsPage } from "./pages/carts/ui/CartsPage";
+import { PostagensPage } from "./pages/postagens/PostagensPage";
 import { VendasPage } from "./pages/vendas/ui/VendasPage";
 import { CustomersPage } from "./pages/customers/ui/CustomersPage";
 import { VisitasPage } from "./pages/visitas/ui/VisitasPage";
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/vitrine" element={<VitrinePage />} />
             <Route path="/integracoes" element={<IntegracoesPage />} />
             <Route path="/carrinhos" element={<CartsPage />} />
+            <Route path="/postagens" element={<PostagensPage />} />
             <Route path="/vendas" element={<VendasPage />} />
             <Route path="/clientes" element={<CustomersPage />} />
             <Route path="/visitas" element={<VisitasPage />} />

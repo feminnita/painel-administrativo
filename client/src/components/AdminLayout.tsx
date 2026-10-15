@@ -30,6 +30,7 @@ const navItems: NavEntry[] = [
             { href: "/vendas", label: "Vendas", icon: BarChart },
             { href: "/pedidos", label: "Pedidos", icon: ShoppingCart },
             { href: "/carrinhos", label: "Carrinhos Abandonados", icon: ShoppingBag },
+            { href: "/postagens", label: "Postagens", icon: Truck },
         ]
     },
 

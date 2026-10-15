@@ -85,5 +85,12 @@ export function getOrder(meOrderId: string) {
         tracking: string | null;
         self_tracking: string | null;
         generated_at: string | null;
+        // Datas "AAAA-MM-DD HH:MM:SS" no horario de Brasilia. received_at e o
+        // ponto bipando; posted_at e a transportadora recebendo.
+        received_at?: string | null;
+        posted_at?: string | null;
+        delivered_at?: string | null;
+        agency_id?: number | null;
+        delivery_max?: number | null;
     }>(`/me/orders/${meOrderId}`);
 }
