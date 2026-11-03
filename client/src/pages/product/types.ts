@@ -1,4 +1,4 @@
-export const BRANDS = ["FNT", "Feminnita"] as const;
+export const BRANDS = ["Armmís"] as const;
 export type Brand = (typeof BRANDS)[number];
 
 export type AdminProduct = {
