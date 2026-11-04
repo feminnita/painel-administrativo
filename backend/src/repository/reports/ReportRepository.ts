@@ -4,7 +4,19 @@ import { reorderSlides } from '../../services/hero/HeroSlideService';
 
 // const PAID_FILTER = sql`o.payment_status = 'paid' AND o.status <> 'cancelled' AND o.created_at >= now() - make_interval(days => ${sql.raw('$1')}::int)`;
 
-export async function salesSummary(days: number) {
+// Periodo do relatorio de vendas: os ultimos N dias, ou um intervalo de datas
+// (from/to em YYYY-MM-DD, dias inteiros no horario de Brasilia, "to" incluso).
+export type Periodo = { days: number } | { from: string; to: string };
+
+function noPeriodo(periodo: Periodo) {
+    if ('from' in periodo) {
+        return sql`o.created_at >= (${periodo.from}::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
+            AND o.created_at < ((${periodo.to}::date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo')`;
+    }
+    return sql`o.created_at >= now() - make_interval(days => ${periodo.days})`;
+}
+
+export async function salesSummary(periodo: Periodo) {
     const { rows } = await db.execute(sql`
         SELECT 
             COALESCE(SUM(o.total::numeric), 0)::float AS revenue,
@@ -12,12 +24,12 @@ export async function salesSummary(days: number) {
             COALESCE(SUM(o.discount::numeric), 0)::float AS discounts,
             COALESCE(SUM(o.shipping_cost::numeric), 0)::float AS shipping FROM orders o   
             WHERE o.payment_status = 'paid' AND o.status <> 'cancelled'
-            AND o.created_at >= now() - make_interval(days => ${days}) 
+            AND ${noPeriodo(periodo)} 
         `);
     return rows[0];
 }
 
-export async function salesByDay(days: number) {
+export async function salesByDay(periodo: Periodo) {
     const { rows } = await db.execute(sql`
             SELECT
                 to_char(o.created_at AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') AS day,
@@ -25,14 +37,14 @@ export async function salesByDay(days: number) {
                 COUNT(*)::int AS orders
             FROM orders o
             WHERE o.payment_status = 'paid' AND o.status <> 'cancelled'
-                AND o.created_at >= now() - make_interval(days => ${days})
+                AND ${noPeriodo(periodo)}
             GROUP BY 1
             ORDER BY 1
     `);
     return rows;
 }
 
-export async function topProducts(days: number, limit = 8) {
+export async function topProducts(periodo: Periodo, limit = 8) {
     const { rows } = await db.execute(sql`
         SELECT
             i.product_name AS name, 
@@ -41,7 +53,7 @@ export async function topProducts(days: number, limit = 8) {
         From order_items i
         JOIN orders o ON o.id = i.order_id
         WHERE o.payment_status = 'paid' AND o.status <> 'cancelled'
-            AND o.created_at >= now() - make_interval(days => ${days})
+            AND ${noPeriodo(periodo)}
         GROUP BY i.product_name
         ORDER BY revenue DESC
         LIMIT ${limit}
@@ -49,7 +61,7 @@ export async function topProducts(days: number, limit = 8) {
     return rows;
 }
 
-export async function salesByPaymentMethod(days: number) {
+export async function salesByPaymentMethod(periodo: Periodo) {
     const { rows } = await db.execute(sql`
         SELECT
             COALESCE(o.payment_method, 'desconhecido') AS method,
@@ -57,20 +69,20 @@ export async function salesByPaymentMethod(days: number) {
             SUM(o.total::numeric)::float AS revenue
         FROM orders o
         WHERE o.payment_status = 'paid' AND o.status <> 'cancelled'
-            AND o.created_at >= now() - make_interval(days => ${days})
+            AND ${noPeriodo(periodo)}
         GROUP BY 1
         ORDER BY revenue DESC
     `);
     return rows;
 }
 
-export async function itemsSold(days: number) {
+export async function itemsSold(periodo: Periodo) {
     const { rows } = await db.execute(sql`
         SELECT COALESCE(SUM(i.quantity), 0)::int AS items
         FROM order_items i
         JOIN orders o ON o.id = i.order_id
         WHERE o.payment_status = 'paid' AND o.status <> 'cancelled'
-            AND o.created_at >= now() - make_interval(days => ${days})
+            AND ${noPeriodo(periodo)}
     `);
     return rows[0];
 }

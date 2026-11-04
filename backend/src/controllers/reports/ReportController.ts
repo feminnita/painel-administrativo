@@ -4,17 +4,24 @@ import * as ReportRepository from '../../repository/reports/ReportRepository';
 export async function sales(req: Request, res: Response) {
     try {
         const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
+        const data = /^\d{4}-\d{2}-\d{2}$/;
+        const from = String(req.query.from ?? '');
+        const to = String(req.query.to ?? '');
+        const intervalo = data.test(from) && data.test(to) && from <= to;
+        const periodo: ReportRepository.Periodo = intervalo ? { from, to } : { days };
 
         const [summary, byDay, top, byMethod, sold] = await Promise.all([
-            ReportRepository.salesSummary(days),
-            ReportRepository.salesByDay(days),
-            ReportRepository.topProducts(days),
-            ReportRepository.salesByPaymentMethod(days),
-            ReportRepository.itemsSold(days),
+            ReportRepository.salesSummary(periodo),
+            ReportRepository.salesByDay(periodo),
+            ReportRepository.topProducts(periodo),
+            ReportRepository.salesByPaymentMethod(periodo),
+            ReportRepository.itemsSold(periodo),
         ]);
 
         res.json({
             days,
+            from: intervalo ? from : null,
+            to: intervalo ? to : null,
             revenue: summary?.revenue ?? 0,
             orders: summary?.orders ?? 0,
             discounts: summary?.discounts ?? 0,

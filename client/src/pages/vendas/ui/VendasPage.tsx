@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BarChart2, CircleDollarSign, Package, RefreshCw, ShoppingCart, Ticket, } from "lucide-react";
 import { useVendasAdmin } from "../useVendasAdmin";
-import type { SalesDay } from "../type";
+import type { SalesDay, SalesReport } from "../type";
 
 const PERIODOS = [7, 30, 90] as const;
 
@@ -24,25 +24,41 @@ function fmtDay(iso: string): string {
     return `${d}/${m}`;
 }
 
-function fillDays(byDay: SalesDay[], days: number): SalesDay[] {
-    const byKey = new Map(byDay.map((d) => [d.day, d]));
+function isoDate(date: Date): string {
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+}
+
+// Primeiro e último dia do mês "YYYY-MM"; no mês corrente, para em hoje.
+function monthRange(month: string): { from: string; to: string } {
+    const [y, m] = month.split("-").map(Number);
+    const last = isoDate(new Date(y, m, 0));
+    const today = isoDate(new Date());
+    return { from: `${month}-01`, to: last < today ? last : today };
+}
+
+function fillDays(report: SalesReport): SalesDay[] {
+    const byKey = new Map(report.byDay.map((d) => [d.day, d]));
     const result: SalesDay[] = [];
 
-    for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(Date.now() - i * 86_400_000);
-        const key = [
-            date.getFullYear(),
-            String(date.getMonth() + 1).padStart(2, "0"),
-            String(date.getDate()).padStart(2, "0"),
-        ].join("-");
+    const start = report.from
+        ? new Date(`${report.from}T12:00:00`)
+        : new Date(Date.now() - (report.days - 1) * 86_400_000);
+    const end = report.from ? new Date(`${report.to}T12:00:00`) : new Date();
+
+    for (const date = start; isoDate(date) <= isoDate(end); date.setDate(date.getDate() + 1)) {
+        const key = isoDate(date);
         result.push(byKey.get(key) ?? { day: key, revenue: 0, orders: 0 });
     }
     return result;
 }
 
-function RevenueChart({ byDay, days }: { byDay: SalesDay[]; days: number }) {
+function RevenueChart({ report }: { report: SalesReport }) {
     const [hover, setHover] = useState<number | null>(null);
-    const data = fillDays(byDay, days);
+    const data = fillDays(report);
     const max = Math.max(...data.map((d) => d.revenue), 1);
 
     const gridLines = [1, 0.5];
@@ -126,7 +142,15 @@ function RevenueChart({ byDay, days }: { byDay: SalesDay[]; days: number }) {
 }
 
 export function VendasPage() {
-    const { report, loading, days, setDays, load } = useVendasAdmin();
+    const { report, loading, period, setPeriod, load } = useVendasAdmin();
+    const month = "from" in period && period.from.endsWith("-01") &&
+        monthRange(period.from.slice(0, 7)).to === period.to
+        ? period.from.slice(0, 7)
+        : "";
+
+    const subtitle = "from" in period
+        ? `Pedidos pagos de ${fmtDay(period.from)}/${period.from.slice(0, 4)} a ${fmtDay(period.to)}/${period.to.slice(0, 4)}`
+        : `Pedidos pagos nos últimos ${period.days} dias`;
 
     const kpis = report
         ? [
@@ -158,17 +182,53 @@ export function VendasPage() {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Vendas</h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Pedidos pagos nos últimos {days} dias
-                    </p>
+                    <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 rounded-lg border bg-white px-3 py-1.5 text-sm text-gray-500">
+                        Mês
+                        <input
+                            type="month"
+                            value={month}
+                            max={isoDate(new Date()).slice(0, 7)}
+                            onChange={(e) => e.target.value && setPeriod(monthRange(e.target.value))}
+                            className={`rounded-md px-1 text-sm ${month ? "font-medium text-[#8C2F39]" : "text-gray-700"}`}
+                        />
+                    </label>
+                    <label className="flex items-center gap-2 rounded-lg border bg-white px-3 py-1.5 text-sm text-gray-500">
+                        De
+                        <input
+                            type="date"
+                            value={"from" in period ? period.from : ""}
+                            max={isoDate(new Date())}
+                            onChange={(e) => {
+                                const from = e.target.value;
+                                if (!from) return;
+                                const to = "from" in period && period.to >= from ? period.to : isoDate(new Date());
+                                setPeriod({ from, to });
+                            }}
+                            className="text-sm text-gray-700"
+                        />
+                        até
+                        <input
+                            type="date"
+                            value={"from" in period ? period.to : ""}
+                            max={isoDate(new Date())}
+                            onChange={(e) => {
+                                const to = e.target.value;
+                                if (!to) return;
+                                const from = "from" in period && period.from <= to ? period.from : `${to.slice(0, 7)}-01`;
+                                setPeriod({ from, to });
+                            }}
+                            className="text-sm text-gray-700"
+                        />
+                    </label>
                     <div className="flex rounded-lg border bg-white p-1">
                         {PERIODOS.map((p) => (
                             <button
                                 key={p}
-                                onClick={() => setDays(p)}
-                                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${days === p
+                                onClick={() => setPeriod({ days: p })}
+                                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${"days" in period && period.days === p
                                     ? "bg-[#8C2F39] text-white"
                                     : "text-gray-500 hover:bg-gray-50"
                                     }`}
@@ -217,7 +277,7 @@ export function VendasPage() {
                     <BarChart2 size={16} /> Faturamento por dia
                 </h3>
                 {report && report.byDay.length > 0 ? (
-                    <RevenueChart byDay={report.byDay} days={report.days} />
+                    <RevenueChart report={report} />
                 ) : (
                     <p className="py-10 text-center text-sm text-gray-400">
                         {loading ? "Carregando..." : "Nenhuma venda no período."}

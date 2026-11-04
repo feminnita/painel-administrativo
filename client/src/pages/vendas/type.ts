@@ -16,8 +16,13 @@ export type SalesPaymentMethod = {
     revenue: number;
 };
 
+// Últimos N dias ou um intervalo de datas (YYYY-MM-DD, "to" incluso).
+export type SalesPeriod = { days: number } | { from: string; to: string };
+
 export type SalesReport = {
     days: number;
+    from: string | null;
+    to: string | null;
     revenue: number;
     orders: number;
     discounts: number;
