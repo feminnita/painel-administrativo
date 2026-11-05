@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Send, X } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
 
-const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
+const TIPOS_FOTO = ["image/jpeg", "image/png"]; // o servidor da Lia (WhatsApp) só aceita JPEG e PNG
 const MAX_FOTO_BYTES = 5 * 1024 * 1024;
 
 export const AVISO_24H =

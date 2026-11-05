@@ -14,7 +14,7 @@ const TIMEOUT_MIDIA_MS = 60_000;
 // Foto que a equipe manda para a cliente. O limite geral do JSON (25 MB, em
 // server.ts) ja deixa a foto em base64 chegar ate aqui; quem barra o tamanho e esta conta.
 const MAX_IMAGEM_BYTES = 8 * 1024 * 1024;
-const MIMES_IMAGEM = ['image/jpeg', 'image/png', 'image/webp'];
+const MIMES_IMAGEM = ['image/jpeg', 'image/png']; // o marketing recusa outros formatos (mime_invalido)
 
 const TELEFONE = /^\d{10,15}$/;
 const MIDIA_ID = /^[\w.-]{1,200}$/;
