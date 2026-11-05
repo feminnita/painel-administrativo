@@ -100,6 +100,88 @@ export async function pedidosPorTelefone(telefone: string) {
     }));
 }
 
+// Painel "Cliente" da tela Conversas: quem e a pessoa do WhatsApp no cadastro
+// da loja e os ultimos pedidos dela. So leitura.
+// O WhatsApp manda 55 + DDD + numero, as vezes sem o 9 do celular; o cadastro
+// guarda do jeito que a cliente digitou (com ou sem 55, com 0 na frente, com
+// mascara). Os dois lados viram "numero local" (10 ou 11 digitos) e casam por
+// DDD + 8 ultimos digitos, que e o que sobra igual com ou sem o 9.
+// Se mais de um cadastro casar, fica o que tem pedido mais recente.
+export async function clientePorTelefone(telefone: string) {
+    const d = telefone.replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+    if (d.length < 10 || d.length > 11) return null;
+    const ddd = d.slice(0, 2);
+    const fim = d.slice(-8);
+    const r = await db.execute(sql`
+        with c as (
+            select id, name, email, phone, created_at,
+                   regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g') as tel
+              from customers
+        ), n as (
+            select *,
+                   case when length(tel) in (12, 13) and left(tel, 2) = '55' then substr(tel, 3)
+                        when length(tel) in (11, 12) and left(tel, 1) = '0' then substr(tel, 2)
+                        else tel end as local
+              from c
+        )
+        select n.id, n.name, n.email, n.phone,
+               (select max(o.created_at) from orders o where o.customer_id = n.id) as ultimo_pedido_em
+          from n
+         where length(n.local) in (10, 11)
+           and left(n.local, 2) = ${ddd}
+           and right(n.local, 8) = ${fim}
+         order by ultimo_pedido_em desc nulls last, n.created_at desc
+         limit 1`);
+    const cli = (r.rows as Record<string, unknown>[])[0];
+    if (!cli) return null;
+
+    const [end, peds] = await Promise.all([
+        db.execute(sql`
+            select city, state from addresses
+             where customer_id = ${cli.id}
+             order by is_default desc nulls last, updated_at desc nulls last
+             limit 1`),
+        db.execute(sql`
+            select id, order_number, created_at, total, status, payment_status,
+                   tracking_code, tracking_url, shipped_at
+              from orders
+             where customer_id = ${cli.id}
+             order by created_at desc
+             limit 5`),
+    ]);
+    const e = (end.rows as Record<string, unknown>[])[0];
+    return {
+        id: cli.id as string,
+        nome: cli.name as string,
+        email: cli.email as string,
+        telefone: (cli.phone as string | null) ?? null,
+        cidade: (e?.city as string | undefined) ?? null,
+        uf: (e?.state as string | undefined) ?? null,
+        pedidos: (peds.rows as Record<string, unknown>[]).map((o) => ({
+            id: o.id as string,
+            numero: o.order_number as string,
+            criadoEm: o.created_at as string,
+            total: Number(o.total),
+            situacao: o.status as string,
+            pagamento: o.payment_status as string,
+            rastreio: (o.tracking_code as string | null) ?? null,
+            rastreioUrl: (o.tracking_url as string | null) ?? null,
+            enviadoEm: (o.shipped_at as string | null) ?? null,
+        })),
+    };
+}
+
+// "Devolver para a Lia" pela tela Conversas: fecha o caso aberto desse telefone
+// (se houver), do mesmo jeito que o botao "Atendido" da tela Atendimento.
+export function marcarAtendidoPorTelefone(telefone: string, quem: string) {
+    return comTabela(async () => {
+        const r = await db.update(atendimentoCasos).set({ atendidoEm: new Date(), atendidoPor: quem })
+            .where(and(eq(atendimentoCasos.telefone, telefone), isNull(atendimentoCasos.atendidoEm)))
+            .returning({ id: atendimentoCasos.id });
+        return r.length;
+    });
+}
+
 export function marcarAtendido(id: string, quem: string) {
     return comTabela(async () => {
         const r = await db.update(atendimentoCasos).set({ atendidoEm: new Date(), atendidoPor: quem })

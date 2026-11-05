@@ -5,9 +5,10 @@ import {
     BarChart2, ChevronRight, ExternalLink, Image, LayoutDashboard,
     LayoutGrid, Link2, LogOut, Menu, Package, Palette, Ruler, Settings,
     ShoppingBag, ShoppingCart, Star, Tag, Truck, Users, X, Zap, Megaphone, Mail,
-    FileText, SearchX, HandCoins, Headset,
+    FileText, SearchX, HandCoins, Headset, MessagesSquare,
 } from "lucide-react";
 import { AvisoAtendimento } from "./AvisoAtendimento";
+import { useNaoLidas } from "@/pages/conversas/useConversas";
 import { api, clearToken } from "@/lib/api/client";
 
 type NavLeaf = { href: string; label: string; icon: typeof Package };
@@ -23,6 +24,7 @@ const SITE_URL = import.meta.env.VITE_SITE_URL ?? "http://localhost:3000";
 const navItems: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/atendimento", label: "Atendimento", icon: Headset },
+    { href: "/conversas", label: "Conversas", icon: MessagesSquare },
 
     {
         label: "Vendas", icon: BarChart2,
@@ -75,6 +77,8 @@ export function AdminLayout() {
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    // Contador de mensagens nao lidas do WhatsApp, ao lado de "Conversas".
+    const naoLidas = useNaoLidas();
 
     // Sair de verdade: invalida a sessão no servidor (deleta o token), limpa o
     // token local e volta pro login. Sem isso, num PC compartilhado a próxima
@@ -200,7 +204,12 @@ export function AdminLayout() {
                             >
                                 <Icon size={18} />
                                 <span className="text-sm font-medium">{item.label}</span>
-                                {active && <ChevronRight size={16} className="ml-auto" />}
+                                {item.href === "/conversas" && naoLidas > 0 && (
+                                    <span className={`rounded-full bg-[#8C2F39] px-2 py-0.5 text-xs font-semibold text-white ${active ? "ml-auto ring-1 ring-white/60" : "ml-auto"}`}>
+                                        {naoLidas > 99 ? "99+" : naoLidas}
+                                    </span>
+                                )}
+                                {active && <ChevronRight size={16} className={item.href === "/conversas" && naoLidas > 0 ? "" : "ml-auto"} />}
                             </Link>
                         );
                     })}

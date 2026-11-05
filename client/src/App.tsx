@@ -28,6 +28,7 @@ import { SizeChartsPage } from "./pages/tabela-medidas/ui/SizeChartsPage";
 import { ResaleTermPage } from "./pages/resale-term/ui/ResaleTermPage";
 import { NewsletterPage } from "./pages/newsletter/ui/NewsletterPage";
 import { AtendimentoPage } from "./pages/atendimento/ui/AtendimentoPage";
+import { ConversasPage } from "./pages/conversas/ui/ConversasPage";
 import { CampanhasPage } from "./pages/campanhas/ui/CampanhasPage";
 import { ConfirmProvider } from "./components/confirm/ConfirmProvider";
 import { AvisoVersaoNova } from "./components/AvisoVersaoNova";
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/produtos" element={<ProductsPage />} />
             <Route path="/newsletter" element={<NewsletterPage />} />
             <Route path="/atendimento" element={<AtendimentoPage />} />
+            <Route path="/conversas" element={<ConversasPage />} />
             <Route path="/campanhas" element={<CampanhasPage />} />
             <Route path="/pedidos" element={<OrdersPage />} />
             <Route path="/caracteristicas" element={<CharacteristicsPage />} />
