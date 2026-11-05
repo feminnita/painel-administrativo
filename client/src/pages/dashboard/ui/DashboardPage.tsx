@@ -1,14 +1,11 @@
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, BarChart2, CircleDollarSign, RefreshCw,
+  ArrowRight, BarChart2, CircleDollarSign, Eye, EyeOff, RefreshCw,
   ShoppingBag, ShoppingCart, Sun, Ticket,
 } from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
+import { alternarValoresOcultos, fmtValor, useValoresOcultos } from "@/lib/valoresOcultos";
 import { useDashboardAdmin } from "../useDashboardAdmin";
-
-function fmtBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-}
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR");
@@ -29,6 +26,8 @@ export function DashboardPage() {
   const {
     report, recentOrders, carts, loading, load, todayRevenue, todayOrders,
   } = useDashboardAdmin();
+  const oculto = useValoresOcultos();
+  const fmtBRL = (value: number) => fmtValor(value, oculto);
 
   const cartsValue = carts.reduce((sum, c) => sum + c.total, 0);
   const maxDay = Math.max(...(report?.byDay.map((d) => d.revenue) ?? [0]), 1);
@@ -45,13 +44,23 @@ export function DashboardPage() {
             Resumo da loja — últimos 30 dias
           </p>
         </div>
-        <button
-          onClick={load}
-          className="rounded-lg border bg-white p-2 text-gray-500 hover:bg-gray-50"
-          aria-label="Atualizar"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={alternarValoresOcultos}
+            className="rounded-lg border bg-white p-2 text-gray-500 hover:bg-gray-50"
+            aria-label={oculto ? "Mostrar valores" : "Esconder valores"}
+            title={oculto ? "Mostrar valores" : "Esconder valores"}
+          >
+            {oculto ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+          <button
+            onClick={load}
+            className="rounded-lg border bg-white p-2 text-gray-500 hover:bg-gray-50"
+            aria-label="Atualizar"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}

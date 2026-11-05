@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { BarChart2, CircleDollarSign, Package, RefreshCw, ShoppingCart, Ticket, } from "lucide-react";
+import { BarChart2, CircleDollarSign, Eye, EyeOff, Package, RefreshCw, ShoppingCart, Ticket, } from "lucide-react";
+import { alternarValoresOcultos, fmtValor, useValoresOcultos } from "@/lib/valoresOcultos";
 import { useVendasAdmin } from "../useVendasAdmin";
 import type { SalesDay, SalesReport } from "../type";
 
@@ -14,10 +15,6 @@ const METHOD_LABELS: Record<string, string> = {
     boleto: "Boleto",
     desconhecido: "Não Informado",
 };
-
-function fmtBRL(value: number): string {
-    return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-}
 
 function fmtDay(iso: string): string {
     const [, m, d] = iso.split("-");
@@ -58,6 +55,8 @@ function fillDays(report: SalesReport): SalesDay[] {
 
 function RevenueChart({ report }: { report: SalesReport }) {
     const [hover, setHover] = useState<number | null>(null);
+    const oculto = useValoresOcultos();
+    const fmtBRL = (value: number) => fmtValor(value, oculto);
     const data = fillDays(report);
     const max = Math.max(...data.map((d) => d.revenue), 1);
 
@@ -143,6 +142,8 @@ function RevenueChart({ report }: { report: SalesReport }) {
 
 export function VendasPage() {
     const { report, loading, period, setPeriod, load } = useVendasAdmin();
+    const oculto = useValoresOcultos();
+    const fmtBRL = (value: number) => fmtValor(value, oculto);
     const month = "from" in period && period.from.endsWith("-01") &&
         monthRange(period.from.slice(0, 7)).to === period.to
         ? period.from.slice(0, 7)
@@ -237,6 +238,14 @@ export function VendasPage() {
                             </button>
                         ))}
                     </div>
+                    <button
+                        onClick={alternarValoresOcultos}
+                        className="rounded-lg border bg-white p-2 text-gray-500 hover:bg-gray-50"
+                        aria-label={oculto ? "Mostrar valores" : "Esconder valores"}
+                        title={oculto ? "Mostrar valores" : "Esconder valores"}
+                    >
+                        {oculto ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                     <button
                         onClick={load}
                         className="rounded-lg border bg-white p-2 text-gray-500 hover:bg-gray-50"
