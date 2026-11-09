@@ -44,18 +44,23 @@ export async function salesByDay(periodo: Periodo) {
     return rows;
 }
 
-export async function topProducts(periodo: Periodo, limit = 8) {
+// Ranking dos mais vendidos: um produto por linha (pelo cadastro, nao pelo nome
+// gravado no pedido, que muda quando o anuncio e renomeado), ordenado por pecas.
+export async function topProducts(periodo: Periodo, limit = 50) {
     const { rows } = await db.execute(sql`
         SELECT
-            i.product_name AS name, 
+            COALESCE(p.code, '') AS code,
+            COALESCE(MAX(p.name), MAX(i.product_name)) AS name,
             SUM(i.quantity)::int AS quantity,
+            COUNT(DISTINCT o.id)::int AS orders,
             SUM(i.total_price::numeric)::float AS revenue
-        From order_items i
+        FROM order_items i
         JOIN orders o ON o.id = i.order_id
+        LEFT JOIN products p ON p.id = i.product_id
         WHERE o.payment_status = 'paid' AND o.status <> 'cancelled'
             AND ${noPeriodo(periodo)}
-        GROUP BY i.product_name
-        ORDER BY revenue DESC
+        GROUP BY COALESCE(i.product_id::text, i.product_name), p.code
+        ORDER BY quantity DESC, revenue DESC
         LIMIT ${limit}
     `);
     return rows;

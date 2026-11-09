@@ -297,26 +297,43 @@ export function VendasPage() {
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Top produtos */}
                 <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                    <h3 className="mb-4 font-semibold text-gray-700">
-                        Produtos mais vendidos
+                    <h3 className="mb-1 font-semibold text-gray-700">
+                        Ranking dos mais vendidos
                     </h3>
+                    <p className="mb-4 text-xs text-gray-400">
+                        Peças vendidas no período, pedidos pagos.
+                    </p>
                     {report && report.topProducts.length > 0 ? (
+                        <div className="max-h-[520px] overflow-y-auto">
                         <table className="w-full text-sm">
-                            <thead>
+                            <thead className="sticky top-0 bg-white">
                                 <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-400">
+                                    <th className="w-8 pb-2 font-medium">#</th>
                                     <th className="pb-2 font-medium">Produto</th>
-                                    <th className="pb-2 text-center font-medium">Qtd</th>
+                                    <th className="pb-2 text-center font-medium">Peças</th>
+                                    <th className="pb-2 text-center font-medium">Pedidos</th>
                                     <th className="pb-2 text-right font-medium">Receita</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {report.topProducts.map((p) => (
-                                    <tr key={p.name} className="border-b border-gray-50">
-                                        <td className="max-w-0 truncate py-2.5 pr-3 font-medium">
+                                {report.topProducts.map((p, i) => (
+                                    <tr key={p.code || p.name} className="border-b border-gray-50">
+                                        <td className="py-2.5 font-semibold text-gray-400">
+                                            {i + 1}º
+                                        </td>
+                                        <td className="max-w-0 truncate py-2.5 pr-3 font-medium" title={p.name}>
+                                            {p.code && (
+                                                <span className="mr-2 font-mono text-xs text-gray-500">
+                                                    {p.code}
+                                                </span>
+                                            )}
                                             {p.name}
                                         </td>
-                                        <td className="py-2.5 text-center text-gray-500">
+                                        <td className="py-2.5 text-center font-semibold">
                                             {p.quantity}
+                                        </td>
+                                        <td className="py-2.5 text-center text-gray-500">
+                                            {p.orders}
                                         </td>
                                         <td className="whitespace-nowrap py-2.5 text-right font-semibold">
                                             R$ {fmtBRL(p.revenue)}
@@ -325,6 +342,7 @@ export function VendasPage() {
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     ) : (
                         <p className="py-8 text-center text-sm text-gray-400">
                             {loading ? "Carregando..." : "Nenhuma venda no período."}

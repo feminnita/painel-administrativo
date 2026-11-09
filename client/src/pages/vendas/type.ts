@@ -5,8 +5,10 @@ export type SalesDay = {
 };
 
 export type SalesTopProduct = {
+    code: string;
     name: string;
     quantity: number;
+    orders: number;
     revenue: number;
 };
 
