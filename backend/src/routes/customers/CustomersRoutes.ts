@@ -6,3 +6,5 @@ export const adminCustomerRoutes = Router();
 
 adminCustomerRoutes.get('/', requireAdminAuth, CustomerController.list);
 adminCustomerRoutes.get('/:id', requireAdminAuth, CustomerController.detail);
+adminCustomerRoutes.post('/:id/bloqueio', requireAdminAuth, CustomerController.bloquear);
+adminCustomerRoutes.post('/:id/desbloqueio', requireAdminAuth, CustomerController.desbloquear);

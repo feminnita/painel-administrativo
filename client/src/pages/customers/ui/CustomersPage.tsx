@@ -1,5 +1,5 @@
 import {
-    MessageCircle, RefreshCw, Search, ShoppingBag, Users, Wallet, X,
+    Ban, MessageCircle, RefreshCw, Search, ShoppingBag, Users, Wallet, X,
 } from "lucide-react";
 import { useCustomersAdmin } from "../useCustomersAdmin";
 
@@ -37,6 +37,7 @@ export function CustomersPage() {
         detailLoading,
         openDetail,
         closeDetail,
+        alternarBloqueio,
         load,
     } = useCustomersAdmin();
 
@@ -117,7 +118,14 @@ export function CustomersPage() {
                                 className="cursor-pointer border-b border-gray-50 transition-colors hover:bg-red-50/30"
                             >
                                 <td className="px-4 py-3">
-                                    <p className="font-medium">{c.name}</p>
+                                    <p className="font-medium">
+                                        {c.name}
+                                        {c.bloqueada && (
+                                            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                                                <Ban size={10} /> Bloqueada
+                                            </span>
+                                        )}
+                                    </p>
                                     {c.cpf && (
                                         <p className="text-xs text-gray-400">CPF {c.cpf}</p>
                                     )}
@@ -213,6 +221,39 @@ export function CustomersPage() {
                                                 Cliente desde {fmtDate(detail.customer.createdAt)}
                                             </span>
                                         </div>
+                                        {detail.bloqueio && (
+                                            <p className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">
+                                                <strong>Bloqueada</strong> desde {fmtDate(detail.bloqueio.criadoEm)}: {detail.bloqueio.motivo}
+                                            </p>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={alternarBloqueio}
+                                            className={`mt-2 inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium ${
+                                                detail.bloqueio
+                                                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                                                    : "border-red-300 text-red-700 hover:bg-red-50"
+                                            }`}
+                                        >
+                                            <Ban size={12} />
+                                            {detail.bloqueio ? "Desbloquear cliente" : "Bloquear cliente"}
+                                        </button>
+                                        {detail.historicoBloqueio.length > 0 && (
+                                            <div className="mt-2 text-xs text-gray-500">
+                                                <p className="font-medium text-gray-600">Histórico de bloqueio</p>
+                                                <ul className="mt-1 space-y-0.5">
+                                                    {detail.historicoBloqueio.map((h, i) => (
+                                                        <li key={i}>
+                                                            {fmtDate(h.criadoEm)} ·{" "}
+                                                            <span className={h.acao === "bloqueio" ? "text-red-700" : "text-green-700"}>
+                                                                {h.acao === "bloqueio" ? "Bloqueada" : "Desbloqueada"}
+                                                            </span>
+                                                            {h.motivo ? `: ${h.motivo}` : ""}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                     <button
                                         type="button"
