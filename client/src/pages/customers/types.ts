@@ -13,6 +13,12 @@ export type AdminCustomer = {
 
 export type BloqueioCliente = { motivo: string; criadoEm: string } | null;
 
+export type EventoBloqueio = {
+    acao: "bloqueio" | "desbloqueio";
+    motivo: string | null;
+    criadoEm: string;
+};
+
 export type CustomerOrder = {
     id: string;
     orderNumber: string;
@@ -37,4 +43,5 @@ export type CustomerDetail = {
 
     orders: CustomerOrder[];
     bloqueio: BloqueioCliente;
+    historicoBloqueio: EventoBloqueio[];
 };

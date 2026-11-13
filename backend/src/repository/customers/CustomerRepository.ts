@@ -72,14 +72,32 @@ export async function bloquear(id: string, motivo: string): Promise<boolean> {
         INSERT INTO clientes_bloqueados (cpf, motivo) VALUES (${cpf}, ${motivo})
         ON CONFLICT (cpf) DO UPDATE SET motivo = EXCLUDED.motivo
     `);
+    await db.execute(sql`
+        INSERT INTO clientes_bloqueio_historico (cpf, acao, motivo) VALUES (${cpf}, 'bloqueio', ${motivo})
+    `);
     return true;
 }
 
-export async function desbloquear(id: string): Promise<boolean> {
+// O histórico fica para sempre: desbloquear tira da lista ativa, mas o motivo
+// de cada bloqueio e desbloqueio continua no histórico da cliente.
+export async function desbloquear(id: string, motivo: string): Promise<boolean> {
     const cpf = await cpfDaCliente(id);
     if (!cpf) return false;
     await db.execute(sql`DELETE FROM clientes_bloqueados WHERE cpf = ${cpf}`);
+    await db.execute(sql`
+        INSERT INTO clientes_bloqueio_historico (cpf, acao, motivo) VALUES (${cpf}, 'desbloqueio', ${motivo || null})
+    `);
     return true;
+}
+
+export async function historicoBloqueio(id: string) {
+    const cpf = await cpfDaCliente(id);
+    if (!cpf) return [];
+    const { rows } = await db.execute(sql`
+        SELECT acao, motivo, criado_em AS "criadoEm" FROM clientes_bloqueio_historico
+        WHERE cpf = ${cpf} ORDER BY criado_em DESC
+    `);
+    return rows as { acao: 'bloqueio' | 'desbloqueio'; motivo: string | null; criadoEm: string }[];
 }
 
 export async function ordersByCustomer(customerId: string) {

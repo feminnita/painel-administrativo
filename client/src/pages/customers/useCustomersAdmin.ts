@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
-import type { AdminCustomer, BloqueioCliente, CustomerDetail } from "./types";
+import type { AdminCustomer, BloqueioCliente, CustomerDetail, EventoBloqueio } from "./types";
 
 export function useCustomersAdmin() {
     const [customers, setCustomers] = useState<AdminCustomer[]>([]);
@@ -46,21 +46,25 @@ export function useCustomersAdmin() {
     const alternarBloqueio = async () => {
         if (!detail) return;
         const id = detail.customer.id;
+        type Resposta = { bloqueio: BloqueioCliente; historicoBloqueio: EventoBloqueio[] };
         try {
-            let bloqueio: BloqueioCliente;
+            let r: Resposta;
             if (detail.bloqueio) {
-                if (!window.confirm(`Desbloquear ${detail.customer.name}? Ela volta a poder comprar no site.`)) return;
-                ({ bloqueio } = await api.delete<{ bloqueio: BloqueioCliente }>(`/api/admin/customers/${id}/bloqueio`));
+                const motivo = window.prompt(
+                    `Desbloquear ${detail.customer.name}? Ela volta a poder comprar no site.\n\nMotivo do desbloqueio:`,
+                );
+                if (motivo === null) return;
+                r = await api.post<Resposta>(`/api/admin/customers/${id}/desbloqueio`, { motivo: motivo.trim() });
                 toast.success("Cliente desbloqueada");
             } else {
                 const motivo = window.prompt(
                     `Bloquear ${detail.customer.name}? Ela não vai conseguir fechar pedido no site, nem com outra conta do mesmo CPF.\n\nMotivo:`,
                 );
                 if (!motivo?.trim()) return;
-                ({ bloqueio } = await api.post<{ bloqueio: BloqueioCliente }>(`/api/admin/customers/${id}/bloqueio`, { motivo: motivo.trim() }));
+                r = await api.post<Resposta>(`/api/admin/customers/${id}/bloqueio`, { motivo: motivo.trim() });
                 toast.success("Cliente bloqueada");
             }
-            setDetail({ ...detail, bloqueio });
+            setDetail({ ...detail, bloqueio: r.bloqueio, historicoBloqueio: r.historicoBloqueio });
             load();
         } catch (error) {
             console.error("Erro ao mudar bloqueio:", error);

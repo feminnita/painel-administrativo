@@ -238,6 +238,22 @@ export function CustomersPage() {
                                             <Ban size={12} />
                                             {detail.bloqueio ? "Desbloquear cliente" : "Bloquear cliente"}
                                         </button>
+                                        {detail.historicoBloqueio.length > 0 && (
+                                            <div className="mt-2 text-xs text-gray-500">
+                                                <p className="font-medium text-gray-600">Histórico de bloqueio</p>
+                                                <ul className="mt-1 space-y-0.5">
+                                                    {detail.historicoBloqueio.map((h, i) => (
+                                                        <li key={i}>
+                                                            {fmtDate(h.criadoEm)} ·{" "}
+                                                            <span className={h.acao === "bloqueio" ? "text-red-700" : "text-green-700"}>
+                                                                {h.acao === "bloqueio" ? "Bloqueada" : "Desbloqueada"}
+                                                            </span>
+                                                            {h.motivo ? `: ${h.motivo}` : ""}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                     <button
                                         type="button"
