@@ -8,7 +8,10 @@ export type AdminCustomer = {
     paidOrders: number;
     totalSpent: number;
     lastOrderAt: string | null;
+    bloqueada: boolean;
 };
+
+export type BloqueioCliente = { motivo: string; criadoEm: string } | null;
 
 export type CustomerOrder = {
     id: string;
@@ -33,4 +36,5 @@ export type CustomerDetail = {
     };
 
     orders: CustomerOrder[];
+    bloqueio: BloqueioCliente;
 };
