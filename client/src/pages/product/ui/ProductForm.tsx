@@ -133,6 +133,10 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const [showUrlInput, setShowUrlInput] = useState(false);
     // SEO colapsado por padrão — resumo "SEO · editar" abre os campos.
     const [showSeo, setShowSeo] = useState(false);
+    // Variação INATIVA (a lixeira desativa a que já teve pedido) fica escondida da
+    // lista. Antes ela continuava ali, cinza, e a lixeira "não fazia nada" — caso
+    // do 59000 em 16/11. O botão "mostrar inativas" traz de volta para conferir.
+    const [mostrarInativas, setMostrarInativas] = useState(false);
     // "+ adicionar variação" discreto na lista (substitui o bloco solto do rodapé).
     const [addingVar, setAddingVar] = useState(false);
 
@@ -183,6 +187,14 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         }
         return Array.from(map.entries());
     })();
+    // O que a lista mostra: sem as inativas, a menos que ela peça para ver.
+    // Cor que só tem variação inativa some junto.
+    const nInativas = variations.filter((s) => s.active === false).length;
+    const variationsVisiveis: Array<[string, Sku[]]> = mostrarInativas
+        ? variationsByColor
+        : variationsByColor
+              .map(([color, skus]): [string, Sku[]] => [color, skus.filter((s) => s.active !== false)])
+              .filter(([, skus]) => skus.length > 0);
     // Contador do topo: pares sem foto (mesma regra do antigo selo por linha —
     // a cor não tem imagem cadastrada).
     const pairsWithoutPhoto = variations.filter(
@@ -1280,10 +1292,20 @@ Se alguma dessas você já apagou antes, clique em Cancelar — ela voltaria em 
                                         Variações
                                     </h3>
                                     <p className="mt-0.5 text-xs text-gray-400">
-                                        {variations.length} variações · {pairsWithoutPhoto} sem foto
+                                        {variations.length - nInativas} variações · {pairsWithoutPhoto} sem foto
+                                        {nInativas > 0 && ` · ${nInativas} inativa${nInativas > 1 ? "s" : ""} (fora da loja)`}
                                     </p>
                                 </div>
                                 <div className="flex gap-3 text-xs">
+                                    {nInativas > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setMostrarInativas((v) => !v)}
+                                            className="font-medium text-gray-500 hover:underline"
+                                        >
+                                            {mostrarInativas ? "Esconder inativas" : `Mostrar inativas (${nInativas})`}
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={expandAll}
@@ -1302,7 +1324,7 @@ Se alguma dessas você já apagou antes, clique em Cancelar — ela voltaria em 
                             </div>
 
                             <div className="space-y-2">
-                                {variationsByColor.map(([color, skus]) => {
+                                {variationsVisiveis.map(([color, skus]) => {
                                     const isOpen = expanded.has(color);
                                     const c = colorByName.get(color);
                                     const imgs = getColorImages(color);
