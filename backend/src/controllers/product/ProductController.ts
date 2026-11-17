@@ -91,25 +91,27 @@ export async function setActive(req: Request, res: Response) {
 
 export async function bulk(req: Request, res: Response) {
     try {
-        await ProductService.bulkAction(req.body.ids, req.body.action);
+        const resultado = await ProductService.bulkAction(req.body.ids, req.body.action);
+        // So a exclusao devolve contagem (apagados x arquivados); ativar/desativar segue sem corpo.
+        if (req.body.action === 'delete') return res.json(resultado);
         res.status(204).send();
     } catch (err) {
-        if (err instanceof Error && err.message === 'PRODUCT_HAS_ORDERS') {
-            return res.status(409).json({ error: 'Um dos produtos tem pedidos — desative em vez de excluir' });
+        if (err instanceof Error && err.message === 'NO_IDS') {
+            return res.status(400).json({ error: 'Envie ids: [] e action: activate | deactivate | delete' });
         }
-        res.status(400).json({ error: 'Envie ids: [] e action: activate | deactivate | delete' });
+        console.error('[produtos] acao em massa falhou', err);
+        res.status(500).json({ error: 'Não foi possível concluir. Tente de novo.' });
     }
 }
 
 export async function remove(req: Request, res: Response) {
     const id = req.params.id as string;
     try {
-        await ProductService.deleteProducts([id]);
-        res.status(204).send();
+        res.json(await ProductService.deleteProducts([id]));
     } catch (err) {
-        if (err instanceof Error && err.message === 'PRODUCT_HAS_ORDERS') {
-            return res.status(409).json({ error: 'Produto tem pedidos — desative em vez de excluir' });
-        }
-        res.status(404).json({ error: 'Produto não encontrado' });
+        // Antes todo erro virava "Produto nao encontrado", inclusive os que nada
+        // tinham a ver com isso. Agora o motivo real fica no log do servidor.
+        console.error('[produtos] exclusao falhou', id, err);
+        res.status(500).json({ error: 'Não foi possível excluir. Tente de novo.' });
     }
 }

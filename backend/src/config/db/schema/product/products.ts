@@ -42,4 +42,8 @@ export const products = pgTable('products', {
   saleStart: timestamp('sale_start', { withTimezone: true }),
   saleEnd: timestamp('sale_end', { withTimezone: true }),
   visibleInStore: boolean('visible_in_store').default(true),
+  // Produto "excluido" pela Chris que tem pedido antigo: nao da para apagar do
+  // banco (os itens dos pedidos apontam para ele), entao fica ARQUIVADO — some
+  // da lista do painel e da loja, e o historico dos pedidos continua inteiro.
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
 });

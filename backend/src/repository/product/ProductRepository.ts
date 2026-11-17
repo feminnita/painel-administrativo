@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { products, productsSkus, productsColors, productColorImages, productCategories, categories } from '../../config/db/schema';
 import { normalizeSize } from '../../domain/product/size';
@@ -30,7 +30,8 @@ type SkuGridItem = {
 type ColorImagesItem = { color: string; images: string[] };
 
 export async function findAll() {
-    const linhas = await db.query.products.findMany();
+    // Arquivado = "excluido" que tinha pedido. Nao aparece mais na lista.
+    const linhas = await db.query.products.findMany({ where: isNull(products.archivedAt) });
 
     // O estoque que o painel mostra e a soma das variacoes DA LOJA.
     //
@@ -278,4 +279,14 @@ export async function deleteProductsCascade(ids: string[]) {
         await tx.delete(productsSkus).where(inArray(productsSkus.productId, ids));
         await tx.delete(products).where(inArray(products.id, ids));
     });
+}
+
+// Tira o produto de circulacao sem apagar: fora da loja (active=false) e fora da
+// lista do painel (archived_at). Os pedidos antigos continuam apontando para ele.
+export function archiveProducts(ids: string[]) {
+    const agora = new Date();
+    return db
+        .update(products)
+        .set({ active: false, visibleInStore: false, archivedAt: agora, updatedAt: agora })
+        .where(inArray(products.id, ids));
 }
