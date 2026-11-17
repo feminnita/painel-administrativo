@@ -72,10 +72,10 @@ export function listAdmins() {
         .orderBy(adminUsers.createdAt);
 }
 
-export async function insertAdmin(values: { name: string; email: string; passwordHash: string }) {
+export async function insertAdmin(values: { name: string; email: string; passwordHash: string; role?: string }) {
     const [novo] = await db
         .insert(adminUsers)
-        .values({ name: values.name, email: values.email, passwordHash: values.passwordHash })
+        .values({ name: values.name, email: values.email, passwordHash: values.passwordHash, role: values.role ?? 'admin' })
         .returning({ id: adminUsers.id, name: adminUsers.name, email: adminUsers.email, role: adminUsers.role, createdAt: adminUsers.createdAt });
     return novo;
 }
@@ -87,4 +87,13 @@ export async function deleteAdmin(id: string) {
         await tx.delete(adminPasswordResetTokens).where(eq(adminPasswordResetTokens.adminId, id));
         await tx.delete(adminUsers).where(eq(adminUsers.id, id));
     });
+}
+
+export async function updateAdmin(id: string, valores: { name?: string; role?: string }) {
+    const [u] = await db
+        .update(adminUsers)
+        .set(valores)
+        .where(eq(adminUsers.id, id))
+        .returning({ id: adminUsers.id, name: adminUsers.name, email: adminUsers.email, role: adminUsers.role, createdAt: adminUsers.createdAt });
+    return u;
 }

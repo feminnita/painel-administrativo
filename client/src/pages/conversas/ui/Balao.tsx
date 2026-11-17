@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { CornerUpLeft, Download } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { ROTULO_TIPO, horaCurta } from "../formatos";
 import type { Mensagem } from "../type";
@@ -87,7 +87,21 @@ const ESTILO = {
     equipe: { lado: "justify-end", balao: "bg-[#8C2F39] text-white", rotulo: "Equipe" },
 } as const;
 
-export function Balao({ m, onImagemCarregou }: { m: Mensagem; onImagemCarregou?: () => void }) {
+type BalaoProps = {
+    m: Mensagem;
+    // Mensagem que esta sendo respondida (quando ja esta carregada na tela).
+    citada?: Mensagem | null;
+    onImagemCarregou?: () => void;
+    // Sem a funcao (conversa fora das 24h) o botao "Responder" nao aparece.
+    onResponder?: (m: Mensagem) => void;
+};
+
+export function trechoDe(m: Mensagem) {
+    const t = m.tipo === "texto" ? m.texto : m.legenda || m.texto || ROTULO_TIPO[m.tipo];
+    return (t ?? "").length > 120 ? `${(t ?? "").slice(0, 120)}…` : t ?? "";
+}
+
+export function Balao({ m, citada, onImagemCarregou, onResponder }: BalaoProps) {
     const legenda = m.legenda || (m.tipo !== "texto" ? m.texto : null);
 
     // Nota interna: amarela, so a equipe ve. Nunca foi para o WhatsApp.
@@ -110,9 +124,20 @@ export function Balao({ m, onImagemCarregou }: { m: Mensagem; onImagemCarregou?:
     const rotulo = m.autor === "equipe" && m.atendente ? m.atendente : e.rotulo;
 
     return (
-        <div className={`flex ${e.lado}`}>
+        <div className={`group flex items-center gap-1 ${e.lado}`}>
+            {onResponder && m.autor !== "cliente" && (
+                <button type="button" onClick={() => onResponder(m)} aria-label="Responder esta mensagem" title="Responder"
+                    className="rounded p-1 text-neutral-400 opacity-0 hover:text-[#8C2F39] focus:opacity-100 group-hover:opacity-100">
+                    <CornerUpLeft size={16} />
+                </button>
+            )}
             <div className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm md:max-w-[70%] ${e.balao}`}>
                 {rotulo && <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70">{rotulo}</p>}
+                {m.resposta_de && (
+                    <p className="mb-1 rounded border-l-4 border-black/30 bg-black/10 px-2 py-1 text-xs opacity-90">
+                        {citada ? trechoDe(citada) : "Mensagem citada"}
+                    </p>
+                )}
 
                 {m.tipo === "texto" && <p className="whitespace-pre-wrap break-words">{m.texto}</p>}
 
@@ -133,6 +158,12 @@ export function Balao({ m, onImagemCarregou }: { m: Mensagem; onImagemCarregou?:
                     {m.status && m.autor !== "cliente" && m.status !== "recebida" ? ` · ${m.status}` : ""}
                 </p>
             </div>
+            {onResponder && m.autor === "cliente" && (
+                <button type="button" onClick={() => onResponder(m)} aria-label="Responder esta mensagem" title="Responder"
+                    className="rounded p-1 text-neutral-400 opacity-0 hover:text-[#8C2F39] focus:opacity-100 group-hover:opacity-100">
+                    <CornerUpLeft size={16} />
+                </button>
+            )}
         </div>
     );
 }

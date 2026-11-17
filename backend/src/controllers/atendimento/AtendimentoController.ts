@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { timingSafeEqual } from 'crypto';
 import { env } from '../../config/env';
 import * as AtendimentoRepository from '../../repository/atendimento/AtendimentoRepository';
+import { conversaVisivel, ehAdmin } from '../../services/atendimento/Permissoes';
 
 function segredoOk(recebido: string | undefined) {
     if (!env.atendimentoSecret || !recebido) return false;
@@ -37,12 +38,32 @@ export async function pedidosDaCliente(req: Request, res: Response) {
     res.json({ pedidos: await AtendimentoRepository.pedidosPorTelefone(telefone) });
 }
 
-export async function listar(_req: Request, res: Response) {
+export async function listar(req: Request, res: Response) {
     const [abertos, recentes] = await Promise.all([
         AtendimentoRepository.listarAbertos(),
         AtendimentoRepository.listarAtendidosRecentes(),
     ]);
-    res.json({ abertos, recentes });
+    if (ehAdmin(req.admin)) return res.json({ abertos, recentes });
+
+    // Atendente: so os casos das conversas que ele pode ver (mesma regra da tela
+    // Conversas). Sem conseguir conferir no marketing, nao mostra nenhum.
+    let visiveis = new Set<string>();
+    if (env.liaUrl && env.atendimentoSecret) {
+        try {
+            const r = await fetch(`${env.liaUrl}/api/atendimento/conversas?limite=500`, {
+                headers: { 'x-atendimento-secret': env.atendimentoSecret },
+                signal: AbortSignal.timeout(20_000),
+            });
+            if (r.ok) {
+                const lista = (await r.json()) as { telefone: string; atendimento?: { assunto?: string | null; responsavel?: string | null } | null }[];
+                visiveis = new Set(lista.filter((c) => conversaVisivel(c, req.admin)).map((c) => c.telefone));
+            }
+        } catch {
+            // fica vazio
+        }
+    }
+    const meus = <T extends { telefone: string }>(l: T[]) => l.filter((c) => visiveis.has(c.telefone));
+    res.json({ abertos: meus(abertos as { telefone: string }[]), recentes: meus(recentes as { telefone: string }[]) });
 }
 
 export async function atendido(req: Request, res: Response) {

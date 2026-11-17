@@ -1,15 +1,21 @@
 import { useSearchParams } from "react-router-dom";
 import { MessagesSquare } from "lucide-react";
+import { useAuth } from "@/auth/useAuth";
+import { ehAdmin } from "@/auth/papel";
 import { useConversas } from "../useConversas";
+import { useAtendimento } from "../useAtendimento";
 import { ListaConversas } from "./ListaConversas";
 import { Chat } from "./Chat";
 
 // Caixa de entrada do WhatsApp da Armmis: todas as conversas, o que a Lia
-// respondeu, e a equipe respondendo por aqui (texto ou foto). Quem responde
-// pausa a Lia naquela conversa; "Devolver para a Lia" libera de novo.
+// respondeu, e a equipe respondendo por aqui. Quem responde abre um atendimento
+// (a Lia para naquela conversa); "Fechar" pede o motivo e devolve para a Lia.
 // A conversa aberta fica no endereco (?tel=) para o "voltar" do celular funcionar.
 export function ConversasPage() {
+    const { admin } = useAuth();
+    const souAdmin = ehAdmin(admin?.role);
     const { conversas, carregou, erro, carregar } = useConversas(5000);
+    const at = useAtendimento();
     const [params, setParams] = useSearchParams();
     const selecionado = params.get("tel");
     const conversa = conversas.find((c) => c.telefone === selecionado) ?? null;
@@ -33,14 +39,19 @@ export function ConversasPage() {
                         {!carregou ? (
                             <p className="p-6 text-center text-sm text-neutral-500">Carregando…</p>
                         ) : (
-                            <ListaConversas conversas={conversas} selecionado={selecionado} onSelecionar={abrir} />
+                            <ListaConversas conversas={conversas} fechados={at.fechados} etiquetas={at.etiquetas} meuNome={admin?.name ?? null} souAdmin={souAdmin}
+                                selecionado={selecionado} onSelecionar={abrir} onAbrirFechadas={at.carregarFechados} />
                         )}
                     </div>
                 </section>
 
                 <section className={`min-w-0 flex-1 ${selecionado ? "flex" : "hidden md:flex"}`}>
                     {selecionado ? (
-                        <Chat key={selecionado} telefone={selecionado} conversa={conversa} onVoltar={fechar} onMudou={carregar} />
+                        <Chat key={selecionado} telefone={selecionado} conversa={conversa} etiquetas={at.etiquetas} equipe={at.equipe} souAdmin={souAdmin}
+                            onVoltar={fechar} onMudou={carregar}
+                            onMarcarEtiquetas={at.marcarEtiquetas} onCriarEtiqueta={at.criarEtiqueta} onExcluirEtiqueta={at.excluirEtiqueta}
+                            onFecharAtendimento={async (tel, motivo) => { await at.fechar(tel, motivo); at.carregarFechados(); }}
+                            onTransferir={at.transferir} />
                     ) : (
                         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-neutral-400">
                             <MessagesSquare size={40} />
