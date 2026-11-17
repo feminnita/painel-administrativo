@@ -254,10 +254,15 @@ export function useProductsAdmin() {
 
     }))) return;
     try {
-      await api.post("/api/admin/products/bulk", {
+      const r = await api.post<{ deleted: number; archived: number } | void>("/api/admin/products/bulk", {
         ids: [...selected],
         action: "delete",
       });
+      if (r && r.archived > 0) {
+        alert(
+          `${r.deleted} excluído(s) e ${r.archived} arquivado(s). Produto com pedido antigo não pode ser apagado: ele sai da lista do painel e da loja, e os pedidos continuam com o histórico.`,
+        );
+      }
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Erro ao excluir");
     }
@@ -976,7 +981,12 @@ export function useProductsAdmin() {
   const handleDelete = async (id: string) => {
     if (!(await confirm({ title: "Excluir produto", message: "Este Produto será excluido permanentemente.", confirmLabel: "Excluir", danger: true }))) return;
     try {
-      await api.delete(`/api/admin/products/${id}`);
+      const r = await api.delete<{ deleted: number; archived: number } | void>(`/api/admin/products/${id}`);
+      if (r && r.archived > 0) {
+        alert(
+          "Este produto tem pedidos antigos e por isso foi arquivado: saiu da lista do painel e da loja, e os pedidos continuam com o histórico.",
+        );
+      }
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Erro ao excluir");
     }

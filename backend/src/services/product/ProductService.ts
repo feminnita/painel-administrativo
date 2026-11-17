@@ -64,14 +64,32 @@ export function listColorImages(productId: string) {
     return ProductColorImageRepository.findColorImagesWithNames(productId);
 }
 
-export async function deleteProducts(ids: string[]) {
+// O drizzle embrulha o erro do banco: o codigo (23503 = outro registro aponta
+// para este) vem em err.cause.code, nao em err.code. Olhando so err.code, a
+// exclusao de produto COM PEDIDO caia no erro generico e o painel dizia
+// "Produto nao encontrado" para um produto que estava ali na lista.
+function temRegistroDependente(err: unknown): boolean {
+    const e = err as { code?: string; cause?: { code?: string } };
+    return e?.code === '23503' || e?.cause?.code === '23503';
+}
+
+// Excluir de verdade quando da; ARQUIVAR quando o produto tem pedido. Um por vez,
+// para um produto com pedido nao impedir a exclusao dos outros da selecao.
+export async function deleteProducts(ids: string[]): Promise<{ deleted: number; archived: number }> {
     if (!Array.isArray(ids) || ids.length === 0) throw new Error('NO_IDS');
-    try {
-        await ProductRepository.deleteProductsCascade(ids);
-    } catch (err) {
-        if ((err as { code?: string }).code === '23503') throw new Error('PRODUCT_HAS_ORDERS');
-        throw err;
+    let deleted = 0;
+    let archived = 0;
+    for (const id of ids) {
+        try {
+            await ProductRepository.deleteProductsCascade([id]);
+            deleted++;
+        } catch (err) {
+            if (!temRegistroDependente(err)) throw err;
+            await ProductRepository.archiveProducts([id]);
+            archived++;
+        }
     }
+    return { deleted, archived };
 }
 
 export function bulkAction(ids: string[], action: 'activate' | 'deactivate' | 'delete') {
