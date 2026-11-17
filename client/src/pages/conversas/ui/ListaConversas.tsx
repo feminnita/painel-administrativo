@@ -11,6 +11,7 @@ type Props = {
     fechados: Fechado[];
     etiquetas: Etiqueta[];
     meuNome: string | null;
+    souAdmin: boolean;
     selecionado: string | null;
     onSelecionar: (telefone: string) => void;
     onAbrirFechadas: () => void;
@@ -21,7 +22,7 @@ const naEquipe = (c: Conversa) => !!c.atendimento || comEquipe(c);
 
 // Coluna da esquerda: abas da fila (Aguardando equipe, Com a Lia, Fechadas),
 // busca por nome ou telefone e filtros (minhas, nao lidas, etiqueta).
-export function ListaConversas({ conversas, fechados, etiquetas, meuNome, selecionado, onSelecionar, onAbrirFechadas }: Props) {
+export function ListaConversas({ conversas, fechados, etiquetas, meuNome, souAdmin, selecionado, onSelecionar, onAbrirFechadas }: Props) {
     const [busca, setBusca] = useState("");
     const [aba, setAba] = useState<Aba>("equipe");
     const [soMinhas, setSoMinhas] = useState(false);
@@ -69,7 +70,7 @@ export function ListaConversas({ conversas, fechados, etiquetas, meuNome, seleci
         <div className="flex h-full flex-col">
             <div className="flex border-b">
                 {botaoAba("equipe", "Com a equipe", totalEquipe)}
-                {botaoAba("lia", "Com a Lia", totalLia)}
+                {souAdmin && botaoAba("lia", "Com a Lia", totalLia)}
                 {botaoAba("fechadas", "Fechadas")}
             </div>
             <div className="space-y-2 border-b p-3">

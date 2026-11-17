@@ -7,6 +7,7 @@ const MENSAGEM: Record<string, [number, string]> = {
     EMAIL_JA_CADASTRADO: [409, 'Já existe um login com esse e-mail.'],
     NAO_PODE_SE_APAGAR: [400, 'Você não pode excluir o seu próprio login.'],
     NAO_ENCONTRADO: [404, 'Login não encontrado.'],
+    NAO_PODE_SE_REBAIXAR: [400, 'Você não pode tirar o seu próprio acesso total.'],
 };
 
 function responderErro(res: Response, e: unknown) {
@@ -23,7 +24,12 @@ export async function list(_req: Request, res: Response) {
 
 export async function create(req: Request, res: Response) {
     try {
-        const r = await UsersService.createUser({ name: String(req.body?.name ?? ''), email: String(req.body?.email ?? '') });
+        const r = await UsersService.createUser({
+            name: String(req.body?.name ?? ''),
+            email: String(req.body?.email ?? ''),
+            papel: req.body?.papel,
+            assuntos: req.body?.assuntos,
+        });
         res.status(201).json(r);
     } catch (e) {
         responderErro(res, e);
@@ -41,7 +47,7 @@ export async function remove(req: Request, res: Response) {
 
 export async function rename(req: Request, res: Response) {
     try {
-        res.json(await UsersService.renameUser(String(req.params.id), String(req.body?.name ?? '')));
+        res.json(await UsersService.updateUser(String(req.params.id), req.body ?? {}, req.admin?.id));
     } catch (e) {
         responderErro(res, e);
     }

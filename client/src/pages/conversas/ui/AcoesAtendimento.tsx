@@ -133,8 +133,9 @@ type EtiquetasProps = {
     marcadas: number[];
     onFechar: () => void;
     onSalvar: (ids: number[]) => Promise<void>;
-    onCriar: (nome: string, cor: string) => Promise<void>;
-    onExcluir: (id: number) => Promise<void>;
+    // So a administradora cadastra e exclui etiquetas; sem as funcoes, a tela so marca e desmarca.
+    onCriar?: (nome: string, cor: string) => Promise<void>;
+    onExcluir?: (id: number) => Promise<void>;
 };
 
 const CORES = ["#8C2F39", "#7C3AED", "#B45309", "#DC2626", "#047857", "#1D4ED8", "#525252"];
@@ -163,7 +164,7 @@ export function EtiquetasModal({ etiquetas, marcadas, onFechar, onSalvar, onCria
     }
 
     async function criar() {
-        if (!nome.trim()) return;
+        if (!nome.trim() || !onCriar) return;
         setErro(null);
         try {
             await onCriar(nome.trim(), cor);
@@ -174,6 +175,7 @@ export function EtiquetasModal({ etiquetas, marcadas, onFechar, onSalvar, onCria
     }
 
     async function excluir(e: Etiqueta) {
+        if (!onExcluir) return;
         if (!window.confirm(`Excluir a etiqueta "${e.nome}" do cadastro? Ela sai de todas as conversas.`)) return;
         try {
             await onExcluir(e.id);
@@ -194,12 +196,15 @@ export function EtiquetasModal({ etiquetas, marcadas, onFechar, onSalvar, onCria
                             <input type="checkbox" checked={ids.includes(e.id)} onChange={() => alternar(e.id)} />
                             <span className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: e.cor }}>{e.nome}</span>
                         </label>
-                        <button type="button" onClick={() => excluir(e)} aria-label={`Excluir a etiqueta ${e.nome}`} className="rounded p-1 text-neutral-400 hover:text-red-600">
-                            <Trash2 size={14} />
-                        </button>
+                        {onExcluir && (
+                            <button type="button" onClick={() => excluir(e)} aria-label={`Excluir a etiqueta ${e.nome}`} className="rounded p-1 text-neutral-400 hover:text-red-600">
+                                <Trash2 size={14} />
+                            </button>
+                        )}
                     </li>
                 ))}
             </ul>
+            {onCriar && (
             <div className="flex items-center gap-2 border-t pt-3">
                 <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={40} placeholder="Nova etiqueta"
                     className="min-w-0 flex-1 rounded border px-3 py-2 text-sm" />
@@ -210,6 +215,7 @@ export function EtiquetasModal({ etiquetas, marcadas, onFechar, onSalvar, onCria
                 <button type="button" onClick={criar} disabled={!nome.trim()} aria-label="Criar etiqueta"
                     className="rounded border p-2 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40"><Plus size={16} /></button>
             </div>
+            )}
             <div className="flex justify-end gap-2">
                 <button type="button" onClick={onFechar} className="rounded border px-3 py-2 text-sm">Cancelar</button>
                 <button type="button" onClick={salvar} disabled={salvando}

@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { MessagesSquare } from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
+import { ehAdmin } from "@/auth/papel";
 import { useConversas } from "../useConversas";
 import { useAtendimento } from "../useAtendimento";
 import { ListaConversas } from "./ListaConversas";
@@ -12,6 +13,7 @@ import { Chat } from "./Chat";
 // A conversa aberta fica no endereco (?tel=) para o "voltar" do celular funcionar.
 export function ConversasPage() {
     const { admin } = useAuth();
+    const souAdmin = ehAdmin(admin?.role);
     const { conversas, carregou, erro, carregar } = useConversas(5000);
     const at = useAtendimento();
     const [params, setParams] = useSearchParams();
@@ -37,7 +39,7 @@ export function ConversasPage() {
                         {!carregou ? (
                             <p className="p-6 text-center text-sm text-neutral-500">Carregando…</p>
                         ) : (
-                            <ListaConversas conversas={conversas} fechados={at.fechados} etiquetas={at.etiquetas} meuNome={admin?.name ?? null}
+                            <ListaConversas conversas={conversas} fechados={at.fechados} etiquetas={at.etiquetas} meuNome={admin?.name ?? null} souAdmin={souAdmin}
                                 selecionado={selecionado} onSelecionar={abrir} onAbrirFechadas={at.carregarFechados} />
                         )}
                     </div>
@@ -45,7 +47,7 @@ export function ConversasPage() {
 
                 <section className={`min-w-0 flex-1 ${selecionado ? "flex" : "hidden md:flex"}`}>
                     {selecionado ? (
-                        <Chat key={selecionado} telefone={selecionado} conversa={conversa} etiquetas={at.etiquetas} equipe={at.equipe}
+                        <Chat key={selecionado} telefone={selecionado} conversa={conversa} etiquetas={at.etiquetas} equipe={at.equipe} souAdmin={souAdmin}
                             onVoltar={fechar} onMudou={carregar}
                             onMarcarEtiquetas={at.marcarEtiquetas} onCriarEtiqueta={at.criarEtiqueta} onExcluirEtiqueta={at.excluirEtiqueta}
                             onFecharAtendimento={async (tel, motivo) => { await at.fechar(tel, motivo); at.carregarFechados(); }}

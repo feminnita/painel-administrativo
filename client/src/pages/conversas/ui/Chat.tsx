@@ -16,6 +16,7 @@ type Props = {
     conversa: Conversa | null;
     etiquetas: Etiqueta[];
     equipe: string[];
+    souAdmin: boolean;
     onVoltar: () => void;
     onMudou: () => void;
     onMarcarEtiquetas: (telefone: string, ids: number[]) => Promise<unknown>;
@@ -28,7 +29,7 @@ type Props = {
 const telaLarga = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
 export function Chat({
-    telefone, conversa, etiquetas, equipe, onVoltar, onMudou,
+    telefone, conversa, etiquetas, equipe, souAdmin, onVoltar, onMudou,
     onMarcarEtiquetas, onCriarEtiqueta, onExcluirEtiqueta, onFecharAtendimento, onTransferir,
 }: Props) {
     const {
@@ -179,7 +180,7 @@ export function Chat({
                 {quadro === "etiquetas" && (
                     <EtiquetasModal etiquetas={etiquetas} marcadas={marcadas.map((e) => e.id)} onFechar={() => setQuadro(null)}
                         onSalvar={async (ids) => { await onMarcarEtiquetas(telefone, ids); onMudou(); }}
-                        onCriar={onCriarEtiqueta} onExcluir={onExcluirEtiqueta} />
+                        onCriar={souAdmin ? onCriarEtiqueta : undefined} onExcluir={souAdmin ? onExcluirEtiqueta : undefined} />
                 )}
             </div>
 

@@ -3,6 +3,8 @@ import { Readable } from 'stream';
 import type { ReadableStream as WebReadableStream } from 'stream/web';
 import { env } from '../../config/env';
 import * as AtendimentoRepository from '../../repository/atendimento/AtendimentoRepository';
+import * as AuthRepository from '../../repository/auth/AuthRepository';
+import { conversaVisivel, ehAdmin } from '../../services/atendimento/Permissoes';
 
 // Tela "Conversas": o painel e so um repassador autenticado para o sistema de
 // marketing (onde a Lia guarda as conversas do WhatsApp). O segredo
@@ -102,18 +104,59 @@ function limite(valor: unknown, padrao: number, max: number) {
     return Number.isInteger(n) && n > 0 ? Math.min(n, max) : padrao;
 }
 
+type ConversaDoMarketing = { telefone: string; atendimento?: { assunto?: string | null; responsavel?: string | null } | null };
+
+// Conversas que ESTA pessoa pode ver (a administradora ve todas). Guardado por
+// 3 segundos: a tela pergunta a lista o tempo todo e cada clique numa conversa
+// confere a permissao, entao sem isso seriam varias idas ao marketing por clique.
+const visiveisCache = new Map<string, { ate: number; telefones: Set<string> }>();
+async function telefonesVisiveis(req: Request): Promise<Set<string>> {
+    const chave = `${req.admin?.id}|${req.admin?.role}|${req.admin?.name}`;
+    const c = visiveisCache.get(chave);
+    if (c && c.ate > Date.now()) return c.telefones;
+    const r = await chamarMarketing('/api/atendimento/conversas?limite=500');
+    if (!r.ok) throw new FalhaMarketing(502, 'Nao foi possivel conferir as conversas no sistema de marketing');
+    const lista = (await r.json()) as ConversaDoMarketing[];
+    const telefones = new Set(lista.filter((x) => conversaVisivel(x, req.admin)).map((x) => x.telefone));
+    visiveisCache.set(chave, { ate: Date.now() + 3000, telefones });
+    return telefones;
+}
+
+// true = pode seguir. false = ja respondeu 403 (ou a falha do marketing).
+async function podeAbrir(req: Request, res: Resposta, telefone: string): Promise<boolean> {
+    if (ehAdmin(req.admin)) return true;
+    try {
+        if ((await telefonesVisiveis(req)).has(telefone)) return true;
+    } catch (e) {
+        responderFalha(res, e);
+        return false;
+    }
+    res.status(403).json({ error: 'Essa conversa nao esta com voce.' });
+    return false;
+}
+
 export async function listarConversas(req: Request, res: Resposta) {
     try {
         const r = await chamarMarketing(`/api/atendimento/conversas?limite=${limite(req.query.limite, 100, 300)}`);
-        return repassarJson(r, res);
+        if (ehAdmin(req.admin) || !r.ok) return repassarJson(r, res);
+        const lista = (await r.json()) as ConversaDoMarketing[];
+        return res.json(lista.filter((c) => conversaVisivel(c, req.admin)));
     } catch (e) {
         return responderFalha(res, e);
     }
 }
 
+// Nomes de quem tem login no painel, para a tela escolher para quem transferir.
+// So os nomes: a lista completa (com e-mail e papel) e so da administradora.
+export async function equipe(_req: Request, res: Resposta) {
+    const todos = await AuthRepository.listAdmins();
+    res.json(todos.map((u) => u.name));
+}
+
 export async function mensagens(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     const qs = new URLSearchParams({ limite: String(limite(req.query.limite, 50, 200)) });
     if (req.query.antes) qs.set('antes', String(req.query.antes));
     try {
@@ -127,6 +170,7 @@ export async function mensagens(req: Request, res: Resposta) {
 export async function marcarLida(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     try {
         const r = await chamarMarketing(`/api/atendimento/conversas/${telefone}/lida`, { method: 'POST' });
         return repassarJson(r, res);
@@ -160,6 +204,7 @@ export async function midia(req: Request, res: Resposta) {
 export async function enviar(req: Request, res: Resposta) {
     const { telefone, texto, imagem_base64, arquivo_base64, nome_arquivo, mime, legenda, nota, responde_a } = req.body ?? {};
     if (!TELEFONE.test(String(telefone ?? ''))) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, String(telefone)))) return;
 
     let corpo: Record<string, string | boolean>;
     let comArquivo = false;
@@ -217,6 +262,7 @@ export async function enviar(req: Request, res: Resposta) {
 export async function devolver(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     try {
         const r = await chamarMarketing('/api/atendimento/liberar', {
             method: 'POST',
@@ -236,6 +282,7 @@ export async function devolver(req: Request, res: Resposta) {
 export async function cliente(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     const c = await AtendimentoRepository.clientePorTelefone(telefone);
     return res.json({ cliente: c });
 }
@@ -289,6 +336,7 @@ export async function excluirRapida(req: Request, res: Resposta) {
 export async function fechar(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     const motivo = String(req.body?.motivo ?? '').trim().slice(0, 60);
     if (!motivo) return res.status(400).json({ error: 'Escolha o motivo do fechamento.' });
     const quem = req.admin?.name ?? req.admin?.email ?? 'equipe';
@@ -308,6 +356,7 @@ export async function fechar(req: Request, res: Resposta) {
 export async function transferir(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     const corpo: Record<string, string> = { atendente: req.admin?.name ?? '' };
     if (typeof req.body?.responsavel === 'string') corpo.responsavel = req.body.responsavel.trim().slice(0, 40);
     if (typeof req.body?.assunto === 'string' && req.body.assunto) corpo.assunto = req.body.assunto;
@@ -324,7 +373,11 @@ export async function transferir(req: Request, res: Resposta) {
 
 export async function fechados(req: Request, res: Resposta) {
     try {
-        return repassarJson(await chamarMarketing(`/api/atendimento/fechados?limite=${limite(req.query.limite, 50, 200)}`), res);
+        const r = await chamarMarketing(`/api/atendimento/fechados?limite=${limite(req.query.limite, 50, 200)}`);
+        if (ehAdmin(req.admin) || !r.ok) return repassarJson(r, res);
+        const lista = (await r.json()) as { responsavel?: string | null; fechado_por?: string | null }[];
+        const eu = req.admin?.name;
+        return res.json(lista.filter((f) => f.responsavel === eu || f.fechado_por === eu));
     } catch (e) {
         return responderFalha(res, e);
     }
@@ -339,6 +392,7 @@ export async function listarEtiquetas(_req: Request, res: Resposta) {
 }
 
 export async function criarEtiqueta(req: Request, res: Resposta) {
+    if (!ehAdmin(req.admin)) return res.status(403).json({ error: 'So a administradora cadastra etiquetas.' });
     try {
         const corpo = JSON.stringify({ nome: String(req.body?.nome ?? ''), cor: String(req.body?.cor ?? '') });
         return repassarJson(await chamarMarketing('/api/atendimento/etiquetas', { method: 'POST', body: corpo }), res);
@@ -350,6 +404,7 @@ export async function criarEtiqueta(req: Request, res: Resposta) {
 export async function excluirEtiqueta(req: Request, res: Resposta) {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'id invalido' });
+    if (!ehAdmin(req.admin)) return res.status(403).json({ error: 'So a administradora exclui etiquetas.' });
     try {
         return repassarJson(await chamarMarketing(`/api/atendimento/etiquetas/${id}`, { method: 'DELETE' }), res);
     } catch (e) {
@@ -360,6 +415,7 @@ export async function excluirEtiqueta(req: Request, res: Resposta) {
 export async function marcarEtiquetas(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    if (!(await podeAbrir(req, res, telefone))) return;
     const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter((n: number) => Number.isInteger(n) && n > 0) : [];
     try {
         return repassarJson(

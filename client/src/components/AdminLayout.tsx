@@ -10,6 +10,8 @@ import {
 import { AvisoAtendimento } from "./AvisoAtendimento";
 import { useNaoLidas } from "@/pages/conversas/useConversas";
 import { api, clearToken } from "@/lib/api/client";
+import { useAuth } from "@/auth/useAuth";
+import { ehAdmin } from "@/auth/papel";
 
 type NavLeaf = { href: string; label: string; icon: typeof Package };
 type NavGroup = { label: string; icon: typeof Package; children: NavLeaf[] };
@@ -78,6 +80,8 @@ export function AdminLayout() {
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { admin } = useAuth();
+    const souAdmin = ehAdmin(admin?.role);
     // Contador de mensagens nao lidas do WhatsApp, ao lado de "Conversas".
     const naoLidas = useNaoLidas();
 
@@ -165,7 +169,7 @@ export function AdminLayout() {
 
                                     {expanded && (
                                         <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-4">
-                                            {item.children.map((child) => {
+                                            {item.children.filter((c) => souAdmin || c.href !== "/usuarios").map((child) => {
                                                 const ChildIcon = child.icon;
                                                 const active =
                                                     pathname === child.href ||

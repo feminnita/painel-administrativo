@@ -37,8 +37,8 @@ export function useAtendimento() {
 
     useEffect(() => {
         carregarEtiquetas();
-        api.get<{ name: string }[]>("/api/admin/users")
-            .then((r) => { if (Array.isArray(r)) setEquipe(r.map((u) => u.name)); })
+        api.get<string[]>(`${BASE}/equipe`)
+            .then((r) => { if (Array.isArray(r)) setEquipe(r); })
             .catch(() => undefined);
     }, [carregarEtiquetas]);
 

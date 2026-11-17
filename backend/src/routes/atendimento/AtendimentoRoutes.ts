@@ -44,6 +44,7 @@ adminAtendimentoRoutes.post('/conversas/:telefone/fechar', ConversasController.f
 adminAtendimentoRoutes.post('/conversas/:telefone/transferir', ConversasController.transferir);
 adminAtendimentoRoutes.put('/conversas/:telefone/etiquetas', ConversasController.marcarEtiquetas);
 adminAtendimentoRoutes.get('/fechados', ConversasController.fechados);
+adminAtendimentoRoutes.get('/equipe', ConversasController.equipe);
 adminAtendimentoRoutes.get('/etiquetas', ConversasController.listarEtiquetas);
 adminAtendimentoRoutes.post('/etiquetas', ConversasController.criarEtiqueta);
 adminAtendimentoRoutes.delete('/etiquetas/:id', ConversasController.excluirEtiqueta);
