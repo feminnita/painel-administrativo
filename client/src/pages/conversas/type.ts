@@ -16,6 +16,16 @@ export type Conversa = {
     ultima_cliente_em: string | null;
     pausado_ate: string | null;
     motivo_pausa: string | null;
+    etiquetas?: Etiqueta[];
+    // Atendimento aberto com a equipe (protocolo, assunto e quem esta cuidando); null = com a Lia.
+    atendimento?: { protocolo: number; assunto: Assunto; responsavel: string | null; aberto_em: string | null } | null;
+};
+
+export type Assunto = "geral" | "financeiro" | "expedicao" | "afiliada";
+export type Etiqueta = { id: number; nome: string; cor: string };
+export type Fechado = {
+    protocolo: number; telefone: string; nome: string | null; assunto: Assunto; responsavel: string | null;
+    aberto_em: string | null; fechado_em: string | null; motivo: string | null; fechado_por: string | null;
 };
 
 export type Mensagem = {
@@ -31,6 +41,8 @@ export type Mensagem = {
     // Quem da equipe respondeu (o nome do login) e se e nota interna (nunca enviada a cliente).
     atendente?: string | null;
     interna?: boolean;
+    // id da mensagem citada, quando esta e uma resposta.
+    resposta_de?: number | null;
 };
 
 // Mensagem rapida: texto pronto chamado com "/" + atalho no campo de mensagem.

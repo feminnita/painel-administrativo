@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Mic, Paperclip, Send, Settings2, Square, StickyNote, Trash2, X, Zap } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
-import type { RespostaRapida } from "../type";
+import type { Mensagem, RespostaRapida } from "../type";
+import { trechoDe } from "./Balao";
 
 const TIPOS_FOTO = ["image/jpeg", "image/png"]; // o servidor da Lia (WhatsApp) só aceita JPEG e PNG
 const MAX_FOTO_BYTES = 5 * 1024 * 1024;
@@ -56,6 +57,9 @@ type Props = {
     bloqueado: boolean;
     nomeCliente: string | null;
     rapidas: RespostaRapida[];
+    // Mensagem que esta sendo respondida (citada); so vale para texto.
+    respondendo?: Mensagem | null;
+    onCancelarResposta?: () => void;
     onGerenciarRapidas: () => void;
     onEnviarTexto: (texto: string) => Promise<void>;
     onEnviarNota: (texto: string) => Promise<void>;
@@ -67,7 +71,7 @@ type Props = {
 // arquivo com legenda, audio gravado na hora, mensagem rapida com "/" e nota
 // interna (amarela: fica so no painel, a cliente nao recebe).
 export function Composer({
-    bloqueado, nomeCliente, rapidas, onGerenciarRapidas,
+    bloqueado, nomeCliente, rapidas, respondendo, onCancelarResposta, onGerenciarRapidas,
     onEnviarTexto, onEnviarNota, onEnviarImagem, onEnviarArquivo,
 }: Props) {
     const [texto, setTexto] = useState("");
@@ -222,6 +226,12 @@ export function Composer({
             {soNota && <p className="mb-2 text-sm text-amber-900">{AVISO_24H} Você ainda pode deixar uma nota interna.</p>}
             {erro && <p className="mb-2 rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700">{erro}</p>}
 
+            {respondendo && !modoNota && !anexo && !audio && (
+                <div className="mb-2 flex items-center gap-2 rounded border-l-4 border-[#8C2F39] bg-neutral-100 px-3 py-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate"><strong>Respondendo:</strong> {trechoDe(respondendo)}</span>
+                    <button type="button" onClick={onCancelarResposta} aria-label="Cancelar a resposta"><X size={14} /></button>
+                </div>
+            )}
             {previa && (
                 <div className="relative mb-2 inline-block">
                     <img src={previa} alt="Foto a enviar" className="max-h-40 rounded border" />
@@ -279,6 +289,10 @@ export function Composer({
             <div className="flex items-end gap-2">
                 <input ref={seletor} type="file" accept={ACEITA} className="hidden"
                     onChange={(e) => { escolherArquivo(e.target.files?.[0]); e.target.value = ""; }} />
+                <button type="button" onClick={onGerenciarRapidas} disabled={enviando}
+                    className="rounded border p-2 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40" aria-label="Cadastrar mensagens rápidas" title="Cadastrar mensagens rápidas">
+                    <Settings2 size={20} />
+                </button>
                 {!soNota && (
                     <>
                         <button type="button" onClick={() => seletor.current?.click()} disabled={enviando || gravando || nota}
@@ -292,10 +306,6 @@ export function Composer({
                         <button type="button" onClick={() => { setTexto("/"); campo.current?.focus(); }} disabled={enviando || gravando || nota || !!anexo}
                             className="rounded border p-2 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40" aria-label="Mensagens rápidas" title="Mensagens rápidas (ou digite /)">
                             <Zap size={20} />
-                        </button>
-                        <button type="button" onClick={onGerenciarRapidas} disabled={enviando}
-                            className="rounded border p-2 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40" aria-label="Cadastrar mensagens rápidas" title="Cadastrar mensagens rápidas">
-                            <Settings2 size={20} />
                         </button>
                         <button type="button" onClick={() => { setNota((n) => !n); setAnexo(null); setAudio(null); }} disabled={enviando || gravando}
                             aria-pressed={nota} title="Nota interna: só a equipe vê"

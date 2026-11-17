@@ -63,6 +63,10 @@ function mensagemDoErro(status: number, corpo: Record<string, unknown>) {
     if (erro === 'chave_invalida') return 'O atalho precisa ter de 1 a 40 letras ou numeros (sem acento), comecando por letra ou numero.';
     if (erro === 'texto_invalido') return 'Escreva o texto da mensagem rapida (ate 4096 caracteres).';
     if (erro === 'chave_repetida') return 'Ja existe uma mensagem rapida com esse atalho.';
+    if (erro === 'motivo_invalido') return 'Escolha o motivo do fechamento.';
+    if (erro === 'assunto_invalido') return 'Assunto invalido.';
+    if (erro === 'nome_invalido') return 'Informe o nome da etiqueta (ate 40 letras).';
+    if (erro === 'etiqueta_repetida') return 'Ja existe uma etiqueta com esse nome.';
     return erro || `O sistema de marketing respondeu com erro ${status}`;
 }
 
@@ -154,7 +158,7 @@ export async function midia(req: Request, res: Resposta) {
 }
 
 export async function enviar(req: Request, res: Resposta) {
-    const { telefone, texto, imagem_base64, arquivo_base64, nome_arquivo, mime, legenda, nota } = req.body ?? {};
+    const { telefone, texto, imagem_base64, arquivo_base64, nome_arquivo, mime, legenda, nota, responde_a } = req.body ?? {};
     if (!TELEFONE.test(String(telefone ?? ''))) return res.status(400).json({ error: 'telefone invalido' });
 
     let corpo: Record<string, string | boolean>;
@@ -187,6 +191,8 @@ export async function enviar(req: Request, res: Resposta) {
         if (!t) return res.status(400).json({ error: 'Mensagem vazia' });
         if (t.length > 4096) return res.status(400).json({ error: 'Mensagem longa demais (limite do WhatsApp: 4096 caracteres)' });
         corpo = { telefone: String(telefone), texto: t };
+        // Responder citando: o id da mensagem citada (so para texto).
+        if (Number.isInteger(Number(responde_a)) && Number(responde_a) > 0) corpo.responde_a = String(Number(responde_a));
     }
     // Quem esta logado no painel: o marketing guarda para a equipe saber quem respondeu.
     const quem = (req.admin?.name ?? '').trim().slice(0, 40);
@@ -212,7 +218,10 @@ export async function devolver(req: Request, res: Resposta) {
     const telefone = String(req.params.telefone);
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
     try {
-        const r = await chamarMarketing('/api/atendimento/liberar', { method: 'POST', body: JSON.stringify({ telefone }) });
+        const r = await chamarMarketing('/api/atendimento/liberar', {
+            method: 'POST',
+            body: JSON.stringify({ telefone, atendente: req.admin?.name ?? '', motivo: 'Devolvida para a Lia' }),
+        });
         if (!r.ok) return repassarJson(r, res);
     } catch (e) {
         return responderFalha(res, e);
@@ -270,6 +279,93 @@ export async function excluirRapida(req: Request, res: Resposta) {
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'id invalido' });
     try {
         return repassarJson(await chamarMarketing(`${ROTA_RAPIDAS}/${id}`, { method: 'DELETE' }), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+// ---- Atendimento: fechar com motivo, transferir, fechados e etiquetas. Tudo guardado no marketing.
+// Fechar tambem da baixa no caso da tela Atendimento (o mesmo que "Devolver para a Lia" faz).
+export async function fechar(req: Request, res: Resposta) {
+    const telefone = String(req.params.telefone);
+    if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    const motivo = String(req.body?.motivo ?? '').trim().slice(0, 60);
+    if (!motivo) return res.status(400).json({ error: 'Escolha o motivo do fechamento.' });
+    const quem = req.admin?.name ?? req.admin?.email ?? 'equipe';
+    try {
+        const r = await chamarMarketing(`/api/atendimento/conversas/${telefone}/fechar`, {
+            method: 'POST',
+            body: JSON.stringify({ motivo, atendente: quem }),
+        });
+        if (!r.ok) return repassarJson(r, res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+    const casosFechados = await AtendimentoRepository.marcarAtendidoPorTelefone(telefone, quem);
+    return res.json({ ok: true, casosFechados });
+}
+
+export async function transferir(req: Request, res: Resposta) {
+    const telefone = String(req.params.telefone);
+    if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    const corpo: Record<string, string> = { atendente: req.admin?.name ?? '' };
+    if (typeof req.body?.responsavel === 'string') corpo.responsavel = req.body.responsavel.trim().slice(0, 40);
+    if (typeof req.body?.assunto === 'string' && req.body.assunto) corpo.assunto = req.body.assunto;
+    if (typeof req.body?.observacao === 'string') corpo.observacao = req.body.observacao.trim().slice(0, 500);
+    try {
+        return repassarJson(
+            await chamarMarketing(`/api/atendimento/conversas/${telefone}/transferir`, { method: 'POST', body: JSON.stringify(corpo) }),
+            res,
+        );
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function fechados(req: Request, res: Resposta) {
+    try {
+        return repassarJson(await chamarMarketing(`/api/atendimento/fechados?limite=${limite(req.query.limite, 50, 200)}`), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function listarEtiquetas(_req: Request, res: Resposta) {
+    try {
+        return repassarJson(await chamarMarketing('/api/atendimento/etiquetas'), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function criarEtiqueta(req: Request, res: Resposta) {
+    try {
+        const corpo = JSON.stringify({ nome: String(req.body?.nome ?? ''), cor: String(req.body?.cor ?? '') });
+        return repassarJson(await chamarMarketing('/api/atendimento/etiquetas', { method: 'POST', body: corpo }), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function excluirEtiqueta(req: Request, res: Resposta) {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'id invalido' });
+    try {
+        return repassarJson(await chamarMarketing(`/api/atendimento/etiquetas/${id}`, { method: 'DELETE' }), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function marcarEtiquetas(req: Request, res: Resposta) {
+    const telefone = String(req.params.telefone);
+    if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter((n: number) => Number.isInteger(n) && n > 0) : [];
+    try {
+        return repassarJson(
+            await chamarMarketing(`/api/atendimento/conversas/${telefone}/etiquetas`, { method: 'PUT', body: JSON.stringify({ ids }) }),
+            res,
+        );
     } catch (e) {
         return responderFalha(res, e);
     }

@@ -39,3 +39,11 @@ adminAtendimentoRoutes.get('/respostas-rapidas', ConversasController.listarRapid
 adminAtendimentoRoutes.post('/respostas-rapidas', ConversasController.criarRapida);
 adminAtendimentoRoutes.put('/respostas-rapidas/:id', ConversasController.editarRapida);
 adminAtendimentoRoutes.delete('/respostas-rapidas/:id', ConversasController.excluirRapida);
+// Atendimento: fila, fechamento com motivo, transferencia e etiquetas.
+adminAtendimentoRoutes.post('/conversas/:telefone/fechar', ConversasController.fechar);
+adminAtendimentoRoutes.post('/conversas/:telefone/transferir', ConversasController.transferir);
+adminAtendimentoRoutes.put('/conversas/:telefone/etiquetas', ConversasController.marcarEtiquetas);
+adminAtendimentoRoutes.get('/fechados', ConversasController.fechados);
+adminAtendimentoRoutes.get('/etiquetas', ConversasController.listarEtiquetas);
+adminAtendimentoRoutes.post('/etiquetas', ConversasController.criarEtiqueta);
+adminAtendimentoRoutes.delete('/etiquetas/:id', ConversasController.excluirEtiqueta);

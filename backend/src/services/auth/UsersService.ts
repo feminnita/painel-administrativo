@@ -39,3 +39,11 @@ export async function deleteUser(id: string, quemPede: string | undefined) {
     if (!alvo) throw new Error('NAO_ENCONTRADO');
     await AuthRepository.deleteAdmin(id);
 }
+
+export async function renameUser(id: string, nome: string) {
+    const name = nome.trim();
+    if (name.length < 2 || name.length > 60) throw new Error('NOME_INVALIDO');
+    const user = await AuthRepository.updateAdminName(id, name);
+    if (!user) throw new Error('NAO_ENCONTRADO');
+    return user;
+}

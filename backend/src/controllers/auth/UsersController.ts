@@ -38,3 +38,11 @@ export async function remove(req: Request, res: Response) {
         responderErro(res, e);
     }
 }
+
+export async function rename(req: Request, res: Response) {
+    try {
+        res.json(await UsersService.renameUser(String(req.params.id), String(req.body?.name ?? '')));
+    } catch (e) {
+        responderErro(res, e);
+    }
+}

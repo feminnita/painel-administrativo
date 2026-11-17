@@ -7,4 +7,5 @@ export const adminUsersRoutes = Router();
 adminUsersRoutes.use(requireAdminAuth);
 adminUsersRoutes.get('/', UsersController.list);
 adminUsersRoutes.post('/', UsersController.create);
+adminUsersRoutes.patch('/:id', UsersController.rename);
 adminUsersRoutes.delete('/:id', UsersController.remove);

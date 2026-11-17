@@ -88,3 +88,12 @@ export async function deleteAdmin(id: string) {
         await tx.delete(adminUsers).where(eq(adminUsers.id, id));
     });
 }
+
+export async function updateAdminName(id: string, name: string) {
+    const [u] = await db
+        .update(adminUsers)
+        .set({ name })
+        .where(eq(adminUsers.id, id))
+        .returning({ id: adminUsers.id, name: adminUsers.name, email: adminUsers.email, role: adminUsers.role, createdAt: adminUsers.createdAt });
+    return u;
+}

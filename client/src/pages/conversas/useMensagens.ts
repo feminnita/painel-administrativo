@@ -98,9 +98,10 @@ export function useMensagens(telefone: string | null, intervaloMs = 5000) {
         }
     }, [mensagens, temAntigas, carregandoAntigas]);
 
-    const enviarTexto = async (texto: string) => {
+    // responde_a = id da mensagem citada ("responder" do WhatsApp).
+    const enviarTexto = async (texto: string, responde_a?: number) => {
         if (!telefone) return;
-        await api.post(`/api/admin/atendimento/enviar`, { telefone, texto });
+        await api.post(`/api/admin/atendimento/enviar`, { telefone, texto, responde_a });
         await buscarNovas();
     };
 

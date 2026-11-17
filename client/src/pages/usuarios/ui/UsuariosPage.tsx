@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Trash2, UserPlus } from "lucide-react";
+import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import { useAuth } from "@/auth/useAuth";
 
@@ -50,6 +50,21 @@ export function UsuariosPage() {
             setErro(e2 instanceof ApiError ? e2.message : "Não foi possível criar o login.");
         } finally {
             setSalvando(false);
+        }
+    }
+
+    // O nome e o que aparece nos baloes da tela Conversas ("quem respondeu").
+    async function renomear(u: Usuario) {
+        const novo = window.prompt("Nome que aparece nas conversas:", u.name)?.trim();
+        if (!novo || novo === u.name) return;
+        setErro(null);
+        setAviso(null);
+        try {
+            await api.patch(`/api/admin/users/${u.id}`, { name: novo });
+            await carregar();
+            if (u.id === admin?.id) setAviso("Nome trocado. Ele passa a aparecer nas próximas mensagens depois que você sair e entrar de novo.");
+        } catch (e) {
+            setErro(e instanceof ApiError ? e.message : "Não foi possível trocar o nome.");
         }
     }
 
@@ -105,6 +120,10 @@ export function UsuariosPage() {
                                 </p>
                                 <p className="truncate text-sm text-neutral-600">{u.email}</p>
                             </div>
+                            <button type="button" onClick={() => renomear(u)} aria-label={`Trocar o nome de ${u.name}`} title="Trocar o nome"
+                                className="rounded border p-2 text-neutral-600 hover:bg-neutral-50">
+                                <Pencil size={16} />
+                            </button>
                             {u.id !== admin?.id && (
                                 <button type="button" onClick={() => excluir(u)} aria-label={`Excluir o login de ${u.name}`} title="Excluir login"
                                     className="rounded border p-2 text-red-600 hover:bg-red-50">
