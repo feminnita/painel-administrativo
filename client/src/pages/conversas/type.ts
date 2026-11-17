@@ -7,7 +7,11 @@ export type TipoMensagem = "texto" | "imagem" | "audio" | "documento" | "video" 
 export type Conversa = {
     telefone: string;
     nome: string | null;
-    ultima: { autor: Autor; tipo: TipoMensagem; texto: string | null; criado_em: string } | null;
+    ultima: {
+        autor: Autor; tipo: TipoMensagem; texto: string | null; criado_em: string;
+        // Nota interna (so a equipe ve) e quem da equipe escreveu.
+        interna?: boolean; atendente?: string | null;
+    } | null;
     nao_lidas: number;
     ultima_cliente_em: string | null;
     pausado_ate: string | null;
@@ -24,7 +28,13 @@ export type Mensagem = {
     midia_mime: string | null;
     criado_em: string;
     status: string | null;
+    // Quem da equipe respondeu (o nome do login) e se e nota interna (nunca enviada a cliente).
+    atendente?: string | null;
+    interna?: boolean;
 };
+
+// Mensagem rapida: texto pronto chamado com "/" + atalho no campo de mensagem.
+export type RespostaRapida = { id: number; chave: string; texto: string };
 
 // Painel "Cliente": cadastro da loja que casou com o telefone do WhatsApp.
 export type PedidoDaCliente = {

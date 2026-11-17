@@ -64,6 +64,7 @@ const navItems: NavEntry[] = [
     {
         label: "Configurações", icon: Settings,
         children: [
+            { href: "/usuarios", label: "Usuários", icon: Users },
             { href: "/frete", label: "Frete", icon: Truck },
             { href: "/tabela-medidas", label: "Tabela de Medidas", icon: Ruler },
             { href: "/termo-revenda", label: "Termo de Revenda", icon: FileText },

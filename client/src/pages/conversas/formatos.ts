@@ -56,7 +56,9 @@ export const ROTULO_TIPO: Record<TipoMensagem, string> = {
 
 export function previa(c: Conversa) {
     if (!c.ultima) return "";
-    const quem = c.ultima.autor === "lia" ? "Lia: " : c.ultima.autor === "equipe" ? "Você: " : "";
+    if (c.ultima.interna) return `Nota: ${c.ultima.texto ?? ""}`;
+    const quem = c.ultima.autor === "lia" ? "Lia: "
+        : c.ultima.autor === "equipe" ? `${c.ultima.atendente?.split(" ")[0] ?? "Equipe"}: ` : "";
     const corpo = c.ultima.tipo === "texto"
         ? c.ultima.texto ?? ""
         : `${ROTULO_TIPO[c.ultima.tipo] ?? "[mensagem]"}${c.ultima.texto ? ` ${c.ultima.texto}` : ""}`;

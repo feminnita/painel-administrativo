@@ -1,9 +1,10 @@
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { db } from '../../config/db';
 import { adminUsers, adminSessions, adminPasswordResetTokens } from '../../config/db/schema';
 
 export function findAdminByEmail(email: string) {
-    return db.query.adminUsers.findFirst({ where: eq(adminUsers.email, email) });
+    // Sem diferenciar maiusculas: quem digita "Debora@..." entra no login cadastrado como "debora@...".
+    return db.query.adminUsers.findFirst({ where: eq(sql`lower(${adminUsers.email})`, String(email ?? '').trim().toLowerCase()) });
 }
 
 export function findAdminById(id: string) {
@@ -61,4 +62,29 @@ export function markPasswordResetTokenUsed(id: string) {
 
 export function updateAdminPassword(adminId: string, passwordHash: string) {
     return db.update(adminUsers).set({ passwordHash }).where(eq(adminUsers.id, adminId));
+}
+
+// ---- Usuarios do painel (tela Usuarios). Nunca devolve o hash da senha.
+export function listAdmins() {
+    return db
+        .select({ id: adminUsers.id, name: adminUsers.name, email: adminUsers.email, role: adminUsers.role, createdAt: adminUsers.createdAt })
+        .from(adminUsers)
+        .orderBy(adminUsers.createdAt);
+}
+
+export async function insertAdmin(values: { name: string; email: string; passwordHash: string }) {
+    const [novo] = await db
+        .insert(adminUsers)
+        .values({ name: values.name, email: values.email, passwordHash: values.passwordHash })
+        .returning({ id: adminUsers.id, name: adminUsers.name, email: adminUsers.email, role: adminUsers.role, createdAt: adminUsers.createdAt });
+    return novo;
+}
+
+// Apaga o usuario com tudo que aponta para ele (sessoes e links de senha).
+export async function deleteAdmin(id: string) {
+    await db.transaction(async (tx) => {
+        await tx.delete(adminSessions).where(eq(adminSessions.adminId, id));
+        await tx.delete(adminPasswordResetTokens).where(eq(adminPasswordResetTokens.adminId, id));
+        await tx.delete(adminUsers).where(eq(adminUsers.id, id));
+    });
 }

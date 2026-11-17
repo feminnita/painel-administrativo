@@ -110,6 +110,20 @@ export function useMensagens(telefone: string | null, intervaloMs = 5000) {
         await buscarNovas();
     };
 
+    // Nota interna: fica so no painel. O servidor da Lia grava e nao manda para a cliente.
+    const enviarNota = async (texto: string) => {
+        if (!telefone) return;
+        await api.post(`/api/admin/atendimento/enviar`, { telefone, texto, nota: true });
+        await buscarNovas();
+    };
+
+    // PDF, audio, video ou outro documento.
+    const enviarArquivo = async (arquivo_base64: string, mime: string, nome_arquivo: string, legenda?: string) => {
+        if (!telefone) return;
+        await api.post(`/api/admin/atendimento/enviar`, { telefone, arquivo_base64, mime, nome_arquivo, legenda: legenda || undefined });
+        await buscarNovas();
+    };
+
     const devolver = async () => {
         if (!telefone) return;
         await api.post(`${base(telefone)}/devolver`);
@@ -117,6 +131,6 @@ export function useMensagens(telefone: string | null, intervaloMs = 5000) {
 
     return {
         mensagens, carregando, erro, temAntigas, carregandoAntigas,
-        carregarAntigas, enviarTexto, enviarImagem, devolver,
+        carregarAntigas, enviarTexto, enviarImagem, enviarNota, enviarArquivo, devolver,
     };
 }

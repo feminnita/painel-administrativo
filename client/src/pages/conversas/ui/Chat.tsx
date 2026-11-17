@@ -1,11 +1,13 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, Bot, UserRound } from "lucide-react";
 import { useMensagens } from "../useMensagens";
+import { useRapidas } from "../useRapidas";
 import { comEquipe, foraDaJanela, lerData, nomeOuTelefone, telefoneFormatado } from "../formatos";
 import type { Conversa } from "../type";
 import { Balao } from "./Balao";
 import { Composer } from "./Composer";
 import { PainelCliente } from "./PainelCliente";
+import { RapidasModal } from "./RapidasModal";
 
 type Props = {
     telefone: string;
@@ -19,8 +21,10 @@ const telaLarga = () => typeof window !== "undefined" && window.matchMedia("(min
 export function Chat({ telefone, conversa, onVoltar, onMudou }: Props) {
     const {
         mensagens, carregando, erro, temAntigas, carregandoAntigas,
-        carregarAntigas, enviarTexto, enviarImagem, devolver,
+        carregarAntigas, enviarTexto, enviarImagem, enviarNota, enviarArquivo, devolver,
     } = useMensagens(telefone);
+    const { rapidas, salvar: salvarRapida, excluir: excluirRapida } = useRapidas();
+    const [rapidasAbertas, setRapidasAbertas] = useState(false);
     const [devolvendo, setDevolvendo] = useState(false);
     const [erroDevolver, setErroDevolver] = useState<string | null>(null);
     // Painel "Cliente": aberto de cara em tela larga; no celular abre como gaveta.
@@ -125,10 +129,19 @@ export function Chat({ telefone, conversa, onVoltar, onMudou }: Props) {
                 </div>
 
                 <Composer
+                    key={telefone}
                     bloqueado={bloqueado}
+                    nomeCliente={conversa?.nome ?? null}
+                    rapidas={rapidas}
+                    onGerenciarRapidas={() => setRapidasAbertas(true)}
                     onEnviarTexto={async (t) => { pertoDoFim.current = true; await enviarTexto(t); onMudou(); }}
+                    onEnviarNota={async (t) => { pertoDoFim.current = true; await enviarNota(t); onMudou(); }}
                     onEnviarImagem={async (b, mime, leg) => { pertoDoFim.current = true; await enviarImagem(b, mime, leg); onMudou(); }}
+                    onEnviarArquivo={async (b, mime, nome, leg) => { pertoDoFim.current = true; await enviarArquivo(b, mime, nome, leg); onMudou(); }}
                 />
+                {rapidasAbertas && (
+                    <RapidasModal rapidas={rapidas} onFechar={() => setRapidasAbertas(false)} onSalvar={salvarRapida} onExcluir={excluirRapida} />
+                )}
             </div>
 
             {clienteAberto && (

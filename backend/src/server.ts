@@ -31,6 +31,7 @@ import { adminNewsletterRoutes } from './routes/newsletter/NewsletterRoutes';
 import { adminCampanhasRoutes } from './routes/campanhas/CampanhasRoutes';
 import { adminReconcileRoutes } from './routes/reconcile/ReconcileRoutes';
 import { adminAtendimentoRoutes, atendimentoWebhookRoutes } from './routes/atendimento/AtendimentoRoutes';
+import { adminUsersRoutes } from './routes/auth/UsersRoutes';
 
 const app = express();
 
@@ -69,6 +70,7 @@ app.use(
 );
 
 app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/categories', adminCategoryRoutes);
 app.use('/api/admin/products', adminProductRoutes);
 app.use('/api/admin/colors', adminProductColorRoutes);
