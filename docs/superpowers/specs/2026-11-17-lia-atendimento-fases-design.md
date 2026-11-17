@@ -11,9 +11,29 @@ Fonte da comparação: 186 fotos da central de ajuda da JetGO em `Downloads/JETS
 
 Regra do projeto: **dado de conversa fica no marketing; o painel não guarda cópia.** O painel manda junto o nome de quem está logado, para o marketing registrar quem respondeu.
 
-## Premissas (a confirmar com a Chris)
+## Equipe (resposta da Chris em 17/11)
 
-- Equipe pequena, todo mundo atende tudo. Não há departamentos na fase 1; o sistema registra **quem** respondeu.
+| Pessoa | Atende |
+|---|---|
+| Chris | Tudo, inclusive financeiro e afiliadas |
+| Débora | Geral, menos financeiro |
+| Iury | Separa os pedidos (expedição) |
+
+Por isso a fase 1 já nasce com **assunto** e **responsável**, em vez de uma caixa única:
+
+| Assunto | Responsável padrão |
+|---|---|
+| Geral (dúvida, produto, pedido novo) | Débora |
+| Financeiro (pagamento, boleto, estorno, nota) | Chris |
+| Expedição (separação, envio, rastreio que a Lia não resolveu) | Iury |
+| Afiliada TikTok | Chris |
+
+- A Lia escolhe o assunto quando passa a conversa para humano; qualquer pessoa pode trocar o assunto ou transferir para outra.
+- Cada uma vê primeiro "Minhas"; a Chris vê todas.
+- O painel registra quem respondeu cada mensagem.
+
+## Premissas
+
 - No dia da virada o número sai do aplicativo do celular. A equipe passa a responder só pelo painel, então a fase 1 vem antes da virada.
 
 ## Fases
@@ -56,7 +76,8 @@ Regra do projeto: **dado de conversa fica no marketing; o painel não guarda có
 - Lista: busca por nome ou telefone; filtros Não lidas, Com a Lia, Com a equipe, por etiqueta.
 - Fixar até 3 conversas no topo (`wa_conversas_fixadas`).
 
-### 6. Filas e fechamento
+### 6. Filas, responsável e fechamento
+- Tabela `wa_atendimentos` guarda também `assunto` e `responsavel`. Filtro "Minhas" na lista e botão Transferir (escolhe a pessoa e deixa uma observação, gravada como nota interna).
 - Três abas: **Aguardando equipe** (a Lia passou ou a cliente escreveu com a Lia pausada), **Com a Lia**, **Fechadas**.
 - Fechar atendimento pede um motivo (`wa_motivos_fechamento`): Venda fechada, Dúvida resolvida, Sem resposta da cliente, Não era cliente, Outro.
 - Tabela `wa_atendimentos (id = protocolo, telefone, aberto_em, assumido_em, fechado_em, motivo_id, atendente)`. Abre na primeira mensagem depois de um fechamento; é a base dos relatórios da fase 4 (1ª resposta, pendentes).
