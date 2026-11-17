@@ -39,7 +39,23 @@ function ImagemAutenticada({ midiaId, alt, onCarregou }: { midiaId: string; alt:
     );
 }
 
-// Audio, documento e video: so o rotulo e o botao de baixar.
+// Audio: toca ali mesmo, sem baixar.
+function AudioAutenticado({ midiaId }: { midiaId: string }) {
+    const [url, setUrl] = useState<string | null>(null);
+    const [falhou, setFalhou] = useState(false);
+
+    useEffect(() => {
+        let vivo = true;
+        urlDaMidia(midiaId).then((u) => { if (vivo) setUrl(u); }).catch(() => { if (vivo) setFalhou(true); });
+        return () => { vivo = false; };
+    }, [midiaId]);
+
+    if (falhou) return <p className="text-xs italic opacity-70">[áudio não carregou]</p>;
+    if (!url) return <div className="h-10 w-56 animate-pulse rounded bg-black/10" />;
+    return <audio src={url} controls className="h-10 max-w-full" />;
+}
+
+// Documento e video: so o rotulo e o botao de baixar.
 function BaixarMidia({ midiaId, rotulo, mime }: { midiaId: string; rotulo: string; mime: string | null }) {
     const [baixando, setBaixando] = useState(false);
     async function baixar() {
@@ -72,13 +88,31 @@ const ESTILO = {
 } as const;
 
 export function Balao({ m, onImagemCarregou }: { m: Mensagem; onImagemCarregou?: () => void }) {
-    const e = ESTILO[m.autor] ?? ESTILO.cliente;
     const legenda = m.legenda || (m.tipo !== "texto" ? m.texto : null);
+
+    // Nota interna: amarela, so a equipe ve. Nunca foi para o WhatsApp.
+    if (m.interna) {
+        return (
+            <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-amber-950 shadow-sm md:max-w-[70%]">
+                    <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70">
+                        Nota interna{m.atendente ? ` · ${m.atendente}` : ""}
+                    </p>
+                    <p className="whitespace-pre-wrap break-words">{m.texto}</p>
+                    <p className="mt-1 text-right text-[11px] opacity-60">{horaCurta(m.criado_em)} · a cliente não vê</p>
+                </div>
+            </div>
+        );
+    }
+
+    const e = ESTILO[m.autor] ?? ESTILO.cliente;
+    // Mensagem da equipe mostra quem respondeu, quando o painel registrou.
+    const rotulo = m.autor === "equipe" && m.atendente ? m.atendente : e.rotulo;
 
     return (
         <div className={`flex ${e.lado}`}>
             <div className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm md:max-w-[70%] ${e.balao}`}>
-                {e.rotulo && <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70">{e.rotulo}</p>}
+                {rotulo && <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70">{rotulo}</p>}
 
                 {m.tipo === "texto" && <p className="whitespace-pre-wrap break-words">{m.texto}</p>}
 
@@ -86,7 +120,9 @@ export function Balao({ m, onImagemCarregou }: { m: Mensagem; onImagemCarregou?:
                     ? <ImagemAutenticada midiaId={m.midia_id} alt={legenda ?? "foto"} onCarregou={onImagemCarregou} />
                     : <p className="italic opacity-70">[foto]</p>)}
 
-                {m.tipo !== "texto" && m.tipo !== "imagem" && (m.midia_id
+                {m.tipo === "audio" && m.midia_id && <AudioAutenticado midiaId={m.midia_id} />}
+
+                {m.tipo !== "texto" && m.tipo !== "imagem" && !(m.tipo === "audio" && m.midia_id) && (m.midia_id
                     ? <BaixarMidia midiaId={m.midia_id} rotulo={ROTULO_TIPO[m.tipo] ?? "[arquivo]"} mime={m.midia_mime} />
                     : <p className="italic opacity-70">{ROTULO_TIPO[m.tipo] ?? "[mensagem]"}</p>)}
 

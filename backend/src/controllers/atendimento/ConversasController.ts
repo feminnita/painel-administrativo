@@ -15,6 +15,9 @@ const TIMEOUT_MIDIA_MS = 60_000;
 // server.ts) ja deixa a foto em base64 chegar ate aqui; quem barra o tamanho e esta conta.
 const MAX_IMAGEM_BYTES = 8 * 1024 * 1024;
 const MIMES_IMAGEM = ['image/jpeg', 'image/png']; // o marketing recusa outros formatos (mime_invalido)
+// PDF, audio e video. O arquivo viaja em base64 dentro do JSON, que cresce 1/3:
+// 15 MB de arquivo viram 20 MB de texto, dentro do limite geral de 25 MB.
+const MAX_ARQUIVO_BYTES = 15 * 1024 * 1024;
 
 const TELEFONE = /^\d{10,15}$/;
 const MIDIA_ID = /^[\w.-]{1,200}$/;
@@ -54,6 +57,12 @@ function mensagemDoErro(status: number, corpo: Record<string, unknown>) {
     if (erro === 'fora_da_janela_24h') return 'Passaram 24 horas da ultima mensagem da cliente: o WhatsApp so deixa responder quando ela escrever de novo.';
     if (erro === 'modo_teste') return 'O WhatsApp da Lia esta em modo teste: so manda mensagem para os numeros liberados.';
     if (erro === 'meta') return `O WhatsApp (Meta) recusou o envio${corpo.detalhe ? `: ${String(corpo.detalhe)}` : ''}`;
+    if (erro === 'mime_invalido') return 'O WhatsApp nao aceita esse tipo de arquivo. Vale PDF, Word, Excel, PowerPoint, texto, foto JPG/PNG, audio e video MP4.';
+    if (erro === 'arquivo_grande') return 'Arquivo grande demais para o WhatsApp.';
+    if (erro === 'audio_nao_convertido') return 'Nao foi possivel preparar o audio. Grave de novo.';
+    if (erro === 'chave_invalida') return 'O atalho precisa ter de 1 a 40 letras ou numeros (sem acento), comecando por letra ou numero.';
+    if (erro === 'texto_invalido') return 'Escreva o texto da mensagem rapida (ate 4096 caracteres).';
+    if (erro === 'chave_repetida') return 'Ja existe uma mensagem rapida com esse atalho.';
     return erro || `O sistema de marketing respondeu com erro ${status}`;
 }
 
@@ -145,11 +154,27 @@ export async function midia(req: Request, res: Resposta) {
 }
 
 export async function enviar(req: Request, res: Resposta) {
-    const { telefone, texto, imagem_base64, mime, legenda } = req.body ?? {};
+    const { telefone, texto, imagem_base64, arquivo_base64, nome_arquivo, mime, legenda, nota } = req.body ?? {};
     if (!TELEFONE.test(String(telefone ?? ''))) return res.status(400).json({ error: 'telefone invalido' });
 
-    let corpo: Record<string, string>;
-    if (imagem_base64) {
+    let corpo: Record<string, string | boolean>;
+    let comArquivo = false;
+    if (nota === true) {
+        // Nota interna: o marketing grava e NAO manda para o WhatsApp.
+        const t = String(texto ?? '').trim();
+        if (!t) return res.status(400).json({ error: 'Nota vazia' });
+        if (t.length > 4096) return res.status(400).json({ error: 'Nota longa demais (limite de 4096 caracteres)' });
+        corpo = { telefone: String(telefone), texto: t, nota: true };
+    } else if (arquivo_base64) {
+        const base64 = String(arquivo_base64).replace(/^data:[^,]*,/, '');
+        if (Math.floor((base64.length * 3) / 4) > MAX_ARQUIVO_BYTES) {
+            return res.status(413).json({ error: 'Arquivo grande demais (limite de 15 MB)' });
+        }
+        corpo = { telefone: String(telefone), arquivo_base64: base64, mime: String(mime ?? '') };
+        if (nome_arquivo && String(nome_arquivo).trim()) corpo.nome_arquivo = String(nome_arquivo).trim().slice(0, 120);
+        if (legenda && String(legenda).trim()) corpo.legenda = String(legenda).trim().slice(0, 1024);
+        comArquivo = true;
+    } else if (imagem_base64) {
         if (!MIMES_IMAGEM.includes(String(mime))) return res.status(400).json({ error: 'A foto precisa ser JPG, PNG ou WEBP' });
         const base64 = String(imagem_base64).replace(/^data:[^,]*,/, '');
         if (Math.floor((base64.length * 3) / 4) > MAX_IMAGEM_BYTES) {
@@ -163,9 +188,16 @@ export async function enviar(req: Request, res: Resposta) {
         if (t.length > 4096) return res.status(400).json({ error: 'Mensagem longa demais (limite do WhatsApp: 4096 caracteres)' });
         corpo = { telefone: String(telefone), texto: t };
     }
+    // Quem esta logado no painel: o marketing guarda para a equipe saber quem respondeu.
+    const quem = (req.admin?.name ?? '').trim().slice(0, 40);
+    if (quem) corpo.atendente = quem;
 
     try {
-        const r = await chamarMarketing('/api/atendimento/enviar', { method: 'POST', body: JSON.stringify(corpo) });
+        const r = await chamarMarketing(
+            '/api/atendimento/enviar',
+            { method: 'POST', body: JSON.stringify(corpo) },
+            comArquivo ? TIMEOUT_MIDIA_MS : TIMEOUT_MS,
+        );
         return repassarJson(r, res);
     } catch (e) {
         return responderFalha(res, e);
@@ -197,4 +229,48 @@ export async function cliente(req: Request, res: Resposta) {
     if (!TELEFONE.test(telefone)) return res.status(400).json({ error: 'telefone invalido' });
     const c = await AtendimentoRepository.clientePorTelefone(telefone);
     return res.json({ cliente: c });
+}
+
+// ---- Mensagens rapidas: textos prontos que a equipe chama com "/" no campo de mensagem.
+// Ficam guardadas no marketing, junto das conversas; o painel so repassa.
+const ROTA_RAPIDAS = '/api/atendimento/respostas-rapidas';
+
+export async function listarRapidas(_req: Request, res: Resposta) {
+    try {
+        return repassarJson(await chamarMarketing(ROTA_RAPIDAS), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+function corpoRapida(req: Request) {
+    return JSON.stringify({ chave: String(req.body?.chave ?? ''), texto: String(req.body?.texto ?? '') });
+}
+
+export async function criarRapida(req: Request, res: Resposta) {
+    try {
+        return repassarJson(await chamarMarketing(ROTA_RAPIDAS, { method: 'POST', body: corpoRapida(req) }), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function editarRapida(req: Request, res: Resposta) {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'id invalido' });
+    try {
+        return repassarJson(await chamarMarketing(`${ROTA_RAPIDAS}/${id}`, { method: 'PUT', body: corpoRapida(req) }), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
+}
+
+export async function excluirRapida(req: Request, res: Resposta) {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'id invalido' });
+    try {
+        return repassarJson(await chamarMarketing(`${ROTA_RAPIDAS}/${id}`, { method: 'DELETE' }), res);
+    } catch (e) {
+        return responderFalha(res, e);
+    }
 }

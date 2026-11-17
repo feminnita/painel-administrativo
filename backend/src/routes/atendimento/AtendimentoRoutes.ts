@@ -34,3 +34,8 @@ adminAtendimentoRoutes.get('/midia/:midiaId', ConversasController.midia);
 // comporta; o teto de 8 MB da foto e conferido no controller.
 adminAtendimentoRoutes.post('/enviar', ConversasController.enviar);
 adminAtendimentoRoutes.get('/cliente/:telefone', ConversasController.cliente);
+// Mensagens rapidas (atalho com "/" no campo de mensagem).
+adminAtendimentoRoutes.get('/respostas-rapidas', ConversasController.listarRapidas);
+adminAtendimentoRoutes.post('/respostas-rapidas', ConversasController.criarRapida);
+adminAtendimentoRoutes.put('/respostas-rapidas/:id', ConversasController.editarRapida);
+adminAtendimentoRoutes.delete('/respostas-rapidas/:id', ConversasController.excluirRapida);
