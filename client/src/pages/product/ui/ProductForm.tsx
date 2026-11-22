@@ -959,26 +959,19 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     </div>
                                     {/* Etiqueta no site (22/11, Chris): "% OFF" sobre o preço cheio + este texto */}
                                     <div className="mt-4">
-                                        <label className="label">Selo da promoção no site</label>
+                                        {/* 22/11 Chris: "é melhor clicar no tipo de etiqueta" — só etiquetas prontas, sem digitar */}
+                                        <label className="label">Etiqueta no site (clique em uma)</label>
                                         <div className="flex flex-wrap items-center gap-2">
                                             {["Black Friday", "Preço de lançamento", "Só hoje", "Oferta especial"].map((s) => (
                                                 <button
                                                     key={s}
                                                     type="button"
                                                     onClick={() => setEditing({ ...editing, promo_prog_selo: s })}
-                                                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${editing.promo_prog_selo === s ? "border-red-600 bg-red-600 text-white" : "border-gray-300 bg-white text-gray-700"}`}
+                                                    className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold ${editing.promo_prog_selo === s ? "border-red-600 bg-red-600 text-white" : "border-gray-300 bg-white text-gray-700 hover:border-red-400"}`}
                                                 >
-                                                    {s}
+                                                    {editing.promo_prog_selo === s ? "✓ " : ""}{s}
                                                 </button>
                                             ))}
-                                            <input
-                                                type="text"
-                                                maxLength={30}
-                                                value={editing.promo_prog_selo ?? ""}
-                                                onChange={(e) => setEditing({ ...editing, promo_prog_selo: e.target.value })}
-                                                className="input max-w-xs"
-                                                placeholder="ou escreva o seu texto"
-                                            />
                                         </div>
                                         <div className="mt-3 inline-flex items-stretch overflow-hidden rounded-md text-sm shadow-sm">
                                             {progPct != null && (
