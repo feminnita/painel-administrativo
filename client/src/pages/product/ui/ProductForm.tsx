@@ -1504,6 +1504,31 @@ Se alguma dessas você já apagou antes, clique em Cancelar — ela voltaria em 
                                                     className={`shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
                                                 />
                                             </button>
+                                            {/* "Chegou reposição" (22/11, Chris): liga a etiqueta no site por 7 dias */}
+                                            {(() => {
+                                                const ativa = !!editing.reposicao_ate && new Date(editing.reposicao_ate).getTime() > Date.now();
+                                                const marcada = ativa && editing.reposicao_cores.includes(color);
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (marcada) {
+                                                                const cores = editing.reposicao_cores.filter((x) => x !== color);
+                                                                setEditing({ ...editing, reposicao_cores: cores, reposicao_ate: cores.length ? editing.reposicao_ate : null });
+                                                            } else {
+                                                                const cores = [...(ativa ? editing.reposicao_cores : []).filter((x) => x !== color), color];
+                                                                setEditing({ ...editing, reposicao_cores: cores, reposicao_ate: new Date(Date.now() + 7 * 86400000).toISOString() });
+                                                            }
+                                                        }}
+                                                        className={`mr-1 shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${marcada ? "border-pink-500 bg-pink-500 text-white" : "border-gray-300 text-gray-600 hover:border-pink-400"}`}
+                                                        title={marcada ? "Clique para tirar a etiqueta desta cor" : "Mostra a etiqueta “Chegou reposição” no site por 7 dias"}
+                                                    >
+                                                        {marcada
+                                                            ? `♥ Reposição até ${new Date(editing.reposicao_ate!).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+                                                            : "Chegou reposição"}
+                                                    </button>
+                                                );
+                                            })()}
                                             {/* Lixeira da COR: apaga todas as variações desta cor. */}
                                             <button
                                                 type="button"

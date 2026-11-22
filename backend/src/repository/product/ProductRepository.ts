@@ -85,6 +85,7 @@ export async function saveProductWithRelations(
     if ('saleEnd' in safeProduct) safeProduct.saleEnd = toDateOrNull(safeProduct.saleEnd);
     if ('promoProgInicio' in safeProduct) safeProduct.promoProgInicio = toDateOrNull(safeProduct.promoProgInicio);
     if ('promoProgFim' in safeProduct) safeProduct.promoProgFim = toDateOrNull(safeProduct.promoProgFim);
+    if ('reposicaoAte' in safeProduct) safeProduct.reposicaoAte = toDateOrNull(safeProduct.reposicaoAte);
     // Estas duas são do job do desconto programado, nunca da tela.
     delete safeProduct.promoProgAplicada;
     delete safeProduct.promoProgPrecoNormal;

@@ -8,7 +8,7 @@ function normalizePrice(value: unknown): string | null | undefined {
 }
 
 const PRICE_FIELDS = ['basePrice', 'pixPrice', 'salePrice', 'costPrice', 'weightKg', 'pkgHeightCm', 'pkgWidthCm', 'pkgLengthCm', 'promoProgPreco'];
-const DATE_FIELDS = ['saleStart', 'saleEnd', 'promoProgInicio', 'promoProgFim'];
+const DATE_FIELDS = ['saleStart', 'saleEnd', 'promoProgInicio', 'promoProgFim', 'reposicaoAte'];
 
 function normalizeDate(value: unknown): Date | null | undefined {
     if (value === undefined) return undefined;

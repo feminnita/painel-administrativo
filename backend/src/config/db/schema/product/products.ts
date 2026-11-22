@@ -58,4 +58,7 @@ export const products = pgTable('products', {
   promoProgPrecoNormal: numeric('promo_prog_preco_normal', { precision: 10, scale: 2 }),
   // Texto da etiqueta no site ("Black Friday", "Preço de lançamento"...). Coluna: _selo_promocao_22nov.mjs
   promoProgSelo: text('promo_prog_selo'),
+  // Etiqueta "Chegou reposição" (22/11): ligada por cor no cadastro, vale até reposicaoAte (7 dias).
+  reposicaoAte: timestamp('reposicao_ate', { withTimezone: true }),
+  reposicaoCores: text('reposicao_cores').array().notNull().default([]),
 });
