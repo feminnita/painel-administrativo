@@ -122,6 +122,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const [addColor, setAddColor] = useState("");
     const [addSize, setAddSize] = useState("");
     const [genMsg, setGenMsg] = useState("");
+    // Promoção especial aberta sem preço ainda (o preço começa vazio — 22/11).
+    const [progAberto, setProgAberto] = useState(false);
     // Cores: paredão colapsado por padrão — só o resumo aparece; chips (com X)
     // só quando a dona clica em "ver e editar". Produtos com 105/113 cores não
     // enchem meia tela mais.
@@ -358,6 +360,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
     // Desconto programado
     const progOn = editing.promo_prog_preco != null;
+    const progVisivel = progOn || progAberto;
     const progPct = discountPct(editing.base_price, editing.promo_prog_preco);
     const ms = (iso: string | null) => (iso ? new Date(iso).getTime() : 0);
     const fmtData = (iso: string | null) =>
@@ -893,18 +896,21 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                     </div>
                                 </div>
                                 <ToggleSwitch
-                                    checked={progOn}
-                                    onChange={() =>
-                                        setEditing({
-                                            ...editing,
-                                            promo_prog_preco: progOn ? null : (editing.sale_price ?? editing.base_price),
-                                            promo_prog_inicio: progOn ? null : editing.promo_prog_inicio,
-                                            promo_prog_fim: progOn ? null : editing.promo_prog_fim,
-                                        })
-                                    }
+                                    checked={progVisivel}
+                                    onChange={() => {
+                                        // 22/11 Chris: o preço especial começa VAZIO. Antes vinha
+                                        // preenchido com o preço de hoje e a etiqueta já mostrava um %
+                                        // que ela não tinha digitado.
+                                        if (progVisivel) {
+                                            setProgAberto(false);
+                                            setEditing({ ...editing, promo_prog_preco: null, promo_prog_inicio: null, promo_prog_fim: null });
+                                        } else {
+                                            setProgAberto(true);
+                                        }
+                                    }}
                                 />
                             </div>
-                            {progOn && (
+                            {progVisivel && (
                                 <>
                                     <div className="mt-4 grid gap-4 md:grid-cols-3">
                                         <div>
@@ -973,6 +979,9 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                                 </button>
                                             ))}
                                         </div>
+                                        {editing.promo_prog_preco == null && (
+                                            <p className="mt-3 text-xs font-semibold text-amber-700">Digite o preço especial acima: o % OFF da etiqueta é calculado na hora, sobre o preço cheio.</p>
+                                        )}
                                         <div className="mt-3 inline-flex items-stretch overflow-hidden rounded-md text-sm shadow-sm">
                                             {progPct != null && (
                                                 <span className="flex items-center bg-[#1f1f1f] px-3 py-1.5 text-lg font-extrabold text-white">
