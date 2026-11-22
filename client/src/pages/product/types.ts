@@ -22,6 +22,8 @@ export type AdminProduct = {
   promo_prog_fim: string | null;
   /** Lançamento: o produto só aparece na loja no início. */
   promo_prog_lancamento: boolean;
+  /** Texto da etiqueta no site enquanto a promoção especial está no ar. */
+  promo_prog_selo: string | null;
   /** Somente leitura: o servidor já pôs o preço especial no ar. */
   promo_prog_aplicada: boolean;
   stock: number;

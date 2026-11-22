@@ -957,6 +957,41 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             />
                                         </div>
                                     </div>
+                                    {/* Etiqueta no site (22/11, Chris): "% OFF" sobre o preço cheio + este texto */}
+                                    <div className="mt-4">
+                                        <label className="label">Selo da promoção no site</label>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {["Black Friday", "Preço de lançamento", "Só hoje", "Oferta especial"].map((s) => (
+                                                <button
+                                                    key={s}
+                                                    type="button"
+                                                    onClick={() => setEditing({ ...editing, promo_prog_selo: s })}
+                                                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${editing.promo_prog_selo === s ? "border-red-600 bg-red-600 text-white" : "border-gray-300 bg-white text-gray-700"}`}
+                                                >
+                                                    {s}
+                                                </button>
+                                            ))}
+                                            <input
+                                                type="text"
+                                                maxLength={30}
+                                                value={editing.promo_prog_selo ?? ""}
+                                                onChange={(e) => setEditing({ ...editing, promo_prog_selo: e.target.value })}
+                                                className="input max-w-xs"
+                                                placeholder="ou escreva o seu texto"
+                                            />
+                                        </div>
+                                        <div className="mt-3 inline-flex items-stretch overflow-hidden rounded-md text-sm shadow-sm">
+                                            {progPct != null && (
+                                                <span className="flex items-center bg-[#1f1f1f] px-3 py-1.5 text-lg font-extrabold text-white">
+                                                    {progPct}% OFF
+                                                </span>
+                                            )}
+                                            <span className="flex items-center bg-[#d92d20] px-3 py-1.5 font-bold uppercase text-white">
+                                                {(editing.promo_prog_selo || "").trim() || "Oferta especial"}
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-xs text-amber-700">Assim aparece no site, em cima do preço, só enquanto a promoção estiver valendo. O % é sobre o preço cheio.</p>
+                                    </div>
                                     {progAviso && <p className="mt-2 text-xs font-semibold text-red-600">{progAviso}</p>}
                                     {progStatus && <p className="mt-2 text-xs font-semibold text-gray-600">{progStatus}</p>}
                                 </>

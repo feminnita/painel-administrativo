@@ -56,4 +56,6 @@ export const products = pgTable('products', {
   promoProgLancamento: boolean('promo_prog_lancamento').notNull().default(false),
   promoProgAplicada: boolean('promo_prog_aplicada').notNull().default(false),
   promoProgPrecoNormal: numeric('promo_prog_preco_normal', { precision: 10, scale: 2 }),
+  // Texto da etiqueta no site ("Black Friday", "Preço de lançamento"...). Coluna: _selo_promocao_22nov.mjs
+  promoProgSelo: text('promo_prog_selo'),
 });
