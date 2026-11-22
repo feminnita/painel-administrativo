@@ -24,6 +24,10 @@ export type AdminProduct = {
   promo_prog_lancamento: boolean;
   /** Texto da etiqueta no site enquanto a promoção especial está no ar. */
   promo_prog_selo: string | null;
+  /** Etiqueta "Chegou reposição" no site até esta data (7 dias a partir do clique). */
+  reposicao_ate: string | null;
+  /** Cores que chegaram (o botão fica ao lado de cada cor nas variações). */
+  reposicao_cores: string[];
   /** Somente leitura: o servidor já pôs o preço especial no ar. */
   promo_prog_aplicada: boolean;
   stock: number;

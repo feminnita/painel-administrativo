@@ -100,6 +100,8 @@ export function emptyProduct(): ProductInput {
         promo_prog_lancamento: false,
         promo_prog_aplicada: false,
         promo_prog_selo: null,
+        reposicao_ate: null,
+        reposicao_cores: [],
         stock: 0,
         active: true,
         visible_in_store: true,
