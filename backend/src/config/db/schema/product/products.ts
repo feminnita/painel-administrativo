@@ -46,4 +46,14 @@ export const products = pgTable('products', {
   // banco (os itens dos pedidos apontam para ele), entao fica ARQUIVADO — some
   // da lista do painel e da loja, e o historico dos pedidos continua inteiro.
   archivedAt: timestamp('archived_at', { withTimezone: true }),
+  // Desconto programado (22/11): um preço especial numa data marcada, por cima do
+  // preço do dia a dia (sale_price). Quem põe e tira do ar é o job
+  // descontoProgramado.Job; enquanto está no ar, o preço do dia a dia fica
+  // guardado em promoProgPrecoNormal. Colunas criadas por _desconto_programado_22nov.mjs.
+  promoProgPreco: numeric('promo_prog_preco', { precision: 10, scale: 2 }),
+  promoProgInicio: timestamp('promo_prog_inicio', { withTimezone: true }),
+  promoProgFim: timestamp('promo_prog_fim', { withTimezone: true }),
+  promoProgLancamento: boolean('promo_prog_lancamento').notNull().default(false),
+  promoProgAplicada: boolean('promo_prog_aplicada').notNull().default(false),
+  promoProgPrecoNormal: numeric('promo_prog_preco_normal', { precision: 10, scale: 2 }),
 });

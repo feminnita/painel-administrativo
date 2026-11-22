@@ -16,6 +16,14 @@ export type AdminProduct = {
   sale_price: number | null;
   sale_start: string | null;
   sale_end: string | null;
+  /** Desconto programado: preço especial numa data marcada, por cima do sale_price. */
+  promo_prog_preco: number | null;
+  promo_prog_inicio: string | null;
+  promo_prog_fim: string | null;
+  /** Lançamento: o produto só aparece na loja no início. */
+  promo_prog_lancamento: boolean;
+  /** Somente leitura: o servidor já pôs o preço especial no ar. */
+  promo_prog_aplicada: boolean;
   stock: number;
   active: boolean;
   visible_in_store: boolean;

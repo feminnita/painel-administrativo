@@ -1,5 +1,6 @@
 import * as ProductRepository from '../../repository/product/ProductRepository';
 import * as ProductColorImageRepository from '../../repository/product/ProductColorImageRepository';
+import { rodarDescontoProgramado } from '../../jobs/descontoProgramado.Job';
 
 export function listProducts() {
     return ProductRepository.findAll();
@@ -57,7 +58,12 @@ export function saveFullProduct(
             }))
         : [];
 
-    return ProductRepository.saveProductWithRelations(product as never, skus, colorImages, productId);
+    // Depois de salvar, o desconto programado já se acerta na hora (cancelou,
+    // mudou a data para agora...) em vez de esperar o próximo minuto do job.
+    return ProductRepository.saveProductWithRelations(product as never, skus, colorImages, productId).then(async (id) => {
+        await rodarDescontoProgramado().catch((e) => console.error('[DESCONTO-PROG] após salvar:', e));
+        return id;
+    });
 }
 
 export function listColorImages(productId: string) {
