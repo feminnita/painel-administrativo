@@ -879,16 +879,16 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
 
                         {/* Desconto programado (22/11): preço especial numa data marcada.
                             O servidor põe no ar no início e devolve o preço do dia a dia no fim. */}
-                        <div className="mt-4 rounded-lg border border-gray-100 p-4">
+                        <div className="mt-6 rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2">
-                                    <CalendarClock size={15} className="text-gray-400" />
+                                    <CalendarClock size={18} className="text-amber-600" />
                                     <div>
-                                        <p className="text-sm font-semibold text-gray-700">
-                                            Desconto programado
+                                        <p className="text-base font-bold text-amber-800">
+                                            Promoção especial (com data)
                                         </p>
-                                        <p className="text-xs text-gray-400">
-                                            Preço especial numa data marcada (promoção do grupo VIP, Black Friday, lançamento). No fim volta sozinho para o preço de hoje.
+                                        <p className="text-xs text-amber-700">
+                                            Separada do preço em promoção acima. Na data marcada o site passa a cobrar este preço e, no fim, volta sozinho ao preço de hoje. Para grupo VIP, Black Friday e lançamento.
                                         </p>
                                     </div>
                                 </div>
