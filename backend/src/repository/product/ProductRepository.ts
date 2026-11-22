@@ -83,11 +83,35 @@ export async function saveProductWithRelations(
     const safeProduct: Record<string, unknown> = { ...productValues };
     if ('saleStart' in safeProduct) safeProduct.saleStart = toDateOrNull(safeProduct.saleStart);
     if ('saleEnd' in safeProduct) safeProduct.saleEnd = toDateOrNull(safeProduct.saleEnd);
+    if ('promoProgInicio' in safeProduct) safeProduct.promoProgInicio = toDateOrNull(safeProduct.promoProgInicio);
+    if ('promoProgFim' in safeProduct) safeProduct.promoProgFim = toDateOrNull(safeProduct.promoProgFim);
+    // Estas duas são do job do desconto programado, nunca da tela.
+    delete safeProduct.promoProgAplicada;
+    delete safeProduct.promoProgPrecoNormal;
 
     return db.transaction(async (tx) => {
 
         let savedId: string;
         if (productId) {
+            // Desconto programado no ar: o sale_price do banco é o preço ESPECIAL
+            // (posto pelo job) e a tela mostra o preço do dia a dia. O que vier no
+            // campo de promoção é o preço do dia a dia — vai para o guardado, que é
+            // o que volta no fim. Sem isso, salvar o produto durante a Black Friday
+            // tirava o preço especial do ar.
+            const [atual] = await tx
+                .select({ aplicada: products.promoProgAplicada })
+                .from(products)
+                .where(eq(products.id, productId))
+                .for('update');
+            if (atual?.aplicada && 'salePrice' in safeProduct) {
+                safeProduct.promoProgPrecoNormal = safeProduct.salePrice;
+                delete safeProduct.salePrice;
+            }
+            // Lançamento ainda por vir: o produto fica fora da loja até o início.
+            const ini = safeProduct.promoProgInicio as Date | null | undefined;
+            if (!atual?.aplicada && safeProduct.promoProgLancamento && safeProduct.promoProgPreco != null && ini && ini > new Date()) {
+                safeProduct.active = false; // a loja esconde pelo active, não pelo visible_in_store
+            }
             const [updated] = await tx
                 .update(products)
                 .set({ ...(safeProduct as ProductInsert), updatedAt: new Date() })
@@ -96,6 +120,10 @@ export async function saveProductWithRelations(
             if (!updated) throw new Error('PRODUCT_NOT_FOUND');
             savedId = updated.id;
         } else {
+            const ini = safeProduct.promoProgInicio as Date | null | undefined;
+            if (safeProduct.promoProgLancamento && safeProduct.promoProgPreco != null && ini && ini > new Date()) {
+                safeProduct.active = false; // a loja esconde pelo active, não pelo visible_in_store
+            }
             const [created] = await tx.insert(products).values(safeProduct as ProductInsert).returning({ id: products.id });
             savedId = created.id;
         }

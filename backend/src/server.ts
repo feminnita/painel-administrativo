@@ -21,6 +21,7 @@ import { melhorEnvioRoutes } from './routes/integrations/MelhorEnvioRoutes';
 import { startMeTokenRefreshJob } from './integrations/melhorEnvio/RefreshJob';
 import { startBlingTokenRefreshJob } from './integrations/bling/RefreshJob';
 import { startEnvioAutomatico } from './jobs/envioAutomatico.Job';
+import { startDescontoProgramado } from './jobs/descontoProgramado.Job';
 import { iniciarBackupDiario } from './services/backup/BackupService';
 import { adminCartRoutes } from './routes/carts/CartRouter';
 import { adminPostagensRoutes } from './routes/tracking/PostagensRoutes';
@@ -120,6 +121,7 @@ app.listen(PORT, HOST, () => {
   startMeTokenRefreshJob();
   startBlingTokenRefreshJob();
   startEnvioAutomatico();
+  startDescontoProgramado();
   iniciarBackupDiario();
 });
 

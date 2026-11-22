@@ -16,9 +16,18 @@ export function mapApiProduct(p: ApiProduct): AdminProduct {
     base_price: Number(p.basePrice) || 0,
     cost_price: p.costPrice == null ? null : Number(p.costPrice),
     pix_price: p.pixPrice == null ? null : Number(p.pixPrice),
-    sale_price: p.salePrice == null ? null : Number(p.salePrice),
+    // Com o desconto programado no ar, o sale_price do banco é o preço ESPECIAL;
+    // o campo "Preço em promoção" da tela mostra o do dia a dia, que está guardado.
+    sale_price: p.promoProgAplicada
+      ? (p.promoProgPrecoNormal == null ? null : Number(p.promoProgPrecoNormal))
+      : (p.salePrice == null ? null : Number(p.salePrice)),
     sale_start: p.saleStart ?? null,
     sale_end: p.saleEnd ?? null,
+    promo_prog_preco: p.promoProgPreco == null ? null : Number(p.promoProgPreco),
+    promo_prog_inicio: p.promoProgInicio ?? null,
+    promo_prog_fim: p.promoProgFim ?? null,
+    promo_prog_lancamento: Boolean(p.promoProgLancamento),
+    promo_prog_aplicada: Boolean(p.promoProgAplicada),
     stock: p.stock ?? 0,
     active: p.active ?? true,
     visible_in_store: p.visibleInStore ?? true,
@@ -56,6 +65,10 @@ export function toApiProduct(f: ProductInput): Record<string, unknown> {
     salePrice: f.sale_price,
     saleStart: f.sale_start,
     saleEnd: f.sale_end,
+    promoProgPreco: f.promo_prog_preco,
+    promoProgInicio: f.promo_prog_inicio,
+    promoProgFim: f.promo_prog_fim,
+    promoProgLancamento: f.promo_prog_lancamento,
     stock: f.stock,
     active: f.active,
     visibleInStore: f.visible_in_store,

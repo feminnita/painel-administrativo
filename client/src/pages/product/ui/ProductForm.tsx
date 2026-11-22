@@ -21,6 +21,7 @@ import {
     Trash2,
     Wand2,
     Percent,
+    CalendarClock,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { slugify, normColor, parseDecimal, sizeRank } from "../domain";
@@ -355,6 +356,29 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
     const salePct = discountPct(editing.base_price, editing.sale_price);
     const promoOn = editing.sale_price != null;
 
+    // Desconto programado
+    const progOn = editing.promo_prog_preco != null;
+    const progPct = discountPct(editing.base_price, editing.promo_prog_preco);
+    const ms = (iso: string | null) => (iso ? new Date(iso).getTime() : 0);
+    const fmtData = (iso: string | null) =>
+        iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+    const progAviso = (() => {
+        if (!progOn) return "";
+        if (!editing.promo_prog_inicio || !editing.promo_prog_fim) return "Preencha quando começa e quando termina.";
+        if (ms(editing.promo_prog_fim) <= ms(editing.promo_prog_inicio)) return "O fim está antes do começo.";
+        if (editing.promo_prog_preco != null && editing.promo_prog_preco >= editing.base_price) return "O preço especial não está abaixo do preço riscado.";
+        return "";
+    })();
+    const progStatus = (() => {
+        if (!progOn || progAviso) return "";
+        const agora = Date.now();
+        if (ms(editing.promo_prog_fim) <= agora) return `Encerrado em ${fmtData(editing.promo_prog_fim)}. Já voltou ao preço de hoje.`;
+        if (editing.promo_prog_aplicada) return `🟢 No ar no site até ${fmtData(editing.promo_prog_fim)}.`;
+        if (ms(editing.promo_prog_inicio) <= agora) return "Entra no ar logo depois de salvar.";
+        return `🕒 Programado: entra ${fmtData(editing.promo_prog_inicio)} e sai ${fmtData(editing.promo_prog_fim)}.`
+            + (editing.promo_prog_lancamento ? " Até lá o produto fica escondido no site." : "");
+    })();
+
     // Marcadores (flags no produto), independentes entre si e da categoria.
     // Lançamento/Mais Vendido/Outlet voltaram a ser MARCADORES (não mais
     // categorias homônimas, que foram desativadas).
@@ -416,7 +440,8 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={saving || !editing.name}
+                            disabled={saving || !editing.name || Boolean(progAviso)}
+                            title={progAviso || undefined}
                             className="flex items-center gap-2 rounded-lg bg-[#8C2F39] px-6 py-2 text-sm font-semibold text-white hover:bg-[#7a2832] disabled:opacity-50"
                         >
                             <Save size={15} />
@@ -849,6 +874,103 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                         />
                                     </div>
                                 </div>
+                            )}
+                        </div>
+
+                        {/* Desconto programado (22/11): preço especial numa data marcada.
+                            O servidor põe no ar no início e devolve o preço do dia a dia no fim. */}
+                        <div className="mt-4 rounded-lg border border-gray-100 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <CalendarClock size={15} className="text-gray-400" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            Desconto programado
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Preço especial numa data marcada (promoção do grupo VIP, Black Friday, lançamento). No fim volta sozinho para o preço de hoje.
+                                        </p>
+                                    </div>
+                                </div>
+                                <ToggleSwitch
+                                    checked={progOn}
+                                    onChange={() =>
+                                        setEditing({
+                                            ...editing,
+                                            promo_prog_preco: progOn ? null : (editing.sale_price ?? editing.base_price),
+                                            promo_prog_inicio: progOn ? null : editing.promo_prog_inicio,
+                                            promo_prog_fim: progOn ? null : editing.promo_prog_fim,
+                                            promo_prog_lancamento: progOn ? false : editing.promo_prog_lancamento,
+                                        })
+                                    }
+                                />
+                            </div>
+                            {progOn && (
+                                <>
+                                    <div className="mt-4 grid gap-4 md:grid-cols-3">
+                                        <div>
+                                            <label className="label">Preço especial (R$)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={editing.promo_prog_preco ?? ""}
+                                                onChange={(e) =>
+                                                    setEditing({
+                                                        ...editing,
+                                                        promo_prog_preco: parseDecimal(e.target.value),
+                                                    })
+                                                }
+                                                className="input"
+                                            />
+                                            {progPct != null && (
+                                                <p className="mt-1 text-xs font-semibold text-green-600">
+                                                    {progPct}% de desconto sobre o riscado
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="label">Começa em</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={toLocalInput(editing.promo_prog_inicio)}
+                                                onChange={(e) =>
+                                                    setEditing({
+                                                        ...editing,
+                                                        promo_prog_inicio: fromLocalInput(e.target.value),
+                                                    })
+                                                }
+                                                className="input"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label">Termina em</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={toLocalInput(editing.promo_prog_fim)}
+                                                onChange={(e) =>
+                                                    setEditing({
+                                                        ...editing,
+                                                        promo_prog_fim: fromLocalInput(e.target.value),
+                                                    })
+                                                }
+                                                className="input"
+                                            />
+                                        </div>
+                                    </div>
+                                    <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={editing.promo_prog_lancamento}
+                                            onChange={(e) =>
+                                                setEditing({ ...editing, promo_prog_lancamento: e.target.checked })
+                                            }
+                                        />
+                                        Lançamento: o produto só aparece no site quando começar
+                                    </label>
+                                    {progAviso && <p className="mt-2 text-xs font-semibold text-red-600">{progAviso}</p>}
+                                    {progStatus && <p className="mt-2 text-xs font-semibold text-gray-600">{progStatus}</p>}
+                                </>
                             )}
                         </div>
                     </section>
@@ -1923,7 +2045,8 @@ Se alguma dessas você já apagou antes, clique em Cancelar — ela voltaria em 
                 </button>
                 <button
                     onClick={handleSave}
-                    disabled={saving || !editing.name}
+                    disabled={saving || !editing.name || Boolean(progAviso)}
+                    title={progAviso || undefined}
                     className="flex items-center gap-2 rounded-lg bg-[#8C2F39] px-8 py-3 font-semibold text-white hover:bg-[#7a2832] disabled:opacity-50"
                 >
                     <Save size={18} />
