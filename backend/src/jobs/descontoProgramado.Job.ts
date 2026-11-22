@@ -14,9 +14,8 @@ import { db } from '../config/db';
  * promo_prog_preco_normal e põe o especial no lugar; no fim, devolve o guardado.
  * A loja não precisou mudar: ela continua lendo sale_price.
  *
- * Lançamento: o produto fica fora da loja (active = false, posto ao
- * salvar) e aparece no início, já com o preço especial. No fim só o preço volta;
- * o produto fica na loja.
+ * O produto nunca sai da loja por causa disso: só o preço muda (Chris 22/11:
+ * "não existe essa história de ficar escondido").
  *
  * Roda de minuto em minuto. Cada passo é um UPDATE com a condição dentro, então
  * rodar duas vezes não faz nada a mais e um passo não pisa no outro.
@@ -37,7 +36,7 @@ export async function rodarDescontoProgramado(): Promise<void> {
             promo_prog_preco_normal = sale_price,
             sale_price = promo_prog_preco,
             promo_prog_aplicada = true,
-            active = case when promo_prog_lancamento then true else active end,
+
             updated_at = now()
         where promo_prog_aplicada = false
           and promo_prog_preco is not null
@@ -58,14 +57,6 @@ export async function rodarDescontoProgramado(): Promise<void> {
           and (promo_prog_fim is null or promo_prog_fim > now())
           and sale_price is distinct from promo_prog_preco
         returning code, name`);
-
-    // 2b. Lançamento no ar que alguém desativou salvando uma tela aberta antes do
-    //     início: volta a aparecer. (Para tirar um lançamento do ar, cancela o desconto.)
-    await db.execute(sql`
-        update products set active = true, updated_at = now()
-        where promo_prog_aplicada = true and promo_prog_lancamento = true and active = false
-          and promo_prog_inicio <= now()
-          and (promo_prog_fim is null or promo_prog_fim > now())`);
 
     // 3. Fora da janela (acabou, foi cancelado ou a data mudou) e ainda no ar -> devolve o preço do dia a dia.
     const saiu = await db.execute<Linha>(sql`

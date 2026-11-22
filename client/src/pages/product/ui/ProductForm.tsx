@@ -376,7 +376,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
         if (editing.promo_prog_aplicada) return `🟢 No ar no site até ${fmtData(editing.promo_prog_fim)}.`;
         if (ms(editing.promo_prog_inicio) <= agora) return "Entra no ar logo depois de salvar.";
         return `🕒 Programado: entra ${fmtData(editing.promo_prog_inicio)} e sai ${fmtData(editing.promo_prog_fim)}.`
-            + (editing.promo_prog_lancamento ? " Até lá o produto fica escondido no site." : "");
+;
     })();
 
     // Marcadores (flags no produto), independentes entre si e da categoria.
@@ -888,7 +888,7 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             Promoção especial (com data)
                                         </p>
                                         <p className="text-xs text-amber-700">
-                                            Separada do preço em promoção acima. Na data marcada o site passa a cobrar este preço e, no fim, volta sozinho ao preço de hoje. Para grupo VIP, Black Friday e lançamento.
+                                            Separada do preço em promoção acima. Na data marcada o site passa a cobrar este preço e, no fim, volta sozinho ao preço de hoje. Só muda o preço; o produto continua no site normalmente.
                                         </p>
                                     </div>
                                 </div>
@@ -900,7 +900,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             promo_prog_preco: progOn ? null : (editing.sale_price ?? editing.base_price),
                                             promo_prog_inicio: progOn ? null : editing.promo_prog_inicio,
                                             promo_prog_fim: progOn ? null : editing.promo_prog_fim,
-                                            promo_prog_lancamento: progOn ? false : editing.promo_prog_lancamento,
                                         })
                                     }
                                 />
@@ -958,16 +957,6 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                             />
                                         </div>
                                     </div>
-                                    <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={editing.promo_prog_lancamento}
-                                            onChange={(e) =>
-                                                setEditing({ ...editing, promo_prog_lancamento: e.target.checked })
-                                            }
-                                        />
-                                        Lançamento: o produto só aparece no site quando começar
-                                    </label>
                                     {progAviso && <p className="mt-2 text-xs font-semibold text-red-600">{progAviso}</p>}
                                     {progStatus && <p className="mt-2 text-xs font-semibold text-gray-600">{progStatus}</p>}
                                 </>
