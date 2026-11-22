@@ -107,11 +107,6 @@ export async function saveProductWithRelations(
                 safeProduct.promoProgPrecoNormal = safeProduct.salePrice;
                 delete safeProduct.salePrice;
             }
-            // Lançamento ainda por vir: o produto fica fora da loja até o início.
-            const ini = safeProduct.promoProgInicio as Date | null | undefined;
-            if (!atual?.aplicada && safeProduct.promoProgLancamento && safeProduct.promoProgPreco != null && ini && ini > new Date()) {
-                safeProduct.active = false; // a loja esconde pelo active, não pelo visible_in_store
-            }
             const [updated] = await tx
                 .update(products)
                 .set({ ...(safeProduct as ProductInsert), updatedAt: new Date() })
@@ -120,10 +115,6 @@ export async function saveProductWithRelations(
             if (!updated) throw new Error('PRODUCT_NOT_FOUND');
             savedId = updated.id;
         } else {
-            const ini = safeProduct.promoProgInicio as Date | null | undefined;
-            if (safeProduct.promoProgLancamento && safeProduct.promoProgPreco != null && ini && ini > new Date()) {
-                safeProduct.active = false; // a loja esconde pelo active, não pelo visible_in_store
-            }
             const [created] = await tx.insert(products).values(safeProduct as ProductInsert).returning({ id: products.id });
             savedId = created.id;
         }
