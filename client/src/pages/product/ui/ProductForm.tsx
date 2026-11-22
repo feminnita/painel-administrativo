@@ -24,6 +24,7 @@ import {
     CalendarClock,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
+import { EtiquetaPromo } from "./EtiquetaPromo";
 import { slugify, normColor, parseDecimal, sizeRank } from "../domain";
 import { BRANDS } from "../types";
 import type { Sku } from "../types";
@@ -982,17 +983,16 @@ export function ProductForm({ vm }: { vm: ProductsVM }) {
                                         {editing.promo_prog_preco == null && (
                                             <p className="mt-3 text-xs font-semibold text-amber-700">Digite o preço especial acima: o % OFF da etiqueta é calculado na hora, sobre o preço cheio.</p>
                                         )}
-                                        <div className="mt-3 inline-flex items-stretch overflow-hidden rounded-md text-sm shadow-sm">
-                                            {progPct != null && (
-                                                <span className="flex items-center bg-[#1f1f1f] px-3 py-1.5 text-lg font-extrabold text-white">
-                                                    {progPct}% OFF
-                                                </span>
-                                            )}
-                                            <span className="flex items-center bg-[#d92d20] px-3 py-1.5 font-bold uppercase text-white">
-                                                {(editing.promo_prog_selo || "").trim() || "Oferta especial"}
-                                            </span>
+                                        <div className="mt-3 flex flex-wrap items-end gap-6">
+                                            <EtiquetaPromo
+                                                selo={(editing.promo_prog_selo || "").trim() || "Oferta especial"}
+                                                pct={progPct ?? 0}
+                                                termina={editing.promo_prog_fim ? `termina ${new Date(new Date(editing.promo_prog_fim).getTime() - 60000).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}` : null}
+                                                pincel="font-pincel"
+                                            />
+                                            <EtiquetaPromo selo={(editing.promo_prog_selo || "").trim() || "Oferta especial"} pct={progPct ?? 0} compacta pincel="font-pincel" />
                                         </div>
-                                        <p className="mt-1 text-xs text-amber-700">Assim aparece no site, em cima do preço, só enquanto a promoção estiver valendo. O % é sobre o preço cheio.</p>
+                                        <p className="mt-1 text-xs text-amber-700">Assim aparece no site: a grande na página do produto, a pequena na vitrine e no carrinho. Só enquanto a promoção estiver valendo. O % é sobre o preço cheio.</p>
                                     </div>
                                     {progAviso && <p className="mt-2 text-xs font-semibold text-red-600">{progAviso}</p>}
                                     {progStatus && <p className="mt-2 text-xs font-semibold text-gray-600">{progStatus}</p>}
